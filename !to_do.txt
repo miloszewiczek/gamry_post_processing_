@@ -1,0 +1,5 @@
+1. Wrzucenie wszystkich stringów w osobny plik.
+2. Wrzucenie wszystkich parametrów w osobny plik.
+3. Switch case zamiast elif.
+4. Zdefiniować mniejsze funkcji zamiast kobył i dodać najlepiej do osobnych plików.
+5. Zdefiniować obiekt składający się z nazwy eksperymentu i parametrów.
