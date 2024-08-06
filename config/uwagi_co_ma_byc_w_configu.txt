@@ -1,0 +1,4 @@
+tutaj użytkownik będzie zmieniać rzeczy. 
+JEDYNY PLIK, który użytkownik ma dotykać!
+Inna metoda, inna ścieżka, to ma zrobić to tutaj.
+
