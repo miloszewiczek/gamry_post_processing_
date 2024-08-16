@@ -26,7 +26,7 @@ def print_current_status_wrapper(experiment, function):
     def status():
 
         print(f'Beginning to work on {experiment}')
-        
+        #Zamiast function zdefiniowanego oddzielnie, można po prostu zdefiniować metodę w klasie Experiment. W ten sposób od razu dostaniemy się do atrybutu TAG i zarazem experiment do wrappera
         function()
 
         print(f'Ended working on {experiment}')
