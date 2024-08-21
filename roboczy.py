@@ -1,6 +1,8 @@
 from defines import *
 
-FileDic = FileDictionary()
-
-File_List = FileDic.GetFilesFromFolder('input')
-FileDic.Load_And_Sort_Experiments()
+x = GetFilesFromFolder('input')
+print(x)
+print(x[1])
+y = LoadFile(x[1])
+print(y)
+y.Double_Layer_Capacitance_Integral(1,1)

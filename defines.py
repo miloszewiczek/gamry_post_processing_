@@ -6,6 +6,9 @@ from tkinter.filedialog import askdirectory
 import os
 from glob import glob
 import re
+import numpy as np
+
+
 
 DTA_Parser = gamry_parser.GamryParser()
 Experiments = {}
@@ -36,13 +39,6 @@ def print_current_status_wrapper(experiment, function):
     
     return status()
 
-
-def print_hello():
-    print('Hello')
-
-
-
-
 def log_modification(func):
     def wrapper(obj, *args, **kwargs):
         # Przed modyfikacją
@@ -57,21 +53,18 @@ def log_modification(func):
         return result
     return wrapper
 
-class FileDictionary:
-    def __init__(self):
-        pass
     
     
         
 
 class Experiment:
-    def __init__(self, tag, data, cycle_number):
+    def __init__(self, header, data, cycle_number):
         
-        self.Experiment_TAG = tag
+        self.Header = header
         self.Data = data
         self.Cycle_number = cycle_number
     
-    def ModifyDataframes(self, Geometric_Area, Reference_electrode_potential):
+    def Modify_Dataframes(self, Geometric_Area, Reference_electrode_potential):
         '''Depending on the TAG of the experiment, different data modifications are performed'''
 
         match self.Experiment_TAG:
@@ -89,10 +82,27 @@ class Experiment:
                 for DataDataframe in self.Data:
                     DataDataframe.rename(columns={'Zreal':'Z','Zimag': 'Z\''})
                     DataDataframe_modified = DataDataframe[['Zreal','Z\'']]
+        
+    def Double_Layer_Capacitance_Integral(self, Geometric_Area, Scan_Rate):
+        '''When the TAG is ECSA, CDL is calculated via integration and current differences at specified potential'''
+
+        for DataDataframe in self.Data:
+            Scan_Rate = self.Header['SCANRATE']
+            Potential_Window = abs(self.Header['VINIT'] - self.Header['VLIMIT1'])
+            x = DataDataframe.loc[0:400]
+            y = DataDataframe.loc[400:]
+            
+            
+            CDL_Integral = np.trapz(abs(x['Im']), x['Vf'])
+            print(CDL_Integral)
+            CDL_Integral2 = np.trapz(y['Im'], y['Vf'])
+            diff = CDL_Integral - CDL_Integral2
+            print(diff)
+            
+        
 
 
-
-    def ChangeUnits(self):
+    def Change_Units(self):
         pass
 
     def SaveToExcel(self):
@@ -119,19 +129,13 @@ def LoadFile(file_path):
     if len(Curves_List[-1].index) == 1:
         Curves_List = Curves_List[:-1]
 
-    Experiment_TAG = File_Header['TITLE']
-
-
     #CHECK CYCLE BASED ON NAME
     Cycle_number = re.search('#[1-9]+_#', file_path)
     if Cycle_number != None:
         Cycle_number = Cycle_number.group(0)[1]
-    Exp = Experiment(Experiment_TAG,
+    Exp = Experiment(File_Header,
                      Curves_List,
                      Cycle_number)
-    
-    #Appends the tag to a global variable to avoid iterating over every object in next steps
-    Experiments.append(Experiment_TAG)
 
     return Exp
 
