@@ -8,7 +8,7 @@ from glob import glob
 import re
 
 DTA_Parser = gamry_parser.GamryParser()
-Experiments = []
+Experiments = {}
 
 class stale:
     pi_constant = pi
@@ -57,6 +57,13 @@ def log_modification(func):
         return result
     return wrapper
 
+class FileDictionary:
+    def __init__(self):
+        pass
+    
+    
+        
+
 class Experiment:
     def __init__(self, tag, data, cycle_number):
         
@@ -64,22 +71,26 @@ class Experiment:
         self.Data = data
         self.Cycle_number = cycle_number
     
-    def Modify(self):
+    def ModifyDataframes(self, Geometric_Area, Reference_electrode_potential):
         '''Depending on the TAG of the experiment, different data modifications are performed'''
-        Exp_Tag = self.Experiment_TAG
-        match Exp_Tag:
-            
-            case "HER" | "OER":
-                #Modifications
-                pass
-            
-            case "ECSA" | "Electrochemical Surface Area":
-                
-                print('Jestem ECSA, Co mam zrobić?')
 
-            case "CHRONOA":
-                pass
-        pass
+        match self.Experiment_TAG:
+            case "HER" | "OER" | "CHRONOP" | "CHRONOA" | "STABILITY" | "ECSA":
+                for DataDataframe in self.Data:
+                    DataDataframe.rename(columns={'Im': 'i', 'Vf': 'E vs REF'}, inplace=True)
+                    DataDataframe.loc[:, 'J(GEOMETRIC)'] = DataDataframe['i']/Geometric_Area
+                    DataDataframe.loc[:, 'E(iR) vs RHE'] = DataDataframe['E vs REF'] + Reference_electrode_potential - DataDataframe['i']* stale.uncompensated_resistance
+                    DataDataframe_modified = DataDataframe[['i', 'E vs REF', 'E(iR) vs RHE']]
+                    if self.Experiment_TAG == 'STABILITY' or "CHRONOP":
+                        DataDataframe_modified['T'] = DataDataframe['T']
+            
+            case 'EIS':
+
+                for DataDataframe in self.Data:
+                    DataDataframe.rename(columns={'Zreal':'Z','Zimag': 'Z\''})
+                    DataDataframe_modified = DataDataframe[['Zreal','Z\'']]
+
+
 
     def ChangeUnits(self):
         pass
@@ -91,12 +102,11 @@ class Experiment:
         pass
 
 def GetFilesFromFolder(folder_path):
-    '''A function to get file paths of *.DTA files of a given folder. Also checks for empty files'''
+        '''A function to get file paths of *.DTA files of a given folder. Also checks for empty files'''
 
-    DTA_files = glob(folder_path + '/*.DTA')
-    non_empty_DTA_files = [file for file in DTA_files if os.stat(file).st_size != 0]
-    print(non_empty_DTA_files)
-    return non_empty_DTA_files
+        DTA_files = glob(folder_path + '/*.DTA')
+        non_empty_DTA_files = [file for file in DTA_files if os.stat(file).st_size != 0]
+        return non_empty_DTA_files
 
 def LoadFile(file_path):
     '''Function to load file from string, creating TAG and list of curves'''
@@ -104,6 +114,11 @@ def LoadFile(file_path):
     DTA_Parser.load(file_path)
     File_Header = DTA_Parser.get_header()
     Curves_List = DTA_Parser.get_curves()
+    
+    #GETS RID OF SINGLE-POINT CURVES (GAMRY SOFTWARE BuG) 
+    if len(Curves_List[-1].index) == 1:
+        Curves_List = Curves_List[:-1]
+
     Experiment_TAG = File_Header['TITLE']
 
 
