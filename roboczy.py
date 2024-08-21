@@ -1,5 +1,6 @@
 from defines import *
 
-x = GetFilesFromFolder('input')
-y = LoadFile(x[2])
-y.Modify()
+FileDic = FileDictionary()
+
+File_List = FileDic.GetFilesFromFolder('input')
+FileDic.Load_And_Sort_Experiments()

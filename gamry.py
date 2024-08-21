@@ -49,6 +49,7 @@ def get_area(area, i):
     elif int(area_val) - 1 == 2:
         try:
             area_val = float(input('Please input custom area in [cm2]\n'))
+            return area_val
         except ValueError:
             print('\nPlease enter a float value! Restarting.')
             i++1
