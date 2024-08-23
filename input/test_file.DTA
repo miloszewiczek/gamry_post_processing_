@@ -1,6 +1,6 @@
 EXPLAIN
 TAG	LSV
-TITLE	LABEL	Linear Sweep Voltammetry - POWROT	Test Identifier
+TITLE	LABEL	LSV	Test Identifier
 DATE	LABEL	11/7/2023	Date
 TIME	LABEL	10:54:18	Time
 NOTES	NOTES	1	Notes...

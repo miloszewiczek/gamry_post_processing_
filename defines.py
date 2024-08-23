@@ -7,6 +7,9 @@ import os
 from glob import glob
 import re
 import numpy as np
+from scipy import integrate
+import pandas as pd
+import openpyxl
 
 
 
@@ -54,9 +57,6 @@ def log_modification(func):
     return wrapper
 
     
-    
-        
-
 class Experiment:
     def __init__(self, header, data, cycle_number):
         
@@ -67,15 +67,18 @@ class Experiment:
     def Modify_Dataframes(self, Geometric_Area, Reference_electrode_potential):
         '''Depending on the TAG of the experiment, different data modifications are performed'''
 
-        match self.Experiment_TAG:
-            case "HER" | "OER" | "CHRONOP" | "CHRONOA" | "STABILITY" | "ECSA":
+        TAG = self.Header['TITLE']
+        match TAG:
+            case "HER" | "OER" | "CHRONOP" | "CHRONOA" | "STABILITY" | "ECSA" | "LSV":
                 for DataDataframe in self.Data:
-                    DataDataframe.rename(columns={'Im': 'i', 'Vf': 'E vs REF'}, inplace=True)
-                    DataDataframe.loc[:, 'J(GEOMETRIC)'] = DataDataframe['i']/Geometric_Area
-                    DataDataframe.loc[:, 'E(iR) vs RHE'] = DataDataframe['E vs REF'] + Reference_electrode_potential - DataDataframe['i']* stale.uncompensated_resistance
-                    DataDataframe_modified = DataDataframe[['i', 'E vs REF', 'E(iR) vs RHE']]
-                    if self.Experiment_TAG == 'STABILITY' or "CHRONOP":
-                        DataDataframe_modified['T'] = DataDataframe['T']
+                    DataDataframe_modified = DataDataframe.copy()
+                    DataDataframe_modified.rename(columns={'Im': 'i', 'Vf': 'E vs REF'}, inplace=True)
+                    DataDataframe_modified.loc[:, 'J(GEOMETRIC)'] = DataDataframe_modified['i']/Geometric_Area
+                    DataDataframe_modified.loc[:, 'E(iR) vs RHE'] = DataDataframe_modified['E vs REF'] + Reference_electrode_potential - DataDataframe_modified['i']* stale.uncompensated_resistance
+                    DataDataframe_modified = DataDataframe_modified[['E vs REF', 'E(iR) vs RHE', 'i']]
+
+                    if TAG == "STABILITY" or TAG == "CHRONOA" or TAG == 'CHRONOP':
+                        DataDataframe_modified.insert(0,'T',DataDataframe['T'])
             
             case 'EIS':
 
@@ -83,24 +86,67 @@ class Experiment:
                     DataDataframe.rename(columns={'Zreal':'Z','Zimag': 'Z\''})
                     DataDataframe_modified = DataDataframe[['Zreal','Z\'']]
         
-    def Double_Layer_Capacitance_Integral(self, Geometric_Area, Scan_Rate):
-        '''When the TAG is ECSA, CDL is calculated via integration and current differences at specified potential'''
+
+    def Charge_Integral(self):
+        '''When the TAG is ECSA, total charge is calculated via integration of current over potential applied potential'''
+        
+        Areas_tmp = []
 
         for DataDataframe in self.Data:
-            Scan_Rate = self.Header['SCANRATE']
-            Potential_Window = abs(self.Header['VINIT'] - self.Header['VLIMIT1'])
-            x = DataDataframe.loc[0:400]
-            y = DataDataframe.loc[400:]
-            
-            
-            CDL_Integral = np.trapz(abs(x['Im']), x['Vf'])
-            print(CDL_Integral)
-            CDL_Integral2 = np.trapz(y['Im'], y['Vf'])
-            diff = CDL_Integral - CDL_Integral2
-            print(diff)
-            
-        
 
+            Potential_Data = DataDataframe['Vf']
+            Сurrent_Data = DataDataframe['Im']
+            Max_Potential = Potential_Data.idxmax()
+            
+            Integral_Scan_Forward = np.trapz(abs(Сurrent_Data.loc[:Max_Potential + 1]), Potential_Data.loc[:Max_Potential + 1])
+            Integral_Scan_Backward = np.trapz(abs(Сurrent_Data.loc[Max_Potential+1:]), Potential_Data.loc[Max_Potential+1:])   
+            Integral_Area = abs(Integral_Scan_Forward - Integral_Scan_Backward)   
+            Areas_tmp.append(Integral_Area)
+
+        return np.mean(Areas_tmp)
+
+    def Calculate_Specific_Capacitance(self, Charge_Integral, Geometric_Area):
+        '''A function to calculate specific capacitance in F/cm2 according to equation:
+        Cs = Q/(2*A*Scan_rate*Potential_Window), where Q is calculated with Charge_Integral function'''
+
+        Scan_Rate = self.Header['SCANRATE']
+        Potential_Window = abs(self.Header['VINIT'] - self.Header['VLIMIT1'])
+        Specific_Capacitance = Charge_Integral/(2 * Geometric_Area * Potential_Window * Scan_Rate)
+        
+        return Specific_Capacitance
+        
+    def Calculate_CDL_from_slope(self, *args):
+        '''A function to calculate the difference in current at fixed potentials in non-faraday region.
+        An alternative to calculate the specific capacitance.
+        Supplying multiple values to this function calculates multiple current differences'''
+
+        Currents_Rows = []
+        Scan_Rate = self.Header['SCANRATE']
+        Potential_1 = self.Header['VINIT']
+        Potential_2 = self.Header['VLIMIT1']
+
+        for DataDataframe in self.Data:
+            
+            Currents_Columns = []
+            Current_Potential_Data = DataDataframe[['Vf','Im']]
+
+            for Calculation_Potential in args:
+
+                assert (Calculation_Potential <= max(Potential_1, Potential_2)) and (Calculation_Potential >= min(Potential_1, Potential_2)), "The provided potential to calculate difference in currents is out of range"
+                Currents = Current_Potential_Data.iloc[(Current_Potential_Data['Vf']-Calculation_Potential).abs().argsort()[:2]]
+                Currents = Currents.diff()
+                Currents = Currents.iloc[-1,-1]
+                Currents_Columns.append(Currents)
+
+            Currents_Rows.append(Currents_Columns)
+        
+        Index_Names = ['Curve ' + str(i) for i in range(len(self.Data))]
+        Column_Names = [str(arg)+' V' for arg in args]
+        Current_DataFrame = pd.DataFrame(Currents_Rows, columns = Column_Names, index = Index_Names)
+        Current_DataFrame.loc['Mean'] = Current_DataFrame.mean()
+        Current_DataFrame.loc['Standard Deviation'] = Current_DataFrame.std()
+        
+        return Current_DataFrame
 
     def Change_Units(self):
         pass

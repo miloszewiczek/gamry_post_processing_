@@ -255,7 +255,10 @@ def create_ecsa_dfs(ecsa_files):
         b, a = polyfit(ecsa["Scanrate"], ecsa["dj"], 1)
         
         #ROUGHNESS FACTOR. IT'S ECSA DIVIDED BY THE GEOMETRIC AREA
-        ecsa['C_DL/area [mF/cm2]'] = a/area
+        ecsa['area'] = area
+        ecsa['C_DL/area [F/cm2]'] = a/area
+        ecsa['ECSA [cm2]'] = a/c_specific*1000
+        ecsa['RF [ - ]'] = a/c_specific/area*1000
         ecsa['Ru [Ohm]'] = Ru_cycle
         ecsa['E_di [mV]'] = di_E
         return cv, ecsa, (b,a)
