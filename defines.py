@@ -14,6 +14,39 @@ import openpyxl
 
 
 DTA_Parser = gamry_parser.GamryParser()
+
+class Collection_Manager():
+    def __init__(self):
+        self.Collections = []
+    
+    def Add_Experiment(self, experiment):
+
+        Matching_Collection = None
+
+        for Collection in self.Collections:
+            if any(Exp.Cycle_Number == experiment.Cycle_Number for Exp in Collection.Experiments):
+                Matching_Collection = Collection
+
+        if Matching_Collection is None:
+            New_Collection = Experiment_Collection()
+            self.Collections.append(New_Collection)
+            New_Collection.Add_Experiment(experiment)
+        elif Matching_Collection:
+            Matching_Collection.Add_Experiment(experiment)
+    
+    def print_experiments(self):
+        for coll in self.Collections:
+            print(coll.Experiments)
+
+class Experiment_Collection():
+    def __init__(self):
+        self.Experiments = []
+        self.Cycle_Number = None
+
+    def Add_Experiment(self, experiment):
+        self.Experiments.append(experiment)
+        experiment.Collection = self
+
 Experiments = {}
 
 class stale:
@@ -45,25 +78,25 @@ def print_current_status_wrapper(experiment, function):
 def log_modification(func):
     def wrapper(obj, *args, **kwargs):
         # Przed modyfikacją
-        print(f"Modifying {obj.Experiment_TAG}...")
+        print(f"Modifying {obj.Header['TAG']}...")
         
         # Wywołanie oryginalnej funkcji
         result = func(obj, *args, **kwargs)
         
         # Po modyfikacji
-        print(f"Modyfying {obj.Experiment_TAG}...DONE")
+        print(f"Modyfying {obj.Header['TAG']}...DONE")
         
         return result
     return wrapper
 
-    
-class Experiment:
+class Experiment():
     def __init__(self, header, data, cycle_number):
         
         self.Header = header
         self.Data = data
-        self.Cycle_number = cycle_number
-    
+        self.Cycle_Number = cycle_number
+        self.Collection = None
+
     def Modify_Dataframes(self, Geometric_Area, Reference_electrode_potential):
         '''Depending on the TAG of the experiment, different data modifications are performed'''
 
@@ -182,6 +215,13 @@ def LoadFile(file_path):
     Exp = Experiment(File_Header,
                      Curves_List,
                      Cycle_number)
+    
+    if Cycle_number not in Experiments:
+        Experiments[Cycle_number] = []
+        Experiments[Cycle_number].append(File_Header['TAG'])
+    else:
+        Experiments[Cycle_number].append(File_Header['TAG'])
+
 
     return Exp
 

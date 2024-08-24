@@ -9,10 +9,12 @@ FILEDICT = {"ECSA":r'input\CV_ECSA_#1_#2.DTA',
             "MYCIE": r'input\MYCIE_#1.DTA',
             "CHRONOP": r'input\CHRONOPOINTS_#1_#8.DTA'}
 Filepath = FILEDICT['ECSA']
-y = LoadFile(Filepath)
-y.Modify_Dataframes(1,0.1)
-print(y.Data[0])
-x = y.Charge_Integral()
-print(x)
-l = y.Calculate_CDL_from_slope(0)
-print(l)
+
+
+
+Files = GetFilesFromFolder('input')
+Manager = Collection_Manager()
+for file in Files:
+    Exp = LoadFile(file)
+    Manager.Add_Experiment(Exp)
+Manager.print_experiments()
