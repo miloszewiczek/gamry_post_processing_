@@ -11,43 +11,7 @@ from scipy import integrate
 import pandas as pd
 import openpyxl
 
-
-
 DTA_Parser = gamry_parser.GamryParser()
-
-class Collection_Manager():
-    def __init__(self):
-        self.Collections = []
-    
-    def Add_Experiment(self, experiment):
-
-        Matching_Collection = None
-
-        for Collection in self.Collections:
-            if any(Exp.Cycle_Number == experiment.Cycle_Number for Exp in Collection.Experiments):
-                Matching_Collection = Collection
-
-        if Matching_Collection is None:
-            New_Collection = Experiment_Collection()
-            self.Collections.append(New_Collection)
-            New_Collection.Add_Experiment(experiment)
-        elif Matching_Collection:
-            Matching_Collection.Add_Experiment(experiment)
-    
-    def print_experiments(self):
-        for coll in self.Collections:
-            print(coll.Experiments)
-
-class Experiment_Collection():
-    def __init__(self):
-        self.Experiments = []
-        self.Cycle_Number = None
-
-    def Add_Experiment(self, experiment):
-        self.Experiments.append(experiment)
-        experiment.Collection = self
-
-Experiments = {}
 
 class stale:
     pi_constant = pi
@@ -57,11 +21,16 @@ class stale:
                                       "Ag+/Ag": 0.35}
     
 class prompts:
-    electrode_area_prompt = 'Please enter the electrode area in [cm2]'
-    uncompensated_resistance_Ru_prompt = 'Please enter the Ru value in [Ohm]'
-    reference_electrode_offset_prompt = 'Please enter the potential of refernece electrode in [V]'
-    units_set_prompt = 'Please enter the unit for current and potential'
-    ECSA_potential_prompt = 'Please enter the potential for calculating the ECSA in [mV]'
+    electrode_area_prompt = 'Please enter the electrode area in [cm2]: '
+    uncompensated_resistance_Ru_prompt = 'Please enter the Ru value in [Ohm]: '
+    reference_electrode_offset_prompt = 'Please enter the potential of refernece electrode in [V]: '
+    units_set_prompt = 'Please enter the unit for current and potential: '
+    ECSA_potential_prompt = 'Please enter the potential for calculating the ECSA in [mV]: '
+
+class errors:
+    float_error = 'Wrong type of input data. Please input float number: '
+
+
 
 def print_current_status_wrapper(experiment, function):
 
@@ -90,8 +59,9 @@ def log_modification(func):
     return wrapper
 
 class Experiment():
-    def __init__(self, header, data, cycle_number):
+    def __init__(self, file_name, header, data, cycle_number):
         
+        self.File_Name = file_name
         self.Header = header
         self.Data = data
         self.Cycle_Number = cycle_number
@@ -148,7 +118,7 @@ class Experiment():
         
         return Specific_Capacitance
         
-    def Calculate_CDL_from_slope(self, *args):
+    def Calculate_CDL_From_Slope(self, *args):
         '''A function to calculate the difference in current at fixed potentials in non-faraday region.
         An alternative to calculate the specific capacitance.
         Supplying multiple values to this function calculates multiple current differences'''
@@ -178,6 +148,7 @@ class Experiment():
         Current_DataFrame = pd.DataFrame(Currents_Rows, columns = Column_Names, index = Index_Names)
         Current_DataFrame.loc['Mean'] = Current_DataFrame.mean()
         Current_DataFrame.loc['Standard Deviation'] = Current_DataFrame.std()
+        Current_DataFrame['SCANRATE'] = self.Header['SCANRATE']
         
         return Current_DataFrame
 
@@ -190,6 +161,91 @@ class Experiment():
     def PlotToRaport(self):
         pass
 
+class Experiment_Collection():
+    def __init__(self, cycle_number):
+
+        self.Experiments = {}
+        self.Cycle_Number = cycle_number
+        self.Uncompensated_Resistance = None
+
+    def Add_Experiment(self, experiment):
+        if experiment.Header['TITLE'] not in self.Experiments.keys():
+            self.Experiments[experiment.Header['TITLE']] = []
+        self.Experiments[experiment.Header['TITLE']].append(experiment)
+        experiment.Collection = self
+
+    def Set_Uncompensated_Resistance(self):
+
+        try:
+            self.Uncompensated_Resistance = float(input(prompts.uncompensated_resistance_Ru_prompt))
+        except ValueError:
+            print(errors.float_error)
+            self.Set_Uncompensated_Resistance()
+        else:
+            print('Set uncompensated resistance to: ', self.Uncompensated_Resistance, ' for cycle ', self.Cycle_Number)
+    
+    def Join_ECSA_DataFrames(self, *args):
+
+        ECSA_DataFrame = pd.DataFrame()
+        for ECSA_Experiment in self.Experiments["ECSA"]:
+            Single_Dataframe = ECSA_Experiment.Calculate_CDL_From_Slope(*args)
+            ECSA_DataFrame = pd.concat([ECSA_DataFrame, Single_Dataframe])
+        multi = pd.MultiIndex.from_arrays([ECSA_DataFrame["SCANRATE"], ECSA_DataFrame.index], names=["SCANRATE","CURVE_NUMERO"])
+        ECSA_DataFrame.index = multi
+        self.ECSA_DataFrame = ECSA_DataFrame
+
+    def Filter_ECSA_DataFrame(self, **kwargs):
+        
+        tmp_DataFrame = self.ECSA_DataFrame.copy()
+
+        if "Filtered_Curve" in kwargs:
+            Filtered_Curve_name = kwargs["Filtered_Curve"]
+            tmp_DataFrame = tmp_DataFrame.xs(Filtered_Curve_name, level = "CURVE_NUMERO")
+        
+        if "Scanrate" in kwargs:
+            Scanrate_threshold = kwargs["Scanrate"]
+            tmp_DataFrame = tmp_DataFrame.query(f"{Scanrate_threshold[0]} < SCANRATE < {Scanrate_threshold[1]}")
+        
+        if "Potential" in kwargs:
+            Potential_value = kwargs["Potential"]
+            tmp_DataFrame = tmp_DataFrame[Potential_value]
+        
+        return tmp_DataFrame
+    
+    def Calculate_CDL_From_Slope(self, **kwargs):
+
+        if 'DataFrame' in kwargs:
+            tmp = kwargs["DataFrame"].copy()
+        else:
+            tmp = self.ECSA_DataFrame.copy()
+
+        print(tmp.index.get_level_values("SCANRATE").tolist())
+
+
+class Collection_Manager():
+    def __init__(self):
+        self.Collections = []
+    
+    def Add_Experiment(self, experiment):
+
+        Matching_Collection = None
+
+        for Collection in self.Collections:
+            if Collection.Cycle_Number == experiment.Cycle_Number:
+                Matching_Collection = Collection
+                break
+
+        if Matching_Collection is None:
+            New_Collection = Experiment_Collection(cycle_number = experiment.Cycle_Number)
+            self.Collections.append(New_Collection)
+            New_Collection.Add_Experiment(experiment)
+        elif Matching_Collection:
+            Matching_Collection.Add_Experiment(experiment)
+    
+    def Print_Showcase(self):
+        for coll in self.Collections:
+            print(coll.Experiments)
+
 def GetFilesFromFolder(folder_path):
         '''A function to get file paths of *.DTA files of a given folder. Also checks for empty files'''
 
@@ -197,10 +253,10 @@ def GetFilesFromFolder(folder_path):
         non_empty_DTA_files = [file for file in DTA_files if os.stat(file).st_size != 0]
         return non_empty_DTA_files
 
-def LoadFile(file_path):
+def LoadFile(File_Path):
     '''Function to load file from string, creating TAG and list of curves'''
 
-    DTA_Parser.load(file_path)
+    DTA_Parser.load(File_Path)
     File_Header = DTA_Parser.get_header()
     Curves_List = DTA_Parser.get_curves()
     
@@ -209,19 +265,13 @@ def LoadFile(file_path):
         Curves_List = Curves_List[:-1]
 
     #CHECK CYCLE BASED ON NAME
-    Cycle_number = re.search('#[1-9]+_#', file_path)
+    Cycle_number = re.search('#[1-9]+_#', File_Path)
     if Cycle_number != None:
         Cycle_number = Cycle_number.group(0)[1]
-    Exp = Experiment(File_Header,
+    Exp = Experiment(File_Path,
+                     File_Header,
                      Curves_List,
                      Cycle_number)
-    
-    if Cycle_number not in Experiments:
-        Experiments[Cycle_number] = []
-        Experiments[Cycle_number].append(File_Header['TAG'])
-    else:
-        Experiments[Cycle_number].append(File_Header['TAG'])
-
 
     return Exp
 
