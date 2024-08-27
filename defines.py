@@ -10,6 +10,7 @@ import numpy as np
 from scipy import integrate
 import pandas as pd
 import openpyxl
+import matplotlib.pyplot as plt
 
 DTA_Parser = gamry_parser.GamryParser()
 
@@ -31,35 +32,22 @@ class errors:
     float_error = 'Wrong type of input data. Please input float number: '
 
 
-
-def print_current_status_wrapper(experiment, function):
-
-    def status():
-
-        print(f'Beginning to work on {experiment}')
-        #Zamiast function zdefiniowanego oddzielnie, można po prostu zdefiniować metodę w klasie Experiment. W ten sposób od razu dostaniemy się do atrybutu TAG i zarazem experiment do wrappera
-        function()
-
-        print(f'Ended working on {experiment}')
-    
-    return status()
-
-def log_modification(func):
+def Log_Modification(func:function):
     def wrapper(obj, *args, **kwargs):
         # Przed modyfikacją
-        print(f"Modifying {obj.Header['TAG']}...")
+        print(f"Modifying {obj.Header['TITLE']}...")
         
         # Wywołanie oryginalnej funkcji
         result = func(obj, *args, **kwargs)
         
         # Po modyfikacji
-        print(f"Modyfying {obj.Header['TAG']}...DONE")
+        print(f"Modyfying {obj.Header['TITLE']}...DONE")
         
         return result
     return wrapper
 
 class Experiment():
-    def __init__(self, file_name, header, data, cycle_number):
+    def __init__(self, file_name:str, header, data:list, cycle_number:int) -> object:
         
         self.File_Name = file_name
         self.Header = header
@@ -67,7 +55,7 @@ class Experiment():
         self.Cycle_Number = cycle_number
         self.Collection = None
 
-    def Modify_Dataframes(self, Geometric_Area, Reference_electrode_potential):
+    def Modify_Dataframes(self, Geometric_Area, Reference_electrode_potential:float):
         '''Depending on the TAG of the experiment, different data modifications are performed'''
 
         TAG = self.Header['TITLE']
@@ -90,8 +78,15 @@ class Experiment():
                     DataDataframe_modified = DataDataframe[['Zreal','Z\'']]
         
 
-    def Charge_Integral(self):
-        '''When the TAG is ECSA, total charge is calculated via integration of current over potential applied potential'''
+    def Charge_Integral(self) -> float:
+        '''A function to calculate the integral from cyclic voltammetry data using trapezoid rule
+        
+        Args:
+        self (Experiment): Header and numerical data, including scan limits and i-E data
+        
+        Returns:
+        Average_Area (Float): A mean of all calculated integrals, equal to charge in coulombs
+        '''
         
         Areas_tmp = []
 
@@ -105,52 +100,66 @@ class Experiment():
             Integral_Scan_Backward = np.trapz(abs(Сurrent_Data.loc[Max_Potential+1:]), Potential_Data.loc[Max_Potential+1:])   
             Integral_Area = abs(Integral_Scan_Forward - Integral_Scan_Backward)   
             Areas_tmp.append(Integral_Area)
+            
+        Average_Area = np.mean(Areas_tmp)
+        return Average_Area
 
-        return np.mean(Areas_tmp)
-
-    def Calculate_Specific_Capacitance(self, Charge_Integral, Geometric_Area):
+    def Calculate_Specific_Capacitance(self, Charge_Integral:float , Geometric_Area):
         '''A function to calculate specific capacitance in F/cm2 according to equation:
-        Cs = Q/(2*A*Scan_rate*Potential_Window), where Q is calculated with Charge_Integral function'''
+        Cs = Q/(2*A*Scan_rate*Potential_Window), where Q is calculated with Charge_Integral function
+        
+        Args:
+        - Charge_Integral (Float): The area between the anodic and cathodic scans in cyclic voltammogram, equal to charge in coulombs
+
+        Returns:
+        - Specific_Capacitance (Float): The electrical capacitance per unit of electrode area
+        '''
 
         Scan_Rate = self.Header['SCANRATE']
         Potential_Window = abs(self.Header['VINIT'] - self.Header['VLIMIT1'])
         Specific_Capacitance = Charge_Integral/(2 * Geometric_Area * Potential_Window * Scan_Rate)
         
         return Specific_Capacitance
-        
-    def Calculate_CDL_From_Slope(self, *args):
+
+    def Calculate_Current_At_Potential_Columnwise(self, *args):
         '''A function to calculate the difference in current at fixed potentials in non-faraday region.
         An alternative to calculate the specific capacitance.
-        Supplying multiple values to this function calculates multiple current differences'''
+        Supplying multiple values to this function calculates multiple current differences
+        
+        Args:
+        - *args (List of floats): Potentials at which to calculate the current differences
 
-        Currents_Rows = []
+        Returns:
+        - Current_DataFrame (DataFrame): A concatenated DataFrame of all curves in the experiment
+        '''
+
+        Columns_Dictionary = {}
         Scan_Rate = self.Header['SCANRATE']
         Potential_1 = self.Header['VINIT']
         Potential_2 = self.Header['VLIMIT1']
 
-        for DataDataframe in self.Data:
-            
-            Currents_Columns = []
-            Current_Potential_Data = DataDataframe[['Vf','Im']]
+        
+        for Calculation_Potential in args:
+            i = 0
 
-            for Calculation_Potential in args:
-
+            for DataDataframe in self.Data:
+                Current_Potential_Data = DataDataframe[['Vf','Im']]
                 assert (Calculation_Potential <= max(Potential_1, Potential_2)) and (Calculation_Potential >= min(Potential_1, Potential_2)), "The provided potential to calculate difference in currents is out of range"
                 Currents = Current_Potential_Data.iloc[(Current_Potential_Data['Vf']-Calculation_Potential).abs().argsort()[:2]]
                 Currents = Currents.diff()
                 Currents = Currents.iloc[-1,-1]
-                Currents_Columns.append(Currents)
 
-            Currents_Rows.append(Currents_Columns)
-        
-        Index_Names = ['Curve ' + str(i) for i in range(len(self.Data))]
-        Column_Names = [str(arg)+' V' for arg in args]
-        Current_DataFrame = pd.DataFrame(Currents_Rows, columns = Column_Names, index = Index_Names)
-        Current_DataFrame.loc['Mean'] = Current_DataFrame.mean()
-        Current_DataFrame.loc['Standard Deviation'] = Current_DataFrame.std()
-        Current_DataFrame['SCANRATE'] = self.Header['SCANRATE']
-        
+
+                key = (Calculation_Potential, i)
+                Columns_Dictionary[key] = Currents
+                i += 1
+
+            Current_DataFrame = pd.DataFrame(Columns_Dictionary, index = [Scan_Rate])
+            Current_DataFrame.columns = pd.MultiIndex.from_tuples(Current_DataFrame.columns, names = ["POTENTIAL [V]", "CURVE [-]"])
+            Current_DataFrame=Current_DataFrame.rename_axis('SCANRATE')
+ 
         return Current_DataFrame
+
 
     def Change_Units(self):
         pass
@@ -162,6 +171,8 @@ class Experiment():
         pass
 
 class Experiment_Collection():
+    '''A general class for storing multiple experiments. Created by Collection_Manager class'''
+
     def __init__(self, cycle_number):
 
         self.Experiments = {}
@@ -184,43 +195,71 @@ class Experiment_Collection():
         else:
             print('Set uncompensated resistance to: ', self.Uncompensated_Resistance, ' for cycle ', self.Cycle_Number)
     
-    def Join_ECSA_DataFrames(self, *args):
+        return self.Uncompensated_Resistance
+
+    def Join_ECSA_DataFrames_Columnwise(self, *args):
+        '''A function to evaluate all ECSA experiments and join multiple ECSA dataframes into one.
+        Needs a Dataframe with calculated current differences.'''
 
         ECSA_DataFrame = pd.DataFrame()
         for ECSA_Experiment in self.Experiments["ECSA"]:
-            Single_Dataframe = ECSA_Experiment.Calculate_CDL_From_Slope(*args)
-            ECSA_DataFrame = pd.concat([ECSA_DataFrame, Single_Dataframe])
-        multi = pd.MultiIndex.from_arrays([ECSA_DataFrame["SCANRATE"], ECSA_DataFrame.index], names=["SCANRATE","CURVE_NUMERO"])
-        ECSA_DataFrame.index = multi
-        self.ECSA_DataFrame = ECSA_DataFrame
-
-    def Filter_ECSA_DataFrame(self, **kwargs):
+            Single_DataFrame = ECSA_Experiment.Calculate_Current_At_Potential_Columnwise(*args)
+            ECSA_DataFrame = pd.concat([ECSA_DataFrame, Single_DataFrame])
         
-        tmp_DataFrame = self.ECSA_DataFrame.copy()
-
-        if "Filtered_Curve" in kwargs:
-            Filtered_Curve_name = kwargs["Filtered_Curve"]
-            tmp_DataFrame = tmp_DataFrame.xs(Filtered_Curve_name, level = "CURVE_NUMERO")
-        
-        if "Scanrate" in kwargs:
-            Scanrate_threshold = kwargs["Scanrate"]
-            tmp_DataFrame = tmp_DataFrame.query(f"{Scanrate_threshold[0]} < SCANRATE < {Scanrate_threshold[1]}")
-        
-        if "Potential" in kwargs:
-            Potential_value = kwargs["Potential"]
-            tmp_DataFrame = tmp_DataFrame[Potential_value]
-        
-        return tmp_DataFrame
+        return ECSA_DataFrame
     
-    def Calculate_CDL_From_Slope(self, **kwargs):
+    def Filter_ECSA_DataFrame(self, DataFrame, Potential = None, Curve = None, Scan_Rate = None):
+        '''
+        Filters the ECSA DataFrame according to given criteria.
 
-        if 'DataFrame' in kwargs:
-            tmp = kwargs["DataFrame"].copy()
-        else:
-            tmp = self.ECSA_DataFrame.copy()
+        Args:
+        - DataFrame (DataFrame): Data to filter
+        - Potential (float or None): Potential value to filter. If none, the function returns all potentials
+        - Curve (list or None): Curve to filter. If none, the function returns all curves
+        - Scanrate (int or list or None): Scan_Rate value or list of values to filter. If none, the function returns all ScanRates
 
-        print(tmp.index.get_level_values("SCANRATE").tolist())
+        Returns:
+        - DataFrame: Filtered DataFrame
+        '''
+        
+        #Potential filtering
+        if Potential is not None:
+            if isinstance(Potential, list):
+                DataFrame = DataFrame.loc[:, DataFrame.columns.get_level_values('POTENTIAL [V]').isin(Potential)]
+            else:
+                DataFrame = DataFrame.xs(Potential, level="POTENTIAL [V]", axis=1)
+        
+        #Curve filtering
+        if Curve is not None:
+            if isinstance(Curve, list):
+                DataFrame = DataFrame.loc[:, (slice(None), Curve)]
+            else:
+                DataFrame = DataFrame.xs(Curve, level="CURVE [-]", axis=1)
+        
+        #ScanRate filtering
+        if Scan_Rate is not None:
+            DataFrame = DataFrame.loc[Scan_Rate]
 
+        return DataFrame
+
+    def Calculate_CDL_From_Slope(self, Filtered_DataFrame):
+        '''A function to all possible slopes from Filtered_DataFrame according to linear regression.
+
+        Args:
+        - Filtered_DataFrame (DataFrame): Filtered and sorted DataFrame
+
+        Returns:
+        - DataFrame: A DataFrame containing linear regression parameters
+        '''
+
+        Regression_Results = Filtered_DataFrame.apply(self.Linear_Regression)
+        return Regression_Results
+    
+    def Linear_Regression(self, Series):
+        '''Helper function for calculating the linear regression parameters'''
+        x = Series.index.values
+        return np.polyfit(x, Series, 1)
+        
 
 class Collection_Manager():
     def __init__(self):
@@ -241,10 +280,7 @@ class Collection_Manager():
             New_Collection.Add_Experiment(experiment)
         elif Matching_Collection:
             Matching_Collection.Add_Experiment(experiment)
-    
-    def Print_Showcase(self):
-        for coll in self.Collections:
-            print(coll.Experiments)
+
 
 def GetFilesFromFolder(folder_path):
         '''A function to get file paths of *.DTA files of a given folder. Also checks for empty files'''
