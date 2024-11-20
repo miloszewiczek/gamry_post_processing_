@@ -32,7 +32,7 @@ class errors:
     float_error = 'Wrong type of input data. Please input float number: '
 
 
-def Log_Modification(func:function):
+def Log_Modification(func):
     def wrapper(obj, *args, **kwargs):
         # Przed modyfikacją
         print(f"Modifying {obj.Header['TITLE']}...")
@@ -55,7 +55,7 @@ class Experiment():
         self.Cycle_Number = cycle_number
         self.Collection = None
 
-    def Modify_Dataframes(self, Geometric_Area, Reference_electrode_potential:float):
+    def Modify_DataFrames(self, Geometric_Area, Reference_Electrode_Potential):
         '''Depending on the TAG of the experiment, different data modifications are performed'''
 
         TAG = self.Header['TITLE']
@@ -65,7 +65,7 @@ class Experiment():
                     DataDataframe_modified = DataDataframe.copy()
                     DataDataframe_modified.rename(columns={'Im': 'i', 'Vf': 'E vs REF'}, inplace=True)
                     DataDataframe_modified.loc[:, 'J(GEOMETRIC)'] = DataDataframe_modified['i']/Geometric_Area
-                    DataDataframe_modified.loc[:, 'E(iR) vs RHE'] = DataDataframe_modified['E vs REF'] + Reference_electrode_potential - DataDataframe_modified['i']* stale.uncompensated_resistance
+                    DataDataframe_modified.loc[:, 'E(iR) vs RHE'] = DataDataframe_modified['E vs REF'] + Reference_Electrode_Potential - DataDataframe_modified['i']* stale.uncompensated_resistance
                     DataDataframe_modified = DataDataframe_modified[['E vs REF', 'E(iR) vs RHE', 'i']]
 
                     if TAG == "STABILITY" or TAG == "CHRONOA" or TAG == 'CHRONOP':
@@ -177,7 +177,9 @@ class Experiment_Collection():
 
         self.Experiments = {}
         self.Cycle_Number = cycle_number
-        self.Uncompensated_Resistance = None
+        self.Uncompensated_Resistance = 0
+        self.Reference_Electrode_Potential = 0
+        self.Geometric_Area = 1
 
     def Add_Experiment(self, experiment):
         if experiment.Header['TITLE'] not in self.Experiments.keys():
@@ -259,6 +261,16 @@ class Experiment_Collection():
         '''Helper function for calculating the linear regression parameters'''
         x = Series.index.values
         return np.polyfit(x, Series, 1)
+    
+    def Process_Other_DataFrames(self):
+        self.Modified_Experiments = {}
+        for TAG, Exp in self.Experiments.items():
+            if TAG == "ECSA":
+                continue
+            else:
+                self.Modified_Experiments[TAG] = Exp.Modify_DataFrames(Reference_Electrode_Potential = self.Reference_Electrode_Potential,
+                                                Geometric_Area = self.Geometric_Area)
+
         
 
 class Collection_Manager():
@@ -281,6 +293,23 @@ class Collection_Manager():
         elif Matching_Collection:
             Matching_Collection.Add_Experiment(experiment)
 
+    def Get_Collections(self) -> list:
+        return self.Collections
+    def List_Collections(self):
+        for x in self.Collections:
+            print(f"Collection number: {x.Cycle_Number}")
+            for experiment, number_of_experiments in x.Experiments.items():
+                print("\t", experiment, "-", len(number_of_experiments), "files")
+            print("")
+
+    def Set_Global_Parameter(self):
+        print('''What parameter to set globally - for every collection?
+              1. Uncompensated resistance - Ru
+              2. Geometric area
+              3. Reference electrode potential shift''')
+        
+
+            
 
 def GetFilesFromFolder(folder_path):
         '''A function to get file paths of *.DTA files of a given folder. Also checks for empty files'''
