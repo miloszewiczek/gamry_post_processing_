@@ -9,9 +9,10 @@ for file in files:
     Experiments = manager.get_experiments_by_type(defines_refactor.Experiment)
 
 manager.batch_Ru(0)
-voltametry = manager.get_experiments_by_type(defines_refactor.Voltammetry)[5]
-voltametry.load_data()
-voltametry.process_data()
-voltametry.calculate_difference_at_potential(0.6)
-voltametry.calculate_CDL_integral()
+
+experiment_type = defines_refactor.Chronoamperometry
+experiment = manager.get_experiments_by_type(experiment_type)[0]
+experiment.load_data()
+experiment.get_current_at_time(30)
+
 

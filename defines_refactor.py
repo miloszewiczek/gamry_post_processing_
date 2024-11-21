@@ -126,8 +126,29 @@ class Voltammetry(Experiment):
 
 class Chronoamperometry(Experiment):
     def __init__(self, file_path):
-        self.file_path = file_path
+        super().__init__(file_path)
+    
+    def process_data():
         pass
+
+    def get_current_at_time(self, time):
+        '''Method to get current at specific time. This functionality is mainly for 
+        sampled voltammetry, where one wishes to eliminate the non-faradaic currents.
+        
+        Args:
+        self (Chronoamperometry): i-E data, meta_data containing the applied potential
+        time (Float or Int): the timestamp at which the current is read. Must be within the time limits
+        
+        Returns:
+        current (float)'''
+
+        for curve in self.data_list:
+            
+            closest_index = (curve['T'] - time).abs().idxmin()
+            current = curve.iloc[closest_index]['Im']
+            print(current)
+        
+        
 
 class EIS(Experiment):
     def __init__(self, file_path):
