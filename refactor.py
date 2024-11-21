@@ -6,13 +6,11 @@ files = os.listdir('input/')
 
 for file in files:
     experiment = defines_refactor.create_experiment(f'input/{file}', manager)
-    Experiments = manager.get_experiments_by_type(defines_refactor.Experiment)
+    #Experiments = manager.get_experiments_by_type(defines_refactor.OpenCircuit)
 
-manager.batch_Ru(0)
+exp = manager.get_experiments_by_type(defines_refactor.ECSA)
+defines_refactor.ECSA_difference(exp, -0.05)
 
-experiment_type = defines_refactor.Chronoamperometry
-experiment = manager.get_experiments_by_type(experiment_type)[0]
-experiment.load_data()
-experiment.get_current_at_time(30)
+
 
 

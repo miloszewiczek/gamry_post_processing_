@@ -7,6 +7,7 @@ DTA_parser = gamry_parser.GamryParser()
 geometrical_area = float(1.0)
 reference_potential = float(0)
 
+
 class Experiment():
     def __init__(self, file_path):
 
@@ -40,12 +41,28 @@ class Experiment():
                 self.data_list[curve_index]['E vs RHE'] = data['Vf'] + reference_potential
             if isinstance(self.Ru, float):
                 self.data_list[curve_index]['E_iR vs RHE'] = data['Vf'] - self.Ru * data['Im']
-        
+
+class OpenCircuit(Experiment):
+    def __init__(self, file_path):
+        super().__init__(file_path)
+
+class LinearVoltammetry(Experiment):
+    def __init__(self, file_path):
+        super().__init__(file_path)
+        self.tafel_curves = []
+
+    def process_data(self) -> pd.DataFrame:
+
+        super().process_data()
+        for curve in self.data_list:
+            curve['log10 J_GEO'] = np.log10(0-curve['J_GEO'])
+            tafel_curve = curve[['log10 J_GEO', 'E vs RHE']]
+            self.tafel_curves.append(tafel_curve)
 
 class Voltammetry(Experiment):
     def __init__(self, file_path):
         super().__init__(file_path)
-    
+
     def print_potential_path(self):
 
         E_start = self.meta_data['VINIT']
@@ -61,6 +78,11 @@ class Voltammetry(Experiment):
         print('==============================================')
         print(f'{E_start} ----> ({E1} <----> {E2})x{cycles} ----> {E_end}')
         print('==============================================\n')
+
+class ECSA(Voltammetry):
+    def __init__(self, file_path):
+        super().__init__(file_path)
+    
 
     def calculate_difference_at_potential(self, potential) -> float:
         '''A method to calculate the difference of current at a specific potential. The potential must lie
@@ -79,7 +101,7 @@ class Voltammetry(Experiment):
         if self.meta_data['VLIMIT1'] > self.meta_data['VLIMIT2']:
             if potential > self.meta_data['VLIMIT1'] or potential < self.meta_data['VLIMIT2']:
                 print('Potential out of range')
-                pass
+                return
         
         for curve in self.data_list:
 
@@ -87,7 +109,7 @@ class Voltammetry(Experiment):
             minimal_distance_index = distances.argsort()[:2]
             current_values = curve.iloc[minimal_distance_index]['Im']
             result = abs(current_values.iloc[0] - current_values.iloc[1])
-            print(f'Difference at {potential} calculated to be {result}')
+            #print(f'Difference at {potential} calculated to be {result}')
             
             current_diff_list.append(result)
 
@@ -117,12 +139,10 @@ class Voltammetry(Experiment):
             integral_area = abs(integral_scan_forward - integral_scan_backward)   
 
             potential_window = abs(self.meta_data['VLIMIT1'] - self.meta_data['VLIMIT2'])
-            capacitance = integral_area/(2 * potential_window * self.meta_data['SCANRATE'])
-            print(capacitance)
+            capacitance = integral_area/(2 * potential_window * self.meta_data['SCANRATE']/1000)
             capacitance_list.append(capacitance)
 
         return np.mean(capacitance_list)
-        
 
 class Chronoamperometry(Experiment):
     def __init__(self, file_path):
@@ -149,16 +169,86 @@ class Chronoamperometry(Experiment):
             print(current)
         
         
-
 class EIS(Experiment):
     def __init__(self, file_path):
         self.file_path = file_path
         pass
 
-class Data_Processor():
-    def __init__(self):
-        pass
+def calculate_ECSA_from_slope(ECSA_experiments: list, *args) -> list:
+    '''Function to perform the calculate_difference_at_potential on
+    provided ECSA experiments in different potentials and fit the 
+    data to a linear regression model.
+    The CDL is calculated as the slope of the function:
+    
+    di = CDL * v,
+    where: di - difference in charging currents, v - scanrate
+    
+    
+    Args:
+    ECSA_experiments: list of ECSA objects,
+    *args: an array of potential values to compute the current difference
+    
+    Returns:
+    results: a list of linear slopes, representing the CDL.
+    '''
 
+    difference_list = []
+    results = []
+
+    for potential in args:
+
+        for experiment in ECSA_experiments:
+            experiment.load_data()
+            difference = experiment.calculate_difference_at_potential(potential)
+            scanrate = experiment.meta_data['SCANRATE'] / 1000
+            difference_list.append((scanrate, difference))
+        x = pd.DataFrame(difference_list)
+        slope, intercept = np.polyfit(x.iloc[:,0], x.iloc[:,1], 1)
+        results.append(slope)
+
+    return results
+
+def batch_integral_ECSA(ECSA_experiments: list) -> pd.DataFrame:
+    '''Automation function to perform the calculate_CDL_integral on
+    provided ECSA experiments.
+    
+    Args:
+    ECSA_experiments: list of ECSA objects'''
+
+    results = []
+
+    for experiment in ECSA_experiments:
+        try:
+            x = experiment.calculate_CDL_integral()
+        except:
+            experiment.load_data()
+            x = experiment.calculate_CDL_integral()
+        results.append(x)
+
+    return results
+
+def batch_processing(list_of_experiments: list):
+
+    for experiment in list_of_experiments:
+        experiment.process_data()
+    
+def ECSA_difference(ECSA_experiments: list, *args):
+    '''A function to compare the ECSA values obtained via the line and integral method.
+    Work in progress to find the way to compare multiple potentials. As of now, only one
+    potential is accepted. Additionally, functionality with EIS needs to be implemented.
+    
+    Args:
+    ECSA_experiments: the list of ECSA objects to perform the analysis,
+    *args: the potentials at which to calculate the CDL using the line method
+    
+    Returns:
+    result: the smallest difference between the CDL values obtained via the two methods'''
+
+    CDL_integrals = batch_integral_ECSA(ECSA_experiments)
+    CDL_linear_slopes = calculate_ECSA_from_slope(ECSA_experiments, *args)
+
+    result = min(abs(CDL_integrals - CDL_linear_slopes[0]))
+    print(result)
 
 class ExperimentManager():
     '''An interface class to aggregate and manage the experiments. '''
@@ -207,8 +297,8 @@ def create_experiment(file_path, manager):
             return
 
         for line in lines:
-            if 'TAG' in line:
-                experiment_tag = line.split()[1]
+            if 'TITLE' in line:
+                experiment_tag = line.split()[2]
                 break
 
     '''
@@ -217,9 +307,12 @@ def create_experiment(file_path, manager):
     '''
 
     experiment_classes = {
-        "CV" : Voltammetry,
-        "CHRONOA" : Chronoamperometry,
-        "EIS" : EIS
+        #"CV" : Voltammetry,
+        #"CHRONOA" : Chronoamperometry,
+        #"EIS" : EIS,
+        "HER" : LinearVoltammetry,
+        "OCP" : OpenCircuit,
+        "ECSA" : ECSA
     }
 
     experiment_class = experiment_classes.get(experiment_tag)
