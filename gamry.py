@@ -220,7 +220,7 @@ def sort(files_list):
                 if "OER" not in f_sorted:
                     f_sorted["OER"] = []
                 f_sorted["OER"].append(f)
-            elif re.search("STABILITY|Chronoamperometry Scan", header["TITLE"], re.IGNORECASE):
+            elif re.search("STABILITY", header["TITLE"], re.IGNORECASE):
                 if "CHRONOA" not in f_sorted:
                     f_sorted["STABILITY"] = []
                 f_sorted["STABILITY"].append(f)
@@ -228,7 +228,7 @@ def sort(files_list):
                 if "EIS" not in f_sorted:
                     f_sorted["EIS"] = []
                 f_sorted["EIS"].append(f)
-            elif re.search("CHRONOP|CHRONOA", header["TITLE"], re.IGNORECASE):
+            elif re.search("CHRONOP|Chronoamperometry Scan", header["TITLE"], re.IGNORECASE):
                 if "CHRONOP" not in f_sorted:
                     f_sorted["CHRONOP"] = []
                 f_sorted["CHRONOP"].append(f)
@@ -249,14 +249,16 @@ def create_ecsa_dfs(ecsa_files):
         print('Calculating ECSA...DONE')
 
         cv, ecsa = (zip(*res))
-        ecsa = pd.DataFrame(ecsa, columns = ["Scanrate", "dj", 'dj_err'])
+        ecsa = pd.DataFrame(ecsa, columns = ["Scanrate [mV/s]", "dj [mA]", 'dj_err [mA]'])
 
         #POLYFIT - LINEAR REGRESSION, TO GET THE SLOPE - y = ax + b
-        b, a = polyfit(ecsa["Scanrate"], ecsa["dj"], 1)
+        b, a = polyfit(ecsa["Scanrate [mV/s]"], ecsa["dj [mA]"], 1)
         
         #ROUGHNESS FACTOR. IT'S ECSA DIVIDED BY THE GEOMETRIC AREA
-        ecsa['area'] = area
+        ecsa['area [cm2]'] = area
         ecsa['C_DL/area [F/cm2]'] = a/area
+
+        #The multiplication by 1000 is attributed to the error in units. Before it was taken that the slope is in mF instead of F
         ecsa['ECSA [cm2]'] = a/c_specific*1000
         ecsa['RF [ - ]'] = a/c_specific/area*1000
         ecsa['Ru [Ohm]'] = Ru_cycle
@@ -335,7 +337,8 @@ def other_dfs(i, data):
     
     #ECSA IS CALCULATED AS CDL [F/cm^2] WHICH IS THE SLOPE OF LINEAR REGRESSION (a in y = ax + b), WHERE x - SCANRATE, y - delta_I
     #THIS SLOPE IS THEN DIVIDED BY SPECIFIC CAPACITANCE TO OBTAIN ECSA MEASURED IN [cm^2]
-    ecsa = data[0][1]/c_specific
+    ecsa = data[0][1]/c_specific*1000
+    print(ecsa)
 
     #TAKES THE Ru VALUE PROVIDED BY THE USER FOR EACH CYCLE. 
     #THIS WILL BE DEPRECATED IN FUTURE VERSIONS, I DECIDED THAT TWO DIFFERENT Ru VALUES ARE A BAD IDEA. INSTEAD, 1 IS ENOUGH
@@ -360,7 +363,9 @@ def other_dfs(i, data):
            continue 
         data_exp = [] 
         print(f'    Modifying {exp}...')
+        
         for file in files:
+            print(f'        Modifying {file}')
             data_exp.append(modify_cs(exp, ecsa, file))
         if exp == "HER" or exp == "OER":    
 
@@ -472,11 +477,11 @@ def modify_cs(exp,ecsa,file):
              t_curve.insert(0, "log10 Im_GEO", tmp)
              t_curve["log10 Im_GEO"] = np.log10(np.abs(t_curve["log10 Im_GEO"]))
              
-             curve.insert(0,"File", np.nan)
+             curve.insert(0,"File", "")
              curve.loc[:,"File"] = ""
              curve.loc[0, "File"] = file[file.rfind("\\"):]
              
-             t_curve.insert(0,"File", np.nan)
+             t_curve.insert(0,"File", "")
              t_curve.loc[:,"File"] = ""
              t_curve.loc[0, "File"] = file[file.rfind("\\"):]
              

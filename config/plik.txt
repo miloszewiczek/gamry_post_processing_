@@ -1,0 +1,929 @@
+{1350}{1463}Film oparty jest na faktach,|ktÛre znacie z innych filmÛw
+{1501}{1587}LESLIE NIELSEN,|jako LESLE NIELSEN w filmie:
+{1643}{1732}åCIπGANY
+{1795}{1869}W pozosta≥ych rolach
+{2696}{2740}Dobry wieczÛr, panno Lake.
+{2890}{2929}BILET”W BRAK
+{2942}{3028}RYAN HARRISON|W£ADCA SKRZYPIEC
+{6889}{6933}Jakie to smutne.
+{8051}{8169}Ryan ! Ryan ! Ryan ! Ryan !
+{8170}{8209}ProszÍ, pozwÛl mi.
+{8210}{8243}ProszÍ.
+{8349}{8405}Brawo, nieüle!
+{8420}{8467}Ryan rzπdzi!
+{8519}{8548}GratulujÍ.
+{8549}{8610}DziÍkujÍ, dziÍkujÍ.
+{8654}{8696}ProszÍ.
+{8697}{8733}Mitsubishi.
+{8734}{8784}Mr. Harrison...
+{8785}{8830}...To dla pana.
+{8898}{8992}Ryan ! Ryan ! Ryan ! Ryan !
+{8993}{9071}Ryan ! Ryan ! Ryan !
+{9178}{9263}DziÍkujÍ, dziÍkujÍ.|DziÍkujÍ.
+{9377}{9419}DziÍkujÍ.|Mi≥o siÍ gawÍdzi≥o.
+{9486}{9517}Cass Lake.
+{9518}{9560}Nie, Ryan Harrison.
+{9561}{9600}Cass to kobieta.
+{9601}{9644}Namalowa≥abym ciÍ.
+{9645}{9681}Nago?
+{9701}{9757}Nie. Portret.
+{9758}{9809}Widzia≥am wszystkie twoje koncerty.
+{9810}{9853}Twoja muzyka poruszy≥a mnie.
+{9854}{9909}Grunt to dobry ruch.
+{9910}{9976}O, Allahu!
+{9977}{10014}O, moje jaja!
+{10029}{10070}Muzu≥maÒskie mod≥y.
+{10071}{10115}Tam pewnie jest wschÛd...
+{10133}{10168}Przepraszam.
+{10169}{10205}Moja rÍka!
+{10206}{10231}Hibbing Goodhue.
+{10232}{10299}Maestro Harrison. Witam.
+{10300}{10329}DziÍkujÍ za zaproszenie.
+{10330}{10360}Musimy pogadaÊ.
+{10361}{10414}Cass, mam goúci.
+{10415}{10492}Sponsorowanie twoich|wystÍpÛw to zaszczyt.
+{10493}{10596}Jestem dozgonnie wdziÍczna mÍøowi,|øe nas pozna≥.
+{10597}{10656}MyúlÍ, øe to zas≥uguje na poca≥unek,|nieprawdaø?
+{10795}{10849}Obejrza≥am wszystkie koncerty.
+{10850}{10898}Hibbing opuúci≥ piπtkowy.
+{10912}{10978}To dzieÒ lewatywy.
+{10979}{11028}Øydowskie úwiÍto. Mazel Tow!
+{11090}{11154}PrzyniosÍ drinki.
+{11188}{11217}Co tu robisz?!
+{11218}{11260}Zignorowa≥eú wiadomoúÊ.
+{11261}{11321}Przemyúl to, proszÍ.
+{11322}{11373}To bzdura.
+{11374}{11462}Och≥oÒ i nie panikuj.
+{11520}{11587}Zas≥uøy≥eú na mÍskiego drinka.
+{11690}{11724}Pijmy do dna.
+{11725}{11774}Przynajmniej ja.
+{11877}{11933}- Pa, skarbie.|- Udanego lotu.
+{11934}{12009}Moøesz otworzyÊ bramÍ?
+{12010}{12051}Juø nie musisz.
+{12082}{12124}Ryan, co robisz?
+{12125}{12192}TwÛj pies ma dziwnπ mordÍ.
+{12193}{12247}To jego ty≥ek.
+{12326}{12425}WiÍc nie posmakuje mu to,|co tam wepchnπ≥em...
+{12426}{12496}CÛø, na mnie juø...
+{12497}{12543}Nie sπdzÍ.
+{12641}{12680}Teraz sπ bezpieczne.
+{12681}{12734}IdÍ pop≥ywaÊ.
+{12750}{12787}Przy≥πczysz siÍ?
+{12788}{12837}WziÍ≥am ci kπpielÛwki.
+{12838}{12871}Pani Goodhue...
+{12872}{12911}Lepiej juø pÛjdÍ...
+{12955}{12992}PrzestaÒ, proszÍ.
+{12993}{13082}We ≥bie mi siÍ kolebie...
+{13155}{13241}Ca≥ujπc ciÍ, myúlÍ o twoim mÍøu.
+{13242}{13293}Ale wolisz kobiety?
+{13294}{13319}Jasne.
+{13320}{13396}Ale to ty masz mÍøa, nie ja.
+{13397}{13464}WrÛci dopiero za trzy dni.
+{13465}{13496}ZostaÒ?
+{13497}{13555}Nie wiesz, co tracisz.
+{13556}{13607}Kiedyú zawodowo liza≥am koperty
+{13608}{13662}i to formatu A4.
+{13702}{13750}Nie noszÍ majtek.
+{14096}{14140}TRZECI PRZED£UØONY WYST P
+{14141}{14185}OSTATNI KONCERT
+{14299}{14337}Z≥odzieju!
+{14338}{14399}Zostaw tÍ furÍ!
+{14442}{14482}Alarm wy≥πczony.
+{14483}{14519}Moøesz wsiadaÊ.
+{14753}{14821}Ryan, kochanie, dlaczego mnie zaniedbujesz?|Mπø wyjecha≥.
+{14822}{14878}Przyjedü, bo siÍ zabijÍ.
+{14879}{14905}Jestem w rozpaczy!
+{14906}{14941}I mleko mi wysz≥o!
+{14942}{15019}Kup po drodze karton dwuprocentowego.
+{15100}{15156}Ca≥a twoja. Lauren.
+{15320}{15354}Tu Ruth Kimball, z Nowego Jorku
+{15355}{15418}Rozmawiam z Sekretarzem generalnym ONZ...
+{15419}{15453}...panem Robertem McKintyre.
+{15454}{15545}z ktÛrym umÛwi≥ mnie wspÛlny znajomy, Hibbing Goodhue.
+{15546}{15603}Z Hibbingiem znamy siÍ jak|dwa ≥yse konie...
+{15604}{15645}...jeszcze ze szko≥y.
+{15646}{15726}W Columbia Heights ma pan wyg≥osiÊ przemÛwienie...
+{15727}{15789}...po ktÛrym terroryúci narobiπ w gacie, tak?
+{15790}{15815}Tak
+{15816}{15865}TworzÍ miÍdzynarodowe si≥y,
+{15866}{15945}...ktÛre uderzπ w serce terroryzmu,...
+{15946}{16047}...niszczπc ich miejsca kultu|i obozy szkoleniowe.
+{16048}{16125}Niech kaødy terrorysta wie,...
+{16126}{16190}...øe jego dni sπ policzone..
+{16476}{16505}Tak
+{16664}{16709}...Potem bliüniaczki nimfomanki...
+{16710}{16749}...wymieniajπ siÍ mÍøami.
+{16750}{16789}Ale najpierw serwis!
+{16790}{16865}Sekretarz Generalny ONZ,|Sir Robert McKintyre...
+{16866}{16931}...jedzie do Columbia Heights...
+{16932}{16982}...na zaproszenie Hibbinga Goodhue
+{17236}{17284}Witaj, z≥otko!
+{17301}{17393}WznoszÍ kolejny toast|na twojπ czeúÊ.
+{17394}{17474}Za wielkπ oszustkÍ...
+{17512}{17568}Nigdy mnie nie kocha≥aú.
+{17579}{17652}Jesteú ze mnπ,|bo mam kumpla
+{17653}{17690}...McKINTYRE`A
+{17691}{17746}i domek przy PLAØY,
+{17747}{17825}...idealnej na desant TERRORYST”W.
+{17826}{17923}Przysz≥aú mnie ZABI∆.
+{17966}{18035}Wy≥πcz to cholerne radio!
+{18071}{18171}Daj spokÛj.|To zbyt melodramatyczne.
+{18862}{18911}Niech to szlag!
+{18939}{18991}SkoÒczy≥aú strzelaÊ?
+{20123}{20166}Lauren?
+{20242}{20288}Dosta≥em twojπ wiadomoúÊ.
+{20340}{20404}SkoÒcz te gierki, Lauren.
+{20464}{20503}Gdzie jesteú?
+{20655}{20695}Lauren?
+{20776}{20851}Zrozum. Z tego nic nie bÍdzie...
+{20865}{20935}Nie jesteú Lauren, ≥obuzie!
+{21472}{21500}"Nieúmiertelny"?
+{22218}{22250}Goodhue!
+{22489}{22527}"TITANIC" pierwsza wersja
+{23038}{23079}Nie musia≥aú robiÊ takiej jatki.
+{23080}{23113}W koÒcu zrobi≥eú swoje.
+{23114}{23162}Ale waøne, øe Goodhue nie øyje.|Za duøo wiedzia≥.
+{23163}{23257}A z tego smutasa zrobimy mordercÍ.
+{23273}{23379}LiczÍ,|øe nic wiÍcej nie przeszkodzi...
+{23380}{23484}...nam w akcji "Nieúmiertelny",|czyli zabiciu McKintyre`a.
+{23673}{23755}POLICJA COLUMBIA HEIGHTS|"G≥uszyÊ i BroniÊ"
+{23956}{23984}Uúmiech!
+{24007}{24040}A ten, co tu robi?
+{24041}{24091}Ma broÒ. Odbierzcie mu jπ!
+{24092}{24127}Masz prawo milczeÊ.
+{24128}{24175}BÍdziesz papla≥, poøa≥ujesz
+{24176}{24241}i zgnijesz w kryminale.
+{24258}{24305}- Van Atter!|- Tak?
+{24306}{24354}Zawieü prÛbkÍ krwi do analizy.
+{24355}{24405}Tylko nie woü jej ca≥y dzieÒ.
+{24406}{24437}Odwal siÍ!
+{24519}{24551}Na do≥ek z nim.
+{24552}{24616}ProszÍ siÍ odsunπÊ.
+{24617}{24692}Zatrzymaj ich..
+{24693}{24729}Jestem niewinny!
+{24730}{24774}Jestem niewinny!
+{24775}{24821}Winny czy niewinny|to nie moja sprawa.
+{24822}{24890}Ja tylko ≥apiÍ takich jak ty,
+{24891}{24931}...podejrzanych o morderstwo.
+{24932}{24985}O twojej winie rozsπdzi 12 g≥upich ≥awnikÛw.
+{24986}{25054}...podatnych na bajki...
+{25055}{25121}...zak≥amanych, ale s≥awnych prawnikÛw.
+{25122}{25178}To nasza stara, úwiecka tradycja.
+{25195}{25243}Kocha≥am siÍ z Ryanem...
+{25244}{25296}Seks by≥ gorπcy i namiÍtny...
+{25297}{25358}Orgazm za orgazmem...
+{25359}{25438}Pyta≥em o pani godnoúÊ.
+{25439}{25482}Lauren Goodhue.
+{25483}{25578}Zniewala≥ mnie.|Chcia≥, bym zostawi≥a mÍøa.
+{25595}{25656}MÛwi≥, øe idzie z nim pomÛwiÊ...
+{25683}{25725}Wciπø w to nie wierzÍ.
+{25726}{25757}WrÛci≥am do domu...
+{25758}{25796}...pÛüno wieczorem...
+{25814}{25848}...i tak go znalaz≥am...
+{25894}{25955}Znowu muszÍ szukaÊ sobie faceta!
+{25986}{26105}[ Reporters Shouting ]|Mr. Harrison! Mr. Harrison!
+{26386}{26473}ProszÍ siÍ odsunπÊ. Do ty≥u.
+{26598}{26654}Ryanie Harrison, ≥awnicy uznali ciÍ...
+{26655}{26708}...winnym morderstwa.
+{26709}{26773}Zostaniesz stracony 12 sierpnia...
+{26774}{26824}...w wiÍzieniu federalnym.
+{26825}{26949}Moøesz wybraÊ: zastrzyk, krzes≥o
+{26950}{27005}...lub stanπÊ przed plutonem egzekucyjnym.
+{27006}{27127}I oby BÛg ulitowa≥ siÍ nad tobπ,|draniu!
+{27138}{26224}MIAMI BEACH
+{27179}{27227}WI ZIENNE PIEK£O
+{27228}{26319}OP£ATA ZA KURS
+{27495}{27557}Oparcia ustawiamy do pionu.
+{27558}{27641}Osoby bez zapiÍtych kajdan i ≥aÒcuchÛw...
+{27642}{27706}...zostanπ zastrzelone.
+{27707}{27754}Z wyjúÊ, choÊ oznakowanych,...
+{27755}{27801}...radzimy nie korzystaÊ.
+{27802}{27839}Na chÍtnych czekajπ o≥owiane prezenty.
+{27891}{27933}W imieniu stanu Minnesota...
+{27934}{27994}...dziÍkujemy aresztowanym i skazanym.
+{27995}{28071}usiπdü wygodnie i ciesz siÍ z podrÛøy.
+{28547}{28610}D≥uøej tego nie zniosÍ.|MuszÍ walczyÊ.
+{28611}{28662}DowiodÍ swojej niewinnoúci.
+{28663}{28696}- Zamknij siÍ!
+{28697}{28762}Nie! To pomy≥ka!
+{28788}{28829}- Jak pan úmie.
+{28830}{28859}- Jak ty úmiesz.
+{28860}{28884}- Nie. Jak ty?!
+{28885}{28917}- Nie. Nie. Jak ty?!
+{28918}{28974}- åmiesz negowaÊ moje "úmiesz"
+{28975}{29023}- Oúmielasz siÍ úmieÊ?!
+{29024}{29071}- åmiesz siÍ "oúmielaÊ",|kiedy ja "úmiem"...
+{29072}{29110}- Ty zasraÒcu?!
+{29111}{29169}- Sam jesteú zasraniec.
+{29170}{29214}- A ty gÛwnozjad!
+{29215}{29241}- Ucisz siÍ!
+{29242}{29320}- Zapomnij!
+{29462}{29525}Jak jeüdzisz, zasraÒcu!
+{30135}{30198}Oúlep≥em!
+{30199}{30277}Masz na g≥owie kube≥.
+{30303}{30329}Nie pomog≥o.
+{30330}{30396}Jeszcze jeden.
+{30423}{30451}Tak lepiej.
+{30474}{30498}Weü klucze.
+{30499}{30563}Rozkuj nas.
+{30564}{30617}But mi siÍ rozwiπza≥.
+{30643}{30704}Koszula mi wylaz≥a.
+{30787}{30840}Oho, oho.
+{30891}{30943}Oho?
+{31005}{31062}Niech to szlag! Pociπg!
+{31063}{31096}Pociπg?
+{31262}{31316}SZURNI TY PRZECINAK
+{31484}{31514}DziÍki...|DziÍki...
+{31515}{31568}DziÍki...
+{34609}{34647}Orono! Bagley!
+{34648}{34710}Jak po przejúciu szalikowcÛw.
+{34711}{34746}- Co siÍ dzieje?
+{34747}{34783}- Jednego brak.
+{34784}{34833}-To Ryan...|...Harrison.
+{34834}{34881}ZabÛjca Hibbinga.
+{34882}{34960}To bardziej zakrÍcone,|niø baranie rogi.
+{34961}{35022}Morderca na wolnoúci!
+{35023}{35065}S≥uchajcie!
+{35066}{35114}Nasz zbieg ucieka pieszo.
+{35115}{35176}Jest zmÍczony, pewnie ranny,
+{35177}{35239}... wiÍc ma krok d≥ugoúci 128,90 cm,...
+{35240}{35278}... jeúli nosi bokserki,.
+{35279}{35334}lub 120 cm, jeúli biodrÛwki...
+{35335}{35410}... co daje 6 km na godz.
+{35411}{35478}Ucieka od 1,45 godz.
+{35479}{35516}Dotrze do najbliøszej autostrady.
+{35517}{35569}PAPIER PUSZKI PLASTIK|BÍdzie poszukiwa≥ transportu.
+{35570}{35667}DZIUPLA|årednia wzniesieÒ to 626,97 m
+{35668}{35753}...z jednym wyjπtkiem.|STROME ZBOCZE
+{35754}{35855}Ale dla wolnoúci zrobi wszystko.
+{35856}{35879}BÍdzie siÍ wspina≥, wÍdrowa≥...
+{35880}{35916}...nawo≥ywa≥,...
+{35917}{35962}zjeødøa≥, nawet spada≥.
+{35986}{36029}Poza tym tu jest pustkowie.
+{36030}{36099}...Taki wyrafinowany mieszczuch|nigdy nie bÍdzie tu bezpieczny
+{36100}{36160}On jest w sercu krainy niedüwiedzi
+{36233}{36274}Nie ma co jeúÊ.
+{36275}{36316}...bÍdzie g≥odowa≥.
+{36317}{36401}Ostatnio jad≥ 12 godzin temu.
+{36402}{36434}W amoku ucieczki...
+{36435}{36491}dotrze do wielkiego miasta....
+{36492}{36547}aby zginπÊ w t≥umie.
+{36548}{36643}Ale wszÍdzie bÍdzie czu≥ na sobie|setki spojrzeÒ.
+{36644}{36703}Cokolwiek uczyni|dokπdkolwiek pÛjdzie
+{36704}{36735}...bÍdzie siÍ czu≥ jak zwierzyna ≥owna.
+{36736}{36767}A ja i moi przyjaciele...
+{36768}{36832}...bÍdziemy siÍ czuÊ jak myúliwi!
+{36833}{36882}Bagley!|Blokady w promieniu 10 mil.
+{36883}{36935}Zmobilizuj wszystkie moøliwe|s≥uøby specjalne.
+{36936}{36987}Lokalne i federalne!
+{36988}{37058}Daj mi gubernatora Carlsona|Moøe bÍdzie potrzebna gwardia narodowa.
+{37059}{37099}Cola Light, bez lodu.
+{37100}{37163}Uwaga! Macie z≥apaÊ Harrisona...
+{37164}{37221}...w ciπgu 4 godzin i 28 minut.
+{37222}{37293}Czyli w samo po≥udnie.|Do roboty!
+{37294}{37387}RuszaÊ siÍ! RuszaÊ siÍ! RuszaÊ siÍ!
+{37584}{37659}Nelson i ja wjeødøamy od strony lasu
+{37660}{37721}Brak úladÛw Harrisona. OdbiÛr.
+{37722}{37773}PrzyjÍ≥am.
+{38097}{38199}HILLTOP - najwiÍksza na úwiecie liczba|policjantÛw na jednego mieszkaÒca
+{38808}{38843}Jak leci?
+{38844}{38872}åwietnie.
+{38873}{38941}To wyprzedaø?
+{38942}{39013}Jasne. Tylko 32.50$
+{39014}{39069}No. SiÍ wie.
+{39120}{39162}Na rybki?
+{39167}{39211}Tak.
+{39212}{39287}Chcia≥bym z≥owiÊ jakiegoú|wielkiego okonka...
+{39288}{39394}albo okoniopstrπga...
+{39395}{39484}lub piÍknego leszczyka.
+{39653}{39679}A ty, Roman...
+{39680}{39727}...nadal widujesz w zatoce grube ryby?
+{39728}{39829}A moøe obce ≥odzie?
+{39830}{39875}Oczywiúcie. No. SiÍ wie.
+{39876}{39942}Ile razy mam mÛwiÊ?
+{39943}{40027}Widzia≥em ≥Ûdü p≥ynπcπ w nocy|do domu na plaøy.
+{40028}{40075}Tak, oczywiúcie.
+{40076}{40116}Zadowolony?
+{40117}{40165}- Duøo wtedy wypi≥eú?
+{40166}{40255}Od lat nie zaglπdam do kieliszka.
+{40256}{40343}To tej nocy kiedy zabito Hibbinga?
+{40344}{40415}- Interesuje to pana?|- Nie
+{40416}{40479}- Czy coú pan wie?|- Nie
+{40480}{40545}- Zna pan prawdÍ?|- Nie
+{40546}{40623}BiorÍ wÍdkÍ. Zap≥acÍ czekiem.
+{40624}{40671}Moøna d≥ugopis?
+{40672}{40728}- DziÍkujÍ.
+{40787}{40832}POSZUKIWANY ZBIEG|Z£Y FACET
+{40922}{40987}Tak, oczywiúcie. SiÍ wie. Tak.
+{41062}{41148}Wczeúniej tu pana nie widzia≥em, panie...
+{41149}{41191}Buzz'n.
+{41192}{41232}Buzz'n Frog.
+{41233}{41333}Urodzony nad rzekπ Euro Larvae w Rapala.
+{41334}{41391}Teraz mieszkam w Slimy Slug
+{41392}{41448}...w Po≥udniowej Dakocie.
+{41449}{41500}Niedaleko Timber Doodle?
+{41501}{41576}Bracia Zebco, Smithwick
+{41577}{41624}...i Salty Dog Shrimp...-
+{41625}{41665}Och!
+{41666}{41743}Nie mogÍ dziú wÍdkowaÊ.
+{41744}{41805}Mam waøne spotkanie w...
+{41806}{41859}...Wucecie...
+{41860}{41960}Zapomnia≥bym o w≥asnych jajach gdyby|nie by≥y przyklejone.
+{41961}{41993}Wypadek na nartach wodnych.
+{42105}{42136}StÛj, Harrison!
+{42137}{42177}Ani kroku.
+{42449}{42517}Wczeúniej tu pana nie widzia≥em,|panie...
+{42531}{42556}Buzz'n.
+{42557}{42596}Buzz'n Frog.
+{42597}{42660}Urodzony nad rzekπ Euro Larvae w Rapala.
+{42661}{42696}...w Rapala.
+{42697}{42752}Niedaleko Timber Doodle?
+{42753}{42803}...Salty Dog Shrimp.
+{42804}{42879}Mam spotkanie w...|Wucecie.
+{43516}{43556}PRALNIA CHEMICZNA
+{44421}{44464}Coú w tym musi byÊ
+{44465}{44517}...jakiú klucz do zagadki..
+{45251}{45298}- Ryan.|- Co tu robisz?
+{45299}{45347}- Jak wesz≥aú?|- Drzwiami.
+{45348}{45388}Zamknπ≥em je.
+{45389}{45418}Klucz.
+{45419}{45514}Lauren zniknÍ≥a.|Da≥a ci klucz, øebyú uprzπtnÍ≥a dowody.
+{45515}{45564}Mam go od Hibbinga.
+{45565}{45624}Portretowa≥am go.
+{45625}{45685}Moøe Lauren teø nie øyje?
+{45686}{45763}Sratytaty! Nak≥ama≥a w sπdzie.
+{45764}{45814}Wrobi≥a mnie w morderstwo.
+{45815}{45850}- To niemoøliwe.
+{45851}{45906}- Moøliwe. I prawdziwe!
+{45907}{46006}Rozumiem jπ.|To chyba moja siostra.
+{46007}{46037}- Siostra?
+{46038}{46095}- Taki brat w spÛdnicy.
+{46096}{46171}Chyba coú jej grozi.|Szukam úladÛw.
+{46172}{46246}Ryan, Wiem, øe jesteú niewinny.
+{46247}{46288}NaprawdÍ tak myúlisz?
+{46289}{46337}Czy tylko mnie podrywasz?
+{46357}{46401}Dobrze ci øyczÍ.
+{46429}{46486}Zaprzyjaünijmy siÍ.
+{46534}{46587}Ale kobiety i ja...
+{46588}{46639}...to woda i ogieÒ.--
+{46640}{46710}Mokre i zapalne.
+{46711}{46747}Nie, nie.
+{46849}{46904}Przy mnie moøe staÊ ci siÍ...
+{46905}{46946}...wy≥πcznie krzywda.
+{46947}{46992}Nie.
+{47017}{47050}Wszystko by≥o moje.
+{47051}{47118}miasto leøa≥o u mych stÛp,|rozwarte jak ostryga.
+{47119}{47176}By≥y brawa, owacje.
+{47177}{47238}By≥em kimú, mia≥em øycie.
+{47239}{47322}Dziú øyjÍ na marginesie.
+{47323}{47401}Rozwiπzanie musi byÊ gdzieú tutaj...
+{47417}{47454}PrzyjÍcie...
+{47455}{47499}...drinki...
+{47509}{47560}...bar.
+{47561}{47609}Barman by≥ jakiú dziwny.
+{47610}{47639}Zamknij oczy.
+{47761}{47809}Barman!
+{47810}{47841}To on zabi≥!
+{48016}{48050}Ty...
+{48051}{48082}...by≥aú z nim.
+{48158}{48198}MÛj Boøe!
+{48368}{48425}Autobus staje dok≥adnie
+{48426}{48474}przed domem Goodhue.
+{48475}{48508}PrzeszukaÊ teren.
+{48509}{48561}Orono, dogoÒ wÛz|i zaciπgnij rÍczny.
+{48562}{48620}Bagley, przes≥uchaj kaødego.
+{48621}{48724}ChcÍ mieÊ nazwiska, ksywy, przydomki...
+{48725}{48781}...analizÍ zdjÍÊ, úladÛw...
+{48782}{48829}...DNA, numery stanikÛw.
+{48830}{48870}Ja sprawdzÍ ten furgon.
+{48871}{48946}Ruszaj siÍ, ruszaj!
+{49379}{49456}PotrzebujÍ ludzi,|blokad drÛg i úmig≥owca...
+{49499}{49533}Harrison?
+{49559}{49602}Gdzie ten ogrodnik?
+{49603}{49627}Bagley!
+{49628}{49657}Orono!
+{50005}{50033}Tam jest!
+{50256}{50293}Zrobi≥a to specjalnie.
+{50294}{50323}- Kobiety.
+{50466}{50510}Mamy kanalarza.
+{50587}{50643}Ciekawe gdzie on ma ujúcie?
+{50706}{50747}Powiadomcie Zarzπd WodociπgÛw...
+{51531}{51572}Hej!
+{52756}{52795}RÍce do gÛry!
+{52911}{52960}To koniec, Harrison.
+{52961}{52997}Jestem niewinny.
+{52998}{53072}To jedno: -rÍki, -nogi i -oki barman.
+{53073}{53107}On zabi≥ Hibbinga Goodhue.
+{53108}{53172}Do spÛ≥ki z Lauren.|Dlaczego? Nie wiem.
+{53173}{53213}-Dlaczego?|Nie wiem.
+{53214}{53267}Ale znajdÍ ich. Mam tropy: mapÍ,
+{53268}{53329}...nazwÍ "Nieúmiertelny"i ≥Ûdü.
+{53330}{53378}To dowody pomy≥ki.
+{53379}{53450}Baju, baju bÍdziem w raju.
+{53451}{53504}Masz wyrok za morderstwo...
+{53516}{53549}AresztujÍ ciÍ.
+{53550}{53587}Nie!
+{53588}{53621}Nie dam siÍ zamknπÊ!
+{53622}{53654}Nigdzie!
+{53762}{53796}Zaczekaj, Harrison!
+{53846}{53899}Cz≥owiek tonie!
+{54109}{54185}Sπ tacy, ktÛrzy siedzπ w ciemnoúci
+{54186}{54298}bojπc siÍ wejúÊ w úwiat≥o
+{54299}{54391}Sπ tacy, ktÛrzy chcπ pomÛc komuú
+{54392}{54472}kto widzi juø zbawczy brzeg
+{54473}{54516}Nie martw siÍ.
+{54543}{54624}Wszystko bÍdzie dobrze.
+{54625}{54679}Och! Ale zimna!!
+{54680}{54808}Poniewaø jestem gotÛw|i nie spuszczÍ ciÍ z oka.
+{54809}{54903}O co chodzi z tπ ≥odziπ|i "Nieúmiertelnym".
+{54904}{54974}ZadzwoÒcie do straøy przybrzeønej|"Nieúmiertelny"
+{55140}{55197}- Aha!
+{55198}{55246}A kuku, maleÒka!
+{55247}{55283}Nawet mi nie drgnij!
+{55344}{55387}Mam broÒ.
+{55388}{55413}Nie wziπ≥em...
+{55414}{55441}...ale mam.
+{55442}{55473}Ba≥aú siÍ?
+{55474}{55530}Uciek≥aú, pamiÍtasz?|Idziemy.
+{55531}{55561}Tak, Ba≥am siÍ.
+{55562}{55613}WszÍdzie ciÍ szuka≥am.
+{55614}{55665}Znalaz≥aú. Koniec zabawy|w chowanego.
+{55666}{55731}Wracamy do rzeczywistoúci.
+{55732}{55782}Tylko nie krzycz....
+{55783}{55829}Aaah!
+{55830}{55865}W≥aúnie tak.
+{56298}{56328}Ryan...
+{56329}{56371}...moøesz siÍ czuÊ bezpieczny
+{56372}{56414}Nie bÛj siÍ. Nikt ciÍ nie zobaczy.
+{56415}{56483}Z kim przysz≥aú?
+{56631}{56680}Siadaj, pysiu.
+{56804}{56859}Czemu, spoúrÛd tylu kobiet na úwiecie
+{56860}{56929}...trafi≥em w≥aúnie na ciebie?
+{56979}{57054}Do rana znajdziemy odpowiedü.
+{57055}{57102}Dobra, ryjku.
+{57103}{57175}Bzdety na bok.|Do rzeczy.
+{57176}{57243}WynajÍ≥aú zabÛjcÍ.|Chcia≥aú zabiÊ Hibbinga.
+{57244}{57282}Widzia≥em waszπ k≥ÛtniÍ.
+{57283}{57357}By≥aú zielona ze z≥oúci.
+{57358}{57431}Bo nie podoba≥ mu siÍ portret.
+{57432}{57463}Zabola≥o mnie.
+{57464}{57546}Dotknπ≥ mnie do øywego.
+{57547}{57582}Chcia≥am siÍ zabiÊ...
+{57583}{57635}...ale nie umia≥am|BroÒ wrzuci≥am do zatoki.
+{57636}{57707}Nie zachowuj siÍ jak dziecko...
+{57708}{57771}...bo razem zawiúniemy.
+{57772}{57851}Oszukujesz.|Czemu da≥aú pieniπdze mordercy?
+{57852}{57888}To by≥y pieniπdze Hibbinga|za portret.
+{57889}{57939}Barman mia≥ je zwrÛciÊ...
+{57940}{57982}...bo ja mia≥am doúÊ Hibbinga.
+{57983}{58022}Stek bzdur.
+{58023}{58083}I to dobrze wysmaøony.
+{58084}{58156}Jak mam ciÍ przekonaÊ?
+{58597}{58626}Niech ciÍ szlag!
+{58640}{58723}Niech ciÍ szlag! Zakocha≥em siÍ w tobie!
+{58724}{58790}- Nie mogÍ pozwoliÊ, byú zosta≥a w to wmieszana.|- Ale ja chcÍ byÊ w to wmieszana.
+{58791}{58839}- Nie mogÍ ci tego zrobiÊ.|- ZrÛb mi to.
+{58840}{58871}- Jestem úcigany.
+{58872}{58943}Polujπ na mnie. Nie dajπ mi spokoju.
+{58944}{58975}Niech polujπ i na mnie!
+{58976}{59018}Bπdümy razem.|Sam nie dasz sobie rady.
+{59019}{59047}MuszÍ.
+{59048}{59078}Pos≥uchaj...
+{59079}{59114}...ja wychodzÍ...
+{59115}{59151}...nie moøesz iúÊ ze mnπ.
+{59152}{59198}Powiem krÛtko
+{59199}{59256}Ty sie po prostu...
+{59257}{59300}...nie nadajesz do tego.
+{59301}{59351}Wystarczy, øe jesteú ucieleúnieniem...
+{59352}{59398}mÍskich marzeÒ.
+{59439}{59463}Widzisz?
+{59464}{59502}Jesteú wyczerpany.
+{59503}{59528}S≥uchaj...
+{59529}{59568}...zrobiÍ ci kπpiel,...
+{59569}{59622}...odøywczπ lewatywÍ i jedzonko.
+{59623}{59706}Oprzyj siÍ na mnie.|Idziemy do ≥azienki.
+{59707}{59755}LewatywÍ?
+{59756}{59868}Jeúli przegram z mi≥oúciπ...
+{59899}{60000}to na zawsze...
+{60032}{60083}albo nigdy...
+{60084}{60143}nie przegram...
+{60144}{60196}z mi≥oúciπ...
+{60295}{60381}W tak burzliwym...
+{60382}{60457}úwiecie...
+{60458}{60509}Mi≥oúÊ skoÒczy≥a siÍ...
+{60510}{60596}zanim siÍ narodzi≥a...
+{60617}{60753}KsiÍøycowe poca≥unki ...
+{60754}{60837}zblednπ...
+{60838}{60915}przy blasku s≥oÒca...
+{60959}{61049}Jeúli oddam swoje serce...
+{61107}{61211}to oddam je bez reszty...
+{61250}{61313}albo...
+{61314}{61369}nie uczyniÍ tego...
+{61370}{61471}nigdy.
+{61516}{61592}W takiej chwili...
+{61593}{61671}mogÍ czuÊ...
+{61714}{61799}to, co ty czujesz...
+{61850}{61909}gdy przegram z mi≥oúciπ do ciebie.
+{61910}{61978}Czas ucieka. Kontra.
+{61979}{62046}Gracz jest blokowany. Drybluje.
+{62047}{62119}Szuka pozycji. W gÛrÍ i w dÛ≥.
+{62120}{62151}Czas ucieka.
+{62152}{62191}Znowu nic.
+{62192}{62230}Zosta≥o ma≥o czasu, a tu wciπø nic.
+{62231}{62304}Moøe teraz... Prawie... Dobitka!
+{62305}{62347}Nie, tak, nie, tak, nie.
+{62348}{62392}Wpadnie, albo nie.
+{62421}{62470}NastÍpne odbicie.
+{62471}{62498}PrÛba strza≥u z dystansu.
+{62499}{62539}Tak albo nie. Och, tak!!
+{62540}{62605}Jeest!|Co za spotkanie!
+{62606}{62638}åwiat≥a gasnπ.
+{62639}{62702}Pora och≥onπÊ i przygotowaÊ siÍ do|kolejnego meczu.
+{62703}{62783}W okolicy widziano mokrego faceta.
+{62784}{62851}PrzeszukaÊ wszystkie liúcie!
+{62852}{62904}WypatroszyÊ kaøde zwierzÍ!
+{62905}{62974}Moøe ktÛreú zjad≥o dowÛd.
+{62975}{63005}MiÍso przekaø|na cele charytatywne
+{63006}{63079}SkÛry na ciep≥e skarpety|oddaÊ biednym.
+{63080}{63124}Koúci rzuciÊ psom.
+{63125}{63163}Nic nie moøe siÍ zmarnowaÊ...
+{63164}{63215}Oooo!.|Mamy coú!
+{63216}{63275}ålady mÍskich stÛp...
+{63276}{63350}...ktÛrych g≥ÍbokoúÊ pasuje do wagi|i wzrostu Harrisona.
+{63366}{63415}ålady opon.
+{63416}{63519}ålady opon typowe dla wysokiej|klasy Mercedesa cabrio.
+{63520}{63569}Auto w sam raz...
+{63570}{63649}...dla m≥odej, inteligentnej kobiety.
+{63663}{63711}To artystka...
+{63712}{63775}...moøe fotograficzka lub malarka.
+{63776}{63836}Kobieta z przesz≥oúciπ.
+{63837}{63918}Kobieta, ktÛra kogoú szuka...
+{63959}{63997}CzujÍ to.
+{63998}{64074}Jestem tego tak pewny,|jak tej anakondy.
+{64162}{64243}To ta, ktÛra zajecha≥a nam drogÍ|w Mercedesie...
+{64244}{64296}numer rejestracyjny 381 JPL.
+{64336}{64379}Davy Crockett umar≥ za nasze grzechy.
+{64380}{64443}Rany julek!|Harrisonowi ca≥y czas ktoú pomaga≥.
+{64444}{64499}Zdobπdü jej adres.
+{64500}{64554}- Przyciúniemy jπ?|- Nie. Nie.
+{64555}{64609}- Sπ lepsze sposoby.
+{64610}{64680}Kino, kolacja, mi≥osne k≥amstwa...
+{64681}{64747}Teø, ale my bÍdziemy jπ úledziÊ.
+{64748}{64809}Zaprowadzi nas do Harrisona.
+{64839}{64903}- Bagley!
+{64904}{64980}Zaczekajcie na mnie.
+{65297}{65371}Zapraszamy na rewiÍ|"Staruchy na lodzie".
+{65372}{65452}Tylko w listopadzie.
+{65552}{65623}Dobry wieczÛr. W "Kurierze"|wita paÒstwa Ruth Kimball.
+{65624}{65736}Poúcig za Harrisonem
+{65737}{65770}trwa od 36 godz.
+{65771}{65848}Porucznik Fergus Falls prowadzi|szeroko zakrojone poszukiwania.
+{65849}{65956}åmig≥owce, psy, psychiczni|tysiπce policjantÛw,
+{65957}{66039}a do tego miliony zwyk≥ych ludzi|gotowych poúwiÍciÊ siÍ
+{66040}{66098}...dla 50.000$ nagrody.
+{66099}{66149}Kaødemu siÍ przyda.
+{66150}{66248}Emerytowi, nauczycielce,|a zw≥aszcza pewnej malarce,
+{66249}{66335}...ktÛra musia≥a zwrÛciÊ honorarium|za portret.
+{66336}{66396}Komuú takiemu nie zaufa≥abym...
+{66397}{66473}...nawet za milion, bilion,|trylion dolarÛw.
+{66504}{66544}Festyn w Columbia Heights
+{66545}{66581}...odbÍdzie siÍ...
+{67153}{67220}Ostatnie piÍtro,|mieszkanie 602.
+{67228}{67251}ProszÍ?
+{67252}{67308}Nie.|Jest sam.
+{67503}{67548}Zobaczmy.
+{67598}{67643}åLEPE NABOJE
+{67831}{67879}SIEROCINIEC
+{67880}{67919}AKT URODZENIA|Nazwisko: Podrzutek
+{67965}{67981}DRZEWO RODOWE
+{67982}{68024}ProszÍ, proszÍ...
+{68118}{68176}OJCIEC
+{68201}{68235}Nie rozumiesz
+{68236}{68300}Nie moøemy czekaÊ|To musi sie staÊ teraz.
+{68367}{68429}Znany PrzedsiÍbiorca Poúlubia|Denne Babsko
+{68534}{68574}Nie Tego Szukasz
+{68575}{68648}Czytaj na Dole Strony
+{68671}{68720}Wybuch Przemycanej Broni
+{68769}{68837}£Ûdü z przemycanπ dla IRA broniπ,|eksplodowa≥a dziú w zatoce Excelsior.
+{68858}{68917}Znany terrorysta Sean Laughrea|przeøy≥ wybuch i uciek≥.
+{68930}{68993}Bla, bla, bla...
+{69119}{69172}Sean Laughrea.
+{69173}{69221}Morderca Hibbinga.
+{69352}{69459}Kiedy znÛw ciÍ ujrzÍ, mÛj jedno:|-rÍki, -oki, -nogi Seanie?
+{69508}{69555}Zawsze twoja, Lauren.
+{69584}{69653}Tak. DziÍkujÍ.
+{69692}{69753}Harrison! Otwieraj!|Wiemy, øe tam jesteú.
+{69765}{69794}To policja!
+{69837}{69871}Nie idü tam!
+{69872}{69922}- Co robisz?|- Harrison!
+{69954}{69992}Ryan, otwieraj!
+{69993}{70025}Mam broÒ!
+{70044}{70067}Come on!
+{70068}{70098}Ryan!
+{70099}{70151}WpuúÊ mnie! Natychmiast!
+{70207}{70236}Wy≥aü!
+{70257}{70305}Czy to mÛj kibel? Ryan!
+{70321}{70346}Otwieraj!
+{70361}{70415}Nie masz dokπd uciec!
+{70479}{70542}- Ryan!|- Ojej!
+{70589}{70631}To siÍ okaøe.
+{70771}{67938}ZUØYTE PIELUCHY
+{71205}{71234}Teraz!
+{71309}{71338}W porzπdku, anio≥ki...
+{71339}{71367}...naprzÛd!
+{71445}{71498}- Patio puste.|- Bluszcz usycha.
+{71499}{71522}- Sypialnia pusta.
+{71523}{71550}- Mam spagetti!
+{71551}{71604}Sprawdü to!|Moøe byÊ gorπce!
+{71618}{71653}Drzwi zamkniÍte!
+{71676}{71711}Pusto.
+{71712}{71778}IlekroÊ siÍ zbliøamy, zwiewa.
+{71779}{71836}Cwaniak jakich ma≥o.
+{71874}{71922}Cass Lake, niewiniπtko.
+{71923}{71974}Jego wspÛlniczka.
+{71975}{72029}Gπsienica ma 2,087 w≥osÛw na kaødej nodze.
+{72030}{72092}Ale nigdy w øyciu nie zrozumiem|co kobiety...
+{72093}{72142}...widzπ w ≥otrach.
+{72143}{72193}W porzπdku!|Spiszcie wszystko.
+{72194}{72245}Weücie prÛbki z dywanu i tapet.
+{72246}{72297}Sprawdücie instalacje|i powierzchnie drewniane.
+{72298}{72375}Macie skubaÊ, skrobaÊ i ciπÊ.
+{72391}{72449}Nie cierpiÍ dwÛch rzeczy.
+{72450}{72496}LodÛw na patyku...
+{72497}{72558}...i Ryana Harrisona.
+{72574}{72623}Do roboty!
+{73947}{73997}PORANNA ROSA
+{74061}{74106}åWIAT PROTEZ
+{74237}{74288}MASARNIA
+{74493}{74561}- Pediatria jest na koÒcu ulicy.|- DziÍkujÍ.
+{75039}{75146}Dr Kimball proszony na chirurgiÍ.
+{75166}{75201}Dr. Eutanazja.
+{75202}{75286}Dr Eutanazja proszony|do pokoju O.J. Simpsona.
+{75437}{75489}Wybuch≥ wulkan!
+{75490}{75521}Tornado!
+{75522}{75545}- TrzÍsienie ziemi!
+{75546}{75577}To El Nino!
+{75578}{75605}Pszczo≥y-zabÛjcy!
+{75606}{75671}Statek wpad≥ na gÛrÍ lodowπ!!
+{75706}{75793}Dobrze, øe pan jest,|doktorze... Sanchez.
+{75794}{75872}Z powodu redukcji|jest pan jedynym lekarzem.
+{75942}{75988}Jest w ciπøy.
+{75989}{76033}- Ma 5 postrza≥Ûw.
+{76034}{76091}- Do lekko rannych.
+{76092}{76136}Ja to ustawiÍ.
+{76137}{76188}Pe≥ny przep≥yw.
+{76223}{76280}Doktorze, powinien pan to zobaczyÊ.
+{76281}{76324}WolÍ nie.
+{76325}{76396}200.000 jednostek adrenaliny.
+{76397}{76430}- Ale...|- ChrzaniÊ "ale".
+{76431}{76502}Podaj 200.000 cm3 adrenaliny!
+{76543}{76588}WywaøyÊ wnÍtrznoúci.
+{76602}{76629}BabinÍ na minÍ...
+{76630}{76679}...a glinÍ na linÍ.
+{76680}{76725}- OIOM?|- Jedni stojom, inni leøom.
+{76726}{76786}Jesteú niez≥a.
+{76787}{76825}Musimy pogadaÊ.
+{76826}{76873}Czyb to nie jest wrzÛd?
+{76874}{76914}-Co?|-Pod okiem.
+{76915}{76991}-Czy to groüne?|-Zaraz go usunÍ.
+{77341}{77426}Ochrona drugiego piÍtra, zg≥oú siÍ.
+{77427}{77515}W zachodnim skrzydle brak|úladÛw intruza.
+{78387}{78453}Siostro! Siostro!
+{78461}{78496}StaÊ!
+{78583}{78620}Szybko.!
+{78621}{78708}Okay. Idziemy!.
+{79025}{79076}- Ochroniarzu, obejrzyj siÍ.|- Co?
+{79077}{79123}- SpÛjrz za siebie.|- Gdzie?
+{79124}{79166}SpÛjrz za siebie.
+{79167}{79244}Za pÛüno. Idø na radiologiÍ.
+{79283}{79324}Jesteúmy bezpieczni.
+{79325}{79358}Jecha≥am za furgonetkπ.
+{79359}{79412}jak tylko zobaczy≥em ten szpital|wiedzia≥am, øe cie tu znajdÍ
+{79413}{79443}SiÍgnij mi do kieszeni.
+{79444}{79483}W porzπdku.
+{79484}{79514}Co mam wyjπÊ?
+{79515}{79548}Nic.
+{79549}{79631}StÍskni≥em siÍ.|Zabawmy siÍ jak dawniej.
+{79632}{79678}Och, Ryan.
+{79679}{79734}Czeka≥am, aø to powiesz.
+{79735}{79776}Kocham ciÍ.
+{79829}{79858}Niesamowite!
+{79859}{79912}Coú takiego?
+{79913}{79983}I ja mam w to uwierzyÊ?|Jakie to uczucie?
+{79984}{80055}Jak to jest,|gdy siÍ wszystkich oszukuje?.
+{80056}{80091}Ale z ciebie ziÛ≥ko!
+{80139}{80193}NaprawdÍ ciÍ kocham!|NaprawdÍ.
+{80194}{80238}Nie brzydzisz siÍ jeúÊ?
+{80239}{80279}Beatlesi úpiewali::
+{80280}{80323}"Ona ciÍ kocha. Tak, tak".
+{80324}{80359}Pos≥uchaj, "Michelle ma belle"...
+{80360}{80432}..."cz≥owiek znikπd" jest "morsem"!
+{80449}{80507}Wtedy, w apartamencie, mÛwi≥aú, øe jestem niewinny.
+{80508}{80572}ale myúl o pokaünej nagrodzie...
+{80573}{80644}...wierci≥a ci dziurÍ w brzuchu...
+{80645}{80687}Mia≥aú gnata, wiÍc zadzwoni≥aú...
+{80688}{80733}...i wyda≥aú mnie glinom.
+{80734}{80780}Jesteú tyranem.
+{80781}{80821}Spluwa by≥a do obrony.
+{80822}{80915}a dzwoni≥am po bilety do Ameryki Po≥udniowej,|draniu!
+{80916}{80990}Zbi≥bym majπtek inkasujπc|25 centÛw za kaøde k≥amstwo.
+{80991}{81080}Nie ze mnπ te numery, ksiÍøniczko
+{81081}{81136}Znalaz≥em u ciebie|listy Lauren do Seana.
+{81137}{81176}Wyjaúnij to!
+{81192}{81262}Lauren zna≥a Sean od dawna.|Wiedzia≥aú o tym.
+{81263}{81311}Wiedzia≥aú, øe ona go zna.
+{81312}{81343}Tak, wiedzia≥am, ze ona go zna.
+{81344}{81383}Øe co?!
+{81384}{81426}Wiedzia≥am, øe Lauren zna Seana.
+{81427}{81483}Wreszcie mÛwisz prawdÍ!
+{81484}{81572}Och, Ryan.|Oni sπ jedynπ rodzinπ, jakπ mam.
+{81573}{81655}ProszÍ, nie kaø mi wybieraÊ|miÍdzy tobπ, a rodzinπ.
+{81656}{81703}Rodzinπ?|Lauren to twoja siostra. A... ?
+{81704}{81743}Sean to mÛj brat.
+{81744}{81777}Wybacz.
+{81873}{81971}Dr Ross, dr Green, dr Carter,|dr Weaver i dr Benton...
+{81972}{82063}...proszeni na "Ostry Dyøur",|po odbiÛr pokaünej wyp≥aty.
+{82139}{82213}Facet w kitlu,|podobny do Harrisona.
+{82214}{82251}...jest na oddziale.
+{82252}{82301}Oddzia≥ ma 1400 ≥Ûøek,...
+{82302}{82380}...250 pracownikÛw,|i 150 sal.
+{82381}{82435}Szanse, øe stoi przy wejúciu...
+{82436}{82499}...sπ jak 9,103 to 5.
+{82500}{82553}Jest 15:05.
+{82554}{82607}Powinniúmy go namierzyÊ w 14 minut,...
+{82608}{82646}...to znaczy dok≥adnie...
+{82647}{82717}...o 15:19|Ruszamy.
+{82986}{83046}Archiwum. Archiwum.
+{83142}{83195}DostÍp zabroniony.
+{83240}{83276}PrzewÛd klimatyzacji.
+{83277}{83337}Aha.
+{83338}{83384}Sprawdümy to
+{84072}{84128}- Siostro Anderson.|- Tak, panie doktorze?
+{85258}{85299}DziÍkujÍ.
+{85647}{85725}KLIMAT ARKTYCZNY
+{86243}{86278}SYSTEM ALARMOWY STEINBERGA
+{86390}{86432}Zobaczmy...|Aaaah !
+{87879}{87914}Szalom!
+{88046}{88075}Dr Fridley?
+{88111}{88139}ProszÍ usiπúÊ.
+{88197}{88256}Oto i ona.
+{88257}{88308}Jest piÍkna.
+{88309}{88354}To dzie≥o sztuki.
+{88355}{88432}Lufa z lekkich stopÛw tytanu.
+{88433}{88499}Szwajcarski celownik laserowy.
+{88500}{88588}Lekki spust. Samopowtarzalny....
+{88589}{88641}...karbowany na paÒskie øyczenie.
+{88669}{88697}T≥umik.
+{88725}{88753}Cichobiegi.
+{89181}{89282}UØYTKOWNIK: uøytkownik|HAS£O: has≥o
+{89339}{89373}Menu g≥Ûwne.
+{89452}{89510}SZUKAJ:|jedno: -ocy, -rÍcy, -nodzy faceci.
+{89558}{89602}Wyszukiwanie.
+{89641}{89673}DrukowaÊ?
+{89714}{89794}DziÍki. Jak leci?|Wyrwa≥eú coú ostatnio?
+{89855}{89868}TAK
+{89869}{89930}Znasz kawa≥ o rabinie i zakonnicy?
+{89958}{89995}DRUKUJ! NIE MARUDè!
+{90022}{90080}Dobrze, dobrze, dupku!
+{90877}{90923}Po≥knπ≥ haczyk.
+{91924}{91997}ChwileczkÍ! Juø koÒczÍ!
+{92053}{92086}WOLNY
+{92125}{92166}Jedü!
+{92836}{92930}Jedziemy na pole kukurydzy.|Tam go wykoÒczymy.
+{96898}{96941}Cass.
+{97028}{97078}To pu≥apka?
+{97079}{97130}Chcesz mnie w coú wrobiÊ?
+{97131}{97210}- Zrozum...|- Wszystko zrozumia≥em.
+{97211}{97302}Znam na pamiÍÊ,|wszystkie twoje k≥amstwa..
+{97303}{97349}Øa≥ujÍ, øe nie mogÍ|zapomnieÊ o wszystkim i odejúÊ.
+{97350}{97409}- Moglibyúmy razem wyjechaÊ.|ChoÊby zaraz.
+{97410}{97459}Wszystko, co niezbÍdne mam w spodniach.
+{97460}{97539}Wys≥uchaj mnie.|Rodzice mnie porzucili.
+{97540}{97607}Nigdy nie zna≥am mojego ojca,|mojej matki, mojego psa.
+{97608}{97665}Tak! PiÍkne s≥Ûwka.
+{97666}{97754}Szkoda tylko, øe to wszystko k≥amstwa...
+{97755}{97805}ProszÍ, proszÍ!|Co my tu mamy?
+{97806}{97893}SpÛjrzmy. Coú, czego nawet kot|by sie nie wystraszy≥.
+{97894}{97955}Nie jesteú mile widziana,|ale jakoú przeøyjÍ ten horror.
+{97956}{98033}DoúÊ tego|Czas za≥atwiÊ Ryana Harrisona...
+{98034}{98084}...tak, jak zabi≥am mojego drogiego|ostatniego mÍøa.
+{98085}{98172}Nie domyúli≥em siÍ, øe to ty.|A powinienem.
+{98173}{98222}Ooo!|Sean Laughrea!
+{98223}{98282}Rodzinka w komplecie.
+{98283}{98352}Przy was mafia to cienkie bolki.
+{98353}{98395}Rodzina? My? Ja?
+{98396}{98441}Tak.
+{98442}{98495}Jestem twojπ siostrπ, a Lauren matkπ.
+{98496}{98574}Jestem bliüniaczkπ twojej matki,|10 lat m≥odszπ, ale identycznπ.
+{98575}{98644}Zabi≥am twojπ matkÍ.|By≥a obojnakiem.
+{98645}{98692}Mama i tata w jednym?
+{98693}{98726}Sean jest adoptowany.
+{98727}{98803}Chodzi≥am z twoim ojcem,|ale wybra≥am øycie bojownika o wolnoúÊ
+{98804}{98903}Tak, dowiedzia≥em siÍ wszystkiego|o protezie dr Fridley.
+{98904}{99031}Lufa ze stali wÍglowej,|cyjanowana amunicja.
+{99032}{99105}Fajna spluwa, prawda Sean?|Jeúli tak...
+{99106}{99156}...to strzel sobie trzy razy w ≥eb.
+{99157}{99205}Podpuszcza ciÍ...
+{99206}{99268}Sprytne, Harrison,|ale to twÛj ostatni popis.
+{99269}{99323}Pora umieraÊ.
+{99324}{99365}GiÒ!.
+{99713}{99815}Ruth, jak widaÊ, Sekretarz Generalny ONZ, Sir Robert McKintyre...
+{99816}{99848}...przyby≥ do Columbia Heights....
+{99849}{99878}To nasz cel.
+{99879}{99942}Najpierw Hibbing a teraz McKintyre?
+{99943}{99981}To nie do wiary
+{99982}{100076}Mam nadziejÍ, øe nie wycofasz siÍ ze swojej misji.
+{100089}{100171}McKintyre jest wrogiem|wszystkich bojownikÛw o wolnoúÊ na Ziemi.
+{100172}{100214}Oczywiúcie!.
+{100215}{100266}Zgadzam siÍ z tobπ.
+{100267}{100337}To úwietnie. Idziemy.
+{100338}{100444}ZapakujÍ drugie úniadanie|i zaraz przyjdÍ.
+{100445}{100509}Za 5 minut?
+{100598}{100638}Cass!
+{100676}{100717}Cass!
+{101005}{101058}Cass. Pst!
+{101137}{101223}Gdy strzeli≥aú z bliska,|zrozumia≥em, øe mnie kochasz.
+{101224}{101323}Te trofea w twoim apartamencie...|Jesteú úwietnym strzelcem...
+{101324}{101414}...ale nie mia≥em nowych otworÛw.|Tylko te, co poprzednio.
+{101415}{101464}Wykiwa≥aú ich.|Strzela≥aú úlepakami, prawda?
+{101465}{101559}Tak, musia≥am to zrobiÊ, Ryan.|Inaczej zabiliby ciÍ
+{101560}{101642}Poszukujπc mojej rodziny|odkry≥am, øe to terroryúci.
+{101643}{101684}A teraz chcπ zabiÊ mojego ojca.
+{101685}{101715}Twojego ojca?
+{101716}{101817}Tak. Dowiedzia≥am siÍ, øe jest nim|Sekretarz Generalny ONZ.
+{101818}{101906}Tak. Uøyjemy ich metod.|Zastawimy pu≥apkÍ. ZostaÒ tu.
+{101907}{101978}Daj znaÊ, jeøeli zmieniπ plany.
+{102003}{102073}Jak mnie zdemaskujπ, mogπ sprÛbowaÊ mnie zabiÊ.
+{102074}{102157}To jest szansa, ktÛrπ trzeba wykorzystaÊ. Powodzenia.
+{102193}{102234}Hmm.
+{102486}{102568}Mamy zaszczyt powitaÊ na zlocie w Columbia Heights...
+{102569}{102615}...burmistrza Johna StopkÍ...
+{102616}{102739}...i Sekretarza Generalnego ONZ|Sir Roberta McKintyre.
+{102740}{102832}Sir Robercie, Zaraz po musztrze paradnej|moøe pan rozpoczπÊ swoje przemÛwienie.
+{102833}{102870}DziÍkujÍ, panie burmistrzu.
+{104569}{104602}Ohh!
+{105588}{105636}Uwaga! On ma nogÍ!
+{106388}{106432}Ryan!
+{106492}{106552}Cholera!
+{106553}{106593}- Cass!|- Ryan!
+{106594}{106641}- Szybko. Za mnπ.|- Tak jest, za tobπ.
+{106642}{106725}- Chodü, tato!|- Tato?
+{106796}{106864}Ohh!
+{106865}{106915}CA£ODOBOWA DOSTAWA KOWADE£|"Wykonujemy dla ciebie ciÍøkπ pracÍ"|- Wsiadajcie!
+{107079}{107116}WsiadaÊ! Gonimy ich!
+{107117}{107172}Wykonujemy plan "B".
+{107173}{107254}To ta gnida, Ryan!|Zabra≥ McKintyre`a.
+{107354}{107381}Ryan, Patrz!
+{107713}{107815}Boøe, to Sean!|Ma broÒ! Szybko, szybko!
+{108085}{108113}Zabij go!
+{108265}{108312}Och, nie! Stinger!
+{108373}{108400}CofnπÊ siÍ!
+{108401}{108434}Co za dzieÒ!
+{108749}{108773}Dalej!
+{108790}{108820}Przesiadamy siÍ!
+{108858}{108910}MÛj karabin! RzuÊ go.
+{108954}{108991}Przechodücie! Szybko!
+{108992}{109049}RuszaÊ siÍ. Szybko!
+{109115}{109187}RuszaÊ siÍ! Szybciej!|PochyliÊ siÍ! G≥owa niøej!
+{109188}{109227}Szybciej! SchyliÊ siÍ!
+{109228}{109319}Kaødy siÍ zmieúci!|WchodziÊ! Dalej, dalej!
+{110601}{110635}Do diab≥a!
+{110674}{110707}Chodücie!
+{110800}{110856}RzuÊcie broÒ!
+{110857}{110899}- Co?
+{110900}{110934}Rπczki do gÛry!
+{111735}{111821}- Nieüle!|- Dobra robota.
+{111861}{111898}Uwaga!
+{112001}{112041}Laughrea!
+{112160}{112211}Fergus Falls,|oto nasz jednorÍki...
+{112212}{112293}...jednonogi, jednooki facet!
+{112294}{112361}Boisz siÍ, gnojku?
+{112362}{112404}Czy wystrzeli≥em wszystkie kule...
+{112405}{112458}...czy jest w komorze jeszcze jedna...
+{112459}{112491}...specjalnie dla ciebie?
+{112492}{112573}Myúlisz o úmierci?
+{112574}{112597}Gnojku?
+{112598}{112631}Chcia≥byú...
+{112632}{112680}...wiedzieÊ?
+{112681}{112727}Tak...
+{112728}{112797}...masz szczÍúcie.
+{112798}{112871}Nie mam wiÍcej naboi.
+{112907}{112961}Ojej! Pomyli≥em siÍ!
+{112999}{113051}Tak, Lauren...
+{113052}{113108}zap≥acisz najwyøszπ cenÍ za to, co zrobi≥aú.
+{113109}{113209}Twoje wilgotne wargi bÍdπ przez d≥ugi czas|pozbawione gorπcych poca≥unkÛw.
+{113210}{113244}Sπ twoi, Falls.
+{113245}{113344}Pilnuj ich jak oka w g≥owie
+{113345}{113421}I tak w koÒcu nasze drogi siÍ zesz≥y.
+{113422}{113497}Powinienem ci coú powiedzieÊ.
+{113498}{113608}Ryanie Harrison, W imieniu wszystkich|strÛøÛw prawa, oúwiadczam...
+{113609}{113670}...to by≥a pomy≥ka.
+{113736}{113777}Hmm?
+{113844}{113901}W porzπdku! ZabraÊ ich.
+{113981}{114046}- Ryan!|- Cass!
+{114349}{114390}Zamknij oczy.
+{114391}{114429}Nie bÛj siÍ.
+{114445}{114488}WierzÍ ci.
+{114514}{114571}Nie otwieraj oczu...
+{114707}{114774}A teraz otwÛrz.
+{114775}{114853}Mam wraøenie, øe lecÍ!
