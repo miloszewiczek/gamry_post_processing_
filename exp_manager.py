@@ -13,7 +13,8 @@ from config import config, messages
 from openpyxl import Workbook, load_workbook
 
 DTA_parser = gamry_parser.GamryParser()
-
+geometrical_area = config['default_settings']['geometrical_area']
+reference_potential = config['default_settings']['reference_potential']
 
 def create_empty_excel(file_name: str):
     if not os.path.exists(file_name):
@@ -95,41 +96,77 @@ class Experiment():
             
         return self.data_list
 
-    
-    def get_additional_dataframes(self) -> dict[str, pd.DataFrame]:
-        return {}
+    def get_multiindex_labels(self, columns, curve_index, add_curve_index = True) -> tuple[list[list[str]], list[str]]:
+        """
+        Returns levels and names for multiindexing. Is different for each 
+        type of experiment.
+        Returns:
+        - list of lists: values for each level of the Multiindex (e.g. [[path], [curve_name], [column1, column2, column2, ...]])
+        - list of level names (e.g. ['Path, 'Curve', 'Metric])
+        """
+
+        level_values = [[self.file_path], [curve_index], columns]
+        level_names = ['Path', 'Curve', 'Parameter']
+        return level_values, level_names
+
 
     def set_Ru(self, Ru_value):
         self.Ru = Ru_value
     
-    def process_data(self, columns_to_keep = ['E vs RHE', 'J_GEO'], **kwargs) -> list[pd.DataFrame]:
+    def _add_computed_column(self, curve:pd.DataFrame) -> pd.DataFrame:
+
+        curve['J_GEO [A/cm2]'] = curve['Im']/geometrical_area
+        curve['E vs RHE [V]'] = curve['Vf'] + reference_potential
+
+        if hasattr(self, 'Ru'):
+            curve['E_iR vs RHE [V]'] = curve['Vf'] + reference_potential - self.Ru * curve['Im']
+            return curve[['E vs RHE [V]', 'E_iR vs RHE [V]', 'J_GEO [A/cm2]']]
+        return curve[['E vs RHE [V]', 'J_GEO [A/cm2]']] 
+
+    def process_data(self, **kwargs) -> list[pd.DataFrame]:
+        
+        if len(self.data_list) > 1:
+            include_curve_index = True
+        else:
+            include_curve_index = False
+
         print(f'Processing data of {self.file_path} with id: {self.id} ({len(self.data_list)} curves).')
+        dfs = []
         for  curve_index, curve in enumerate(self.data_list):
             
-            geometrical_area = config['default_settings']['geometrical_area']
-            reference_potential = config['default_settings']['reference_potential']
+            processed_curve = self._add_computed_column(curve)
+            processed_curve = processed_curve.reset_index(drop=True)
 
-            if isinstance(geometrical_area, float):
-                curve['J_GEO'] = curve['Im']/geometrical_area
-            if isinstance(reference_potential, float):
-                curve['E vs RHE'] = curve['Vf'] + reference_potential
-            if hasattr(self, 'Ru'):
-                curve['E_iR vs RHE'] = curve['Vf'] - self.Ru * curve['Im']
-                columns = columns_to_keep.append('E_iR vs RHE')
-                curve = self.data_list[curve_index][columns]
-                
-            else:
-                columns = columns_to_keep
-                curve = self.data_list[curve_index][columns]
-            self.data_list[curve_index] = curve
-            
-        return self.data_list
+            level_values, level_names = self.get_multiindex_labels(processed_curve.columns, curve_index, add_curve_index = include_curve_index)
+            processed_curve.columns = pd.MultiIndex.from_product(level_values, names = level_names)
+            dfs.append(processed_curve)
+        
+        return pd.concat(dfs,axis=1)
 
 
     
 class OpenCircuit(Experiment):
     def __init__(self, file_path, date_time, id, tag, cycle):
         super().__init__(file_path, date_time, id, tag, cycle)
+
+
+    def _add_computed_column(self, curve:pd.DataFrame) -> pd.DataFrame:
+        curve['E vs RHE [V]'] = curve['Vf'] + reference_potential
+        curve['T [s]'] = curve['T']
+        return curve[['T [s]', 'E vs RHE [V]']] 
+    
+    def get_multiindex_labels(self, columns, curve_index, add_curve_index = True) -> tuple[list[list[str]], list[str]]:
+        """
+        Returns levels and names for multiindexing. Is different for each 
+        type of experiment.
+        Returns:
+        - list of lists: values for each level of the Multiindex (e.g. [[path], [curve_name], [column1, column2, column2, ...]])
+        - list of level names (e.g. ['Path, 'Curve', 'Metric])
+        """
+
+        level_values = [[f'{self.file_path}'], [f'curve {self.meta_data['TIMEOUT']}'], columns]
+        level_names = ['Path', 'Duration [s]', 'Parameter']
+        return level_values, level_names
 
 
 class LinearVoltammetry(Experiment):
@@ -157,6 +194,8 @@ class LinearVoltammetry(Experiment):
             self.data_list[curve_index] = curve
             self.calculate_overpotentials(curve, GEO = GEO)
 
+
+        #FIX THIS!
         return self.data_list
 
     def calculate_overpotentials(self, curve:pd.DataFrame, ECSA = None, GEO = -10):
@@ -296,7 +335,7 @@ class Chronoamperometry(Experiment):
     
     def process_data(self):
 
-        super().process_data(columns_to_keep=['T', 'J_GEO'])
+        super().process_data(columns_to_keep=['T', 'E vs RHE', 'J_GEO'])
         self.get_current_at_time(config['default_settings']['time_chrono'])
         return self.data_list
 
@@ -324,6 +363,42 @@ class Chronoamperometry(Experiment):
             self.current = current
             return current
         
+
+    def pick_current(self):
+
+        time, potential, current = self.data_list[0]['T'], self.data_list[0]['E vs RHE'], self.data_list[0]['J_GEO']
+        fig, ax = plt.subplots()
+        line, = ax.plot(time, current)
+        selected_point, = ax.plot([], [], 'ro')
+        plt.xlabel("T [s]")
+        plt.ylabel("Current [A]")
+        ax.legend()
+
+        def onclick(event):
+            if event.inaxes != ax:
+                return
+            x_click = event.xdata
+            y_click = event.ydata
+            distances = np.sqrt((time - x_click)**2 + (current - y_click)**2)
+            idx = np.argmin(distances)
+            x_sel = time[idx]
+            y_sel = current[idx]
+            
+            pot_iR = potential[idx] - current[idx]
+            print(pot_iR)
+
+            selected_point.set_data([x_sel], [y_sel])
+            fig.canvas.draw()
+
+            # Save point and close plot
+            self.time = x_sel
+            self.current = y_sel
+            self.potential = pot_iR
+            plt.close(fig)
+
+        cid = fig.canvas.mpl_connect('button_press_event', onclick)
+        plt.show()
+        
     def get_parameter_dict(self):
 
         results_dict = {'id': self.id, 'current': self.current}
@@ -334,6 +409,11 @@ class Chronoamperometry(Experiment):
 class EIS(Experiment):
     def __init__(self, file_path, date_time, id, tag, cycle):
         super().__init__(file_path, date_time, id, tag, cycle)
+    
+    def process_data(self):
+        pass
+
+
  
 def calculate_ECSA_from_slope(ECSA_experiments: list[ECSA], potential_list:list, *args) -> list:
     """Function to perform the calculate_difference_at_potential on
@@ -370,33 +450,9 @@ def calculate_ECSA_from_slope(ECSA_experiments: list[ECSA], potential_list:list,
         
         slope1, intercept = np.polyfit(x.iloc[:,0], x.iloc[:,1], 1)
         slope2, intercept2 = np.polyfit(x.iloc[:,0], x.iloc[:,2],1)
-        #x['slope_line'] = slope1
-        #x['slope_integral'] = slope2
-        #x.to_excel(f'{input('Give excel name: ')}.xlsx')
         results.append(x)
-
+        
     return (slope1, slope2), x
-
-def batch_integrate_ECSA(ECSA_experiments: list) -> pd.DataFrame:
-    '''Automation function to perform the calculate_CDL_integral on
-    provided ECSA experiments.
-    
-    Args:
-    ECSA_experiments: list of ECSA objects'''
-
-    results = []
-
-    for experiment in ECSA_experiments:
-        print(experiment)
-        try:
-            x = experiment.calculate_CDL_integral()
-        except:
-            experiment.load_data()
-            x = experiment.calculate_CDL_integral()
-        results.append(x)
-
-    return results
-
     
 def calculate_ECSA_difference(ECSA_experiments: dict, potential_list:list , calc_eis: bool = False, DifferenceTable = True, *args):
     """A function to compare the ECSA values obtained via the line and integral method.
@@ -429,6 +485,7 @@ def calculate_ECSA_difference(ECSA_experiments: dict, potential_list:list , calc
         else:
             CDL_linear_slopes = calculate_ECSA_from_slope(experiments, potential_list = potential_list, *args)
 
+        '''
         CDL_integrals = batch_integrate_ECSA(experiments)
     
         if DifferenceTable == True:
@@ -465,15 +522,17 @@ def calculate_ECSA_difference(ECSA_experiments: dict, potential_list:list , calc
     full_data = pd.concat(full_data, axis=1)
     
     return df_tmp, full_data
+    '''
         
 
-class ExperimentManager():
+class ExperimentLoader():
     '''An interface class to aggregate and manage the experiments. '''
 
     def __init__(self):
         '''All of the experiments are stored in the variable self.experiments'''
         self.experiments = {}
         self.filtered = {}
+        self.list_of_experiments = []
         self.experiments_v2 = defaultdict(list)
         
         #Default settings, always implemented in the program
@@ -483,12 +542,13 @@ class ExperimentManager():
                 #"CHRONOA" : Chronoamperometry,
                 #"EIS" : EIS,
                 "HER" : LinearVoltammetry,
-                "ECSA" : ECSA
+                "ECSA" : ECSA,
+                "Open Circuit Potential": OpenCircuit
                 },
             'TAGS':{
                 "CV" : Voltammetry,
                 "LSV" : LinearVoltammetry,
-                "OCP" : OpenCircuit,
+                "CORPOT" : OpenCircuit,
                 "CHRONOA" : Chronoamperometry,
                 "EISPOT": EIS
                 }
@@ -499,8 +559,13 @@ class ExperimentManager():
         self.id_counter = 0
 
 
-    def filter_by(self, name_startswith=None, cycle = None):
-        pass
+    def load_testing(self):
+        
+        files = [os.path.join('input/', file) for file in os.listdir('input/') if os.path.isfile(os.path.join('input/', file))]
+        for file in files:
+            self.create_experiment(file)
+        print('Added testing files (input/*)')
+        
             
     def create_experiment(self, file_path):
         '''Factory function to create the experiment and store it in a manager.
@@ -582,6 +647,7 @@ class ExperimentManager():
         - `experiment`: the object of class Experiment or its subclass
         """
         self.experiments_v2[experiment_keys].append(experiment)
+        self.list_of_experiments.append(experiment)
 
     def delete_experiment(self, id:list[int] = None, name:str = None):
         """
@@ -653,28 +719,19 @@ class ExperimentManager():
             except:
                 return self.check_name(experiment_list, name = inpt)
             
+class ExperimentManager():
+    def __init__(self):
+        self.atr = None
+        self.filtered = None
+            
     def combine_experiment(self, experiment_list):
+        for experiment in experiment_list:
 
-        #NEED TO CHANGE THE DFS SO THAT CYCLE DON'T GET MIXED UP
-        dfs = []
-        for (name, cycle, object_type), experiments in experiment_list.items():
-
-            print(experiments)
-
-            for experiment in experiments:
-                for i, df in enumerate(experiment.data_list):
-                    df = df.reset_index(drop=True)
-                    df.columns = pd.MultiIndex.from_product([
-                        [f'exp{experiment.file_path}'], [f'curve {i}'], df.columns],
-                        names = ['Path', 'Curve', 'Metric'])
-                    dfs.append(df)
-        return pd.concat(dfs, axis=1)
+            return pd.concat(experiment_list, axis=1)
 
     
     def save_experiment(self, experiment_list:dict[Experiment] = None, file_name = 'test', option = 'last'):
 
-        if experiment_list is None:
-            experiment_list = self.experiments_v2
 
         if not os.path.exists(file_name):
             create_empty_excel(file_name)
@@ -712,27 +769,54 @@ class ExperimentManager():
             wb.remove(std)
             wb.save(file_name)
     
-
-    def filter_experiments(self, name=None, cycle=None, object_type=None):
-        """
-        Filter experiments by name, cycle or object type
-        - `name`: str or list str (np. ["ECSA_#1", "CHRONO_#2_#1.DTA"])
-        - `cycle`: str or list str (np. [1, 2])
-        - `object`: str or list str (np. [CHRONOPOTENTOMETRY, ECSA])
-        - `id`: WIP
-        """
-        print(f'Filtering experiments by:\nname: {name}\ncycle: {cycle}\nexperiment type: {object_type}')
-        filtered_experiments = {
-            key: files for key, files in self.experiments_v2.items()
-            if (name is None or (isinstance(name, str) and name in key[0]) or (isinstance(name, list) and any(n in key[0] for n in name)))
-            and (cycle is None or (isinstance(cycle, int) and key[1] == cycle) or (isinstance(cycle, list) and key[1] in cycle))
-            and (object_type is None or (key[2] == object_type) or (isinstance(object_type, list) and key[2] in object_type))
-        }
-        self.filtered = filtered_experiments
-        self.last_filter = {'name': name, 'cycle': cycle, 'object type': object_type}
-        return self.filtered
     
-    def get_experiments_by_id(self, id):
+    def filter(
+        self,
+        name: str | list[str] = None,
+        cycle: int | list[int] = None,
+        object_type: type | str | list[type | str] = None,
+    ) -> list[Experiment]:
+        """
+        General filter method to select experiments matching all given criteria.
+
+        Args:
+            name: single name or list of substrings to match in file_path
+            cycle: int or list of ints
+            object_type: class, class name, or list of either
+
+        Returns:
+            List of Experiment objects matching all filters.
+        """
+        def name_matches(exp):
+            if name is None:
+                return True
+            if isinstance(name, str):
+                return name in exp.file_path
+            return any(n in exp.file_path for n in name)
+
+        def cycle_matches(exp):
+            if cycle is None:
+                return True
+            if isinstance(cycle, int):
+                return getattr(exp, "cycle", None) == cycle
+            return getattr(exp, "cycle", None) in cycle
+
+        def type_matches(exp):
+            if object_type is None:
+                return True
+            types = object_type if isinstance(object_type, list) else [object_type]
+            for t in types:
+                if isinstance(t, str) and t.lower() in type(exp).__name__.lower():
+                    return True
+                if isinstance(t, type) and isinstance(exp, t):
+                    return True
+            return False
+
+        self.filtered = [exp for exp in self.list_of_experiments if name_matches(exp) and cycle_matches(exp) and type_matches(exp)]
+        return self.filtered
+
+    
+    def filter_by_id(self, id):
         
         if not isinstance(id, list):
             id = [id]
@@ -740,7 +824,7 @@ class ExperimentManager():
         tmp = []
         tmp2 = {key:None for key in id}
 
-        for experiment in chain(*self.experiments_v2.values()):
+        for experiment in self.filtered:
             if experiment.id in id:
                 tmp.append(experiment)
                 tmp2[experiment.id] = experiment
@@ -763,11 +847,6 @@ class ExperimentManager():
         from a collectible of experiments
         - `experiment_collectible: list or dict of Experiment objects
         """
-        if experiment_collectible == None:
-            experiment_collectible = self.experiments_v2
-
-        if isinstance(experiment_collectible, dict):
-            experiment_collectible = chain(*experiment_collectible.values())
 
         x = []
         head = ['id', 'file name', 'tag', 'object type', 'No of Curves']
@@ -785,38 +864,11 @@ class ExperimentManager():
 
         print(tabulate(x, headers=head))
         
+    
     def print_chronology(self, option = 'tag'):
         '''Function that lists the experiments in chronological order'''
     
-        experiment_list = self.experiments_v2.values()
-        counter = 0
-        if option == 'files':
-
-            flattened_experiment_list = chain(*experiment_list)
-            flattened_experiment_list = [experiment for experiment in flattened_experiment_list]
-            flattened_experiment_list.sort(key=lambda x: x.date_time)
-
-            for experiment in flattened_experiment_list:
-                cycles = self.count_cycle(experiment.file_path)
-
-                if cycles[0] > counter:
-                    counter = cycles [0]
-                    print(f'\nCycle number {cycles[0]}\n')
-
-                if len(cycles) > 1 and cycles[1] == 1:
-                    print(f'\nSubcycle type: {type(experiment).__name__}\n')
-                print(experiment.file_path)
-        else:
-  
-            first_experiment_list = [experiments[0] for experiments in experiment_list]
-            first_experiment_list.sort(key=lambda x: x.date_time)
-            total_duration = first_experiment_list[-1].date_time - first_experiment_list[0].date_time
-
-            for experiment in first_experiment_list:
-                print(f'{experiment.tag}')
-            print(f'Total duration: {total_duration}')
-
-    def count_cycle(self, file_path:str):
+        def count_cycle(self, file_path:str):
             """Helper function for for print_chronology.
             Returns the cycle based on file_path
             
@@ -827,99 +879,65 @@ class ExperimentManager():
             matches = [int(m.strip('#')) for m in matches]
             return matches if matches else [0]
 
-    def print_current_status(self):
-        """Helper function to display the current number loaded experiments"""
-        try:
-            total_number_of_exps = len(tuple(chain(*self.experiments_v2.values())))
-            filtered_number_of_exps = len(tuple(chain(*self.filtered.values())))
-        except:
-            pass
-        print(f'Total number of experiments: {total_number_of_exps}. Filtered: {filtered_number_of_exps}')
-        try:
-            for key, filter in self.last_filter.items():
-                if filter is not None:
-                    print(key,':', filter)
-        except:
-            pass
+
+        experiment_list = self.filtered
+        counter = 0
+        if option == 'files':
+
+            flattened_experiment_list = experiment_list
+            flattened_experiment_list.sort(key=lambda x: x.date_time)
+
+            for experiment in flattened_experiment_list:
+                cycles = count_cycle(experiment.file_path)
+
+                if cycles[0] > counter:
+                    counter = cycles [0]
+                    print(f'\nCycle number {cycles[0]}\n')
+
+                if len(cycles) > 1 and cycles[1] == 1:
+                    print(f'\nSubcycle type: {type(experiment).__name__}\n')
+                print(experiment.file_path)
+        else:
+  
+            first_experiment_list = experiment_list
+            first_experiment_list.sort(key=lambda x: x.date_time)
+            total_duration = first_experiment_list[-1].date_time - first_experiment_list[0].date_time
+
+            for experiment in first_experiment_list:
+                print(f'{experiment.tag}')
+            print(f'Total duration: {total_duration}')
 
 
 
     def batch_process_selected_experiments(self, experiment_collectible = None, **kwargs):
         
-        tmp = {}
+        tmp = []
+
         if experiment_collectible == None:
-            experiment_collectible = self.experiments_v2
+            experiment_collectible = self.filtered
 
-        if isinstance(experiment_collectible, dict):
-            for experiment_keys, experiments in experiment_collectible.items():
-                parameters = []
-                for experiment in experiments:
-                    experiment.load_data()
-                    experiment.process_data()
-                    try:
-                        parameters.append(experiment.get_parameter_dict())
-                        print(parameters)
-                    except:
-                        print(f'No parameters found for {experiment.file_path}')
-                tmp[experiment_keys] = pd.DataFrame.from_records(parameters)
+        for experiment in experiment_collectible:
+            parameters = []
+           
+            experiment.load_data()
+            experiment.process_data()
+            tmp.append(experiment)
+            try:
+                parameters.append(experiment.get_parameter_dict())
+            except:
+                print(f'No parameters found for {experiment.file_path}')
             
-            return experiment_collectible
-            #return pd.DataFrame.from_records(parameters)
-            #return pd.DataFrame(parameters)
-            #return experiment_collectible
 
-    def chrono_lsv(self, **kwargs):
-        result = self.filter_experiments(name=['HER', 'CHRONOP'])
-        self.batch_process_selected_experiments(result)
+        x = self.combine_experiment(tmp)
+        x.to_excel(input('Name of data to save: ')+'.xlsx', engine='openpyxl')
+        return experiment_collectible
+        #return pd.DataFrame.from_records(parameters)
+        #return pd.DataFrame(parameters)
+        #return experiment_collectible
 
-
-    def visualize_ECSA(self):
-        manager = plt.get_current_fig_manager()
-        screen_size = manager.window.winfo_screenwidth(), manager.window.winfo_screenheight()
-        plt.close('all')
-
-        width_factor, height_factor = 0.8, 0.6  # 80% width, 60% height
-        fig_width = screen_size[0] * width_factor / 100  # Convert pixels to inches
-        fig_height = screen_size[1] * height_factor / 100
-                
-        result = self.filter_experiments(object_type=ECSA)
-        print(result)
-        processed_data = self.batch_process_selected_experiments(result)
-        number_of_subplots = len(processed_data.keys())
-        fig, axes = plt.subplots(3,number_of_subplots, figsize=(fig_width, fig_height))
-
-        for number, ((name, cycle, object_type), experiments) in enumerate(processed_data.items()):
- 
-            for experiment in experiments:
-                for j, df in enumerate(experiment.data_list):
-
-                    if number_of_subplots == 1:
-                        to_plot = axes[j]
-                    else:
-                        to_plot = axes[j][number]
-                    to_plot.plot(df['E vs RHE'], df['J_GEO'], label=f'{experiment.file_path}')
-                    if j+1 == len(experiment.data_list):
-                        to_plot.set_xlabel("E vs RHE")
-                    else:
-                        to_plot.set_xticks([])
-                    if number == 0:
-                        to_plot.set_ylabel("J_GEO")
-        plt.tight_layout()
-        plt.show()
+    def plot(self):
+        fig = plt.figure()
 
 
-    def get_raport_parameters(self):
-        
-        x = self.filter_experiments(name = ['HER', 'ECSA', 'CHRONOP'])
-        self.batch_process_selected_experiments(x)
-        for (name, cycle, object_type), experiments in x.items():
-            for experiment in experiments:
-                if not hasattr(experiment, 'data_list'):
-                    experiment.load_data()
-                    experiment.process_data()
-                x =  experiment.get_parameter_dict()
-                for key, items in x.items():
-                    print(key, items)
-                
 
     
