@@ -14,7 +14,6 @@ def testing_f():
     return loader, manager
 
 l, m = testing_f()
-m.filter('MYCIE')
+m.filter('CHRONOP', 1)
 x = m.filtered[0]
 x.load_data()
-x.process_data()

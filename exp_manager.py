@@ -121,9 +121,12 @@ class Experiment():
         if hasattr(self, 'Ru'):
             curve['E_iR vs RHE [V]'] = curve['Vf'] + reference_potential - self.Ru * curve['Im']
             return curve[['E vs RHE [V]', 'E_iR vs RHE [V]', 'J_GEO [A/cm2]']]
-        return curve[['E vs RHE [V]', 'J_GEO [A/cm2]']] 
+        
+        curve = curve.reset_index(drop=True)
 
-    def process_data(self, **kwargs) -> list[pd.DataFrame]:
+        return curve[['E vs RHE [V]', 'J_GEO [A/cm2]']]
+
+    def process_data(self, **kwargs) -> pd.DataFrame:
         
         if len(self.data_list) > 1:
             include_curve_index = True
@@ -135,7 +138,6 @@ class Experiment():
         for  curve_index, curve in enumerate(self.data_list):
             
             processed_curve = self._add_computed_column(curve)
-            processed_curve = processed_curve.reset_index(drop=True)
 
             level_values, level_names = self.get_multiindex_labels(processed_curve.columns, curve_index, add_curve_index = include_curve_index)
             processed_curve.columns = pd.MultiIndex.from_product(level_values, names = level_names)
@@ -164,7 +166,7 @@ class OpenCircuit(Experiment):
         - list of level names (e.g. ['Path, 'Curve', 'Metric])
         """
 
-        level_values = [[f'{self.file_path}'], [f'curve {self.meta_data['TIMEOUT']}'], columns]
+        level_values = [[f'{self.file_path}'], [f'{self.meta_data['TIMEOUT']}'], columns]
         level_names = ['Path', 'Duration [s]', 'Parameter']
         return level_values, level_names
 
@@ -176,28 +178,22 @@ class LinearVoltammetry(Experiment):
     
     def process_data(self) -> pd.DataFrame:
         
-        try:
-            GEO = config['default_settings']['GEO']
-        except:
-            GEO = -10
+        result = super().process_data()
 
-        super().process_data(columns_to_keep=['E vs RHE',  'J_GEO'])
-        for curve_index, curve in enumerate(self.data_list):
-            curve['log10 J_GEO'] = np.log10(0-curve['J_GEO'])
-            
-            tafel_curve = curve[['log10 J_GEO', 'E vs RHE']]
-            self.tafel_curves.append(tafel_curve)
-            try:
-                curve = curve[['E_iR vs RHE', 'E vs RHE', 'J_GEO']]
-            except:
-                curve = curve[['E vs RHE', 'J_GEO']]
-            self.data_list[curve_index] = curve
-            self.calculate_overpotentials(curve, GEO = GEO)
+        return result
 
+    def _add_computed_column(self, curve):
+        LSV_curve =  super()._add_computed_column(curve)
+        curve['log10 J_GEO [A/cm2]'] = np.log10(0-LSV_curve['J_GEO [A/cm2]'])
+        Tafel_curve = pd.concat([curve['log10 J_GEO [A/cm2]'], LSV_curve['E vs RHE [V]']], axis=1)
+        return pd.concat([LSV_curve, Tafel_curve], axis=1)
 
-        #FIX THIS!
-        return self.data_list
+    def get_multiindex_labels(self, columns, curve_index, add_curve_index=True):
 
+        level_values = [[f'{self.file_path}'], columns]
+        level_names = ['Path', 'Parameter']
+        return level_values, level_names
+    
     def calculate_overpotentials(self, curve:pd.DataFrame, ECSA = None, GEO = -10):
 
         tmp = {}
@@ -219,12 +215,6 @@ class LinearVoltammetry(Experiment):
     def get_parameter_dict(self):
         return self.overpotential
     
-    def get_additional_dataframes(self) -> dict[str, pd.DataFrame]:
-        
-        if self.tafel_curves:
-            return {'tafel': pd.concat([df.reset_index(drop=True) for df in self.tafel_curves], axis=1)}
-        return {}
-
 class Voltammetry(Experiment):
     def __init__(self, file_path, date_time, id, tag, cycle):
         super().__init__(file_path, date_time, id, tag, cycle)
@@ -245,6 +235,21 @@ class Voltammetry(Experiment):
         print(f'{E_start} ----> ({E1} <----> {E2})x{cycles} ----> {E_end}')
         print('==============================================\n')
 
+    def process_data(self) -> pd.DataFrame:
+        
+        result = super().process_data()
+
+        return result
+
+    def _add_computed_column(self, curve):
+        CV_curve =  super()._add_computed_column(curve)
+        return CV_curve
+
+    def get_multiindex_labels(self, columns, curve_index, add_curve_index=True):
+
+        level_values = [[f'{self.file_path}'], [f'Curve {curve_index}'], columns]
+        level_names = ['Path', 'Cycle', 'Parameter']
+        return level_values, level_names
 
 
 class ECSA(Voltammetry):
@@ -319,7 +324,7 @@ class ECSA(Voltammetry):
             self.diff.append(self.calculate_difference_at_potential(potential = potential)) 
         self.integral = self.calculate_CDL_integral()
         super().process_data()
-        return self.data_list
+        return 
     
     def get_parameter_dict(self):
 
@@ -333,11 +338,45 @@ class Chronoamperometry(Experiment):
         super().__init__(file_path, date_time, id, tag, cycle)
         self.current = None
     
-    def process_data(self):
+    def process_data(self, interactive = False):
 
-        super().process_data(columns_to_keep=['T', 'E vs RHE', 'J_GEO'])
-        self.get_current_at_time(config['default_settings']['time_chrono'])
-        return self.data_list
+        result = super().process_data()
+        if interactive == False:
+            self.get_current_at_time(config['default_settings']['time_chrono'])
+        elif interactive == True:
+            self.pick_current()
+
+        return result
+    
+    
+    def get_multiindex_labels(self, columns, curve_index, add_curve_index = True) -> tuple[list[list[str]], list[str]]:
+        """
+        Returns levels and names for multiindexing. Is different for each 
+        type of experiment.
+        Returns:
+        - list of lists: values for each level of the Multiindex (e.g. [[path], [curve_name], [column1, column2, column2, ...]])
+        - list of level names (e.g. ['Path, 'Curve', 'Metric])
+        """
+        final_potential = self.meta_data['VSTEP2'] + reference_potential
+        final_potential = '{:.2f}'.format(final_potential)
+
+        level_values = [[self.file_path], [final_potential], columns]
+        level_names = ['Path', 'E vs RHE [V]', 'Parameter']
+        return level_values, level_names
+
+    def _add_computed_column(self, curve:pd.DataFrame) -> pd.DataFrame:
+
+        curve['J_GEO [A/cm2]'] = curve['Im']/geometrical_area
+        curve['E vs RHE [V]'] = curve['Vf'] + reference_potential
+        curve['T [s]'] = curve['T']
+
+        if hasattr(self, 'Ru'):
+            curve['E_iR vs RHE [V]'] = curve['Vf'] + reference_potential - self.Ru * curve['Im']
+            return curve[['E vs RHE [V]', 'E_iR vs RHE [V]', 'J_GEO [A/cm2]']]
+        
+        curve = curve.reset_index(drop=True)
+
+        return curve[['T [s]', 'E vs RHE [V]', 'J_GEO [A/cm2]']]
 
 
     def get_current_at_time(self, time):
@@ -359,19 +398,19 @@ class Chronoamperometry(Experiment):
                 return self.get_current_at_time(time_input)
 
             closest_index = (curve['T'] - time).abs().idxmin()
-            current = curve.iloc[closest_index]['J_GEO']
+            current = curve.iloc[closest_index]['J_GEO [A/cm2]']
             self.current = current
             return current
         
 
     def pick_current(self):
 
-        time, potential, current = self.data_list[0]['T'], self.data_list[0]['E vs RHE'], self.data_list[0]['J_GEO']
+        time, potential, current = self.data_list[0]['T'], self.data_list[0]['E vs RHE [V]'], self.data_list[0]['J_GEO [A/cm2]']
         fig, ax = plt.subplots()
         line, = ax.plot(time, current)
         selected_point, = ax.plot([], [], 'ro')
         plt.xlabel("T [s]")
-        plt.ylabel("Current [A]")
+        plt.ylabel("Current density [A/cm2]")
         ax.legend()
 
         def onclick(event):
@@ -385,7 +424,6 @@ class Chronoamperometry(Experiment):
             y_sel = current[idx]
             
             pot_iR = potential[idx] - current[idx]
-            print(pot_iR)
 
             selected_point.set_data([x_sel], [y_sel])
             fig.canvas.draw()
@@ -411,7 +449,35 @@ class EIS(Experiment):
         super().__init__(file_path, date_time, id, tag, cycle)
     
     def process_data(self):
-        pass
+        
+        result = super().process_data()
+        return result
+
+    def get_multiindex_labels(self, columns, curve_index, add_curve_index = True) -> tuple[list[list[str]], list[str]]:
+        """
+        Returns levels and names for multiindexing. Is different for each 
+        type of experiment.
+        Returns:
+        - list of lists: values for each level of the Multiindex (e.g. [[path], [curve_name], [column1, column2, column2, ...]])
+        - list of level names (e.g. ['Path, 'Curve', 'Metric])
+        """
+        final_potential = self.meta_data['VDC'] + reference_potential
+        final_potential = '{:.2f}'.format(final_potential)
+
+        level_values = [[self.file_path], [final_potential], columns]
+        level_names = ['Path', 'E vs RHE [V]', 'Parameter']
+        return level_values, level_names
+
+
+    def set_Ru(self, Ru_value):
+        self.Ru = Ru_value
+    
+    def _add_computed_column(self, curve:pd.DataFrame) -> pd.DataFrame:
+        
+        curve = curve.reset_index(drop=True)
+        curve = curve[['Freq','Zreal','Zimag']]
+        curve.columns = ['Freq [Hz]', 'Zreal [Ohm]', 'Zimag [Ohm]']
+        return curve
 
 
  
@@ -566,7 +632,6 @@ class ExperimentLoader():
             self.create_experiment(file)
         print('Added testing files (input/*)')
         
-            
     def create_experiment(self, file_path):
         '''Factory function to create the experiment and store it in a manager.
         Depending on the TAG of the .DTA file, it creates a different experiment object characterized by different data processing methods.'''
@@ -611,7 +676,6 @@ class ExperimentLoader():
         """Helper function to retrieve and in other case 
         add a new Experiment subclass to class fac"""
 
-        #retrieve 
         experiment_class = self.experiment_classes['IDENTIFIERS'].get(experiment_identifier)
 
         if not experiment_class:
@@ -726,9 +790,7 @@ class ExperimentManager():
             
     def combine_experiment(self, experiment_list):
         for experiment in experiment_list:
-
             return pd.concat(experiment_list, axis=1)
-
     
     def save_experiment(self, experiment_list:dict[Experiment] = None, file_name = 'test', option = 'last'):
 
@@ -908,7 +970,6 @@ class ExperimentManager():
             print(f'Total duration: {total_duration}')
 
 
-
     def batch_process_selected_experiments(self, experiment_collectible = None, **kwargs):
         
         tmp = []
@@ -935,9 +996,92 @@ class ExperimentManager():
         #return pd.DataFrame(parameters)
         #return experiment_collectible
 
-    def plot(self):
-        fig = plt.figure()
 
+def calculate_tafel_slope(data, starting_point, step, overlap, name = 'Sample', curve_number = None, i = None):
+    '''
+    if i == None:
+        output[curve_number] = []
 
+    i_start = (np.abs(data['Vf_iR'] - starting_point)).argmin()
+    print("Starting index: ", i_start)
+    search = data['Vf_iR'][i_start]
+    print("Potential of starting point: ", search)
+    new_search = search + step
+    print("Potential of new point: ", new_search)
+    idx = (np.abs(data['Vf_iR'] - new_search)).argmin()
+    print("Finishing index: ", idx)
+    if (idx < i_start) or (new_search < min(data['Vf_iR'])):
 
+        fig, ax = plt.subplots(figsize=(15,10))
+        plt.xlabel('Average log10 j [mA/cm2]')
+        plt.ylabel('Tafel slope [mV/dec]')
+        plt.title(name)
+        
+        print('Calculated finish index is lower than starting index. Aborting. This is due to iR-drop and bubbles detachment.')
+        df = pd.DataFrame(output[curve_number], columns = ['E_begining', 'E_final', 'Average current [mA/cm2]', 'Tafel slope [mV/dec]'])
+        resulting_dfs.append(df)
+
+        x_data = np.array([seg[2] for seg in output[curve_number]])
+        y_data = np.array([seg[3] for seg in output[curve_number]])
+        ax.scatter(x_data,y_data)
+        ax.set_ylim(0,150)
+        clicked_points = []
+
+        
+        def on_click(event):
+            if event.inaxes != ax:
+                return
+            
+            clicked_points.append((event.xdata, event.ydata))
+
+            # Draw a red dot
+            ax.plot(event.xdata, event.ydata, 'ro')
+            fig.canvas.draw()
+
+            if len(clicked_points) == 2:
+                # Get x-values of clicks
+                x1, _ = clicked_points[0]
+                x2, _ = clicked_points[1]
+
+                # Find closest indices
+                idx1 = (np.abs(x_data - x1)).argmin()
+                idx2 = (np.abs(x_data - x2)).argmin()
+
+                i_min, i_max = sorted([idx1, idx2])  # Ensure correct order
+
+                selected_x = x_data[i_min:i_max+1]
+                selected_y = y_data[i_min:i_max+1]
+
+                mean_val = np.mean(selected_y)
+                print(f"\nSelected range: x = [{x_data[i_min]:.3f}, {x_data[i_max]:.3f}]")
+                print(f"Mean y-value in range: {mean_val:.5f}")
+
+                # Optionally shade selected region
+                ax.axvspan(x_data[i_min], x_data[i_max], color='orange', alpha=0.3)
+                fig.canvas.draw()
+
+                # Disconnect listener so it doesn’t keep listening
+                fig.canvas.mpl_disconnect(cid)
+                plt.title(f"Mean y = {mean_val:.5f} between selected points")
+                fig.canvas.draw()
+
+        # Connect the click event
+        cid = fig.canvas.mpl_connect('button_press_event', on_click)
+        plt.show()
+        
+
+        return df
+        '''
     
+class Analyzer():
+    def __init__(self):
+        pass
+
+class Visualizer():
+    def __init__(self):
+        pass
+
+class Corporator():
+    def __init__(self):
+        self.loader = ExperimentLoader()
+        
