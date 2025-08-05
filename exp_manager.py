@@ -11,6 +11,7 @@ from functools import wraps
 import matplotlib.pyplot as plt
 from config import config, messages
 from openpyxl import Workbook, load_workbook
+from collections import defaultdict
 
 DTA_parser = gamry_parser.GamryParser()
 geometrical_area = config['default_settings']['geometrical_area']
@@ -64,7 +65,7 @@ class Experiment():
         self.id = id
         self.tag = tag
         self.parameters = {}
-        self.processed_data_list = {}
+        self.processed_data = []
         self.cycle = cycle
 
     def load_data(self):
@@ -78,23 +79,6 @@ class Experiment():
             #print(f'Single point curve removed in file {self.file_path}')
         return self.meta_data
 
-    def join_curves(self, option='last') -> pd.DataFrame:
-
-        match option:
-            case 'last':
-                self.data_list = self.data_list[-1]
-            case 'first':
-                self.data_list = self.data_list[0]
-            case 'all':
-                self.data_list = [df.reset_index(drop=True) for df in self.data_list]
-                self.data_list = pd.concat(self.data_list, axis=1)
-            case int() as idx if 0 <= idx < len(self.data_list):
-                self.data_list = self.data_list[idx]
-            case list() as idx_list:
-                if all(isinstance(i, int) and 0 <= i < len(self.data_list) for i in idx_list):
-                    self.data_list = pd.concat([self.data_list[i].reset_index(drop=True) for i in idx_list], axis=1)
-            
-        return self.data_list
 
     def get_multiindex_labels(self, columns, curve_index, add_curve_index = True) -> tuple[list[list[str]], list[str]]:
         """
@@ -143,7 +127,34 @@ class Experiment():
             processed_curve.columns = pd.MultiIndex.from_product(level_values, names = level_names)
             dfs.append(processed_curve)
         
-        return pd.concat(dfs,axis=1)
+        self.processed_data = pd.concat(dfs,axis=1)
+        return self.processed_data
+
+    def get_tree_structure(self) -> dict:
+        """Return a nested dictionary representing the file → [curve or potential] → parameters tree.
+    Supports both 2- and 3-level MultiIndex DataFrames."""
+    
+        if not hasattr(self, "processed_data"):
+            raise ValueError("Run process_data() first.")
+
+        df = self.processed_data
+        tree = defaultdict(lambda: defaultdict(list))
+
+        if isinstance(df.columns, pd.MultiIndex):
+            for col_tuple in df.columns:
+                if len(col_tuple) == 3:
+                    path, middle, param = col_tuple
+                    tree[path][middle].append(param)
+                elif len(col_tuple) == 2:
+                    path, param = col_tuple
+                    tree[path]["[no group]"].append(param)  # placeholder label
+                else:
+                    raise ValueError(f"Unsupported column depth: {len(col_tuple)}")
+        else:
+            # fallback: single-level column (not MultiIndex)
+            tree[self.file_path]["[flat]"] = list(df.columns)
+
+        return dict(tree)
 
 
     
@@ -186,6 +197,8 @@ class LinearVoltammetry(Experiment):
         LSV_curve =  super()._add_computed_column(curve)
         curve['log10 J_GEO [A/cm2]'] = np.log10(0-LSV_curve['J_GEO [A/cm2]'])
         Tafel_curve = pd.concat([curve['log10 J_GEO [A/cm2]'], LSV_curve['E vs RHE [V]']], axis=1)
+        self.tafel_curves.append(Tafel_curve)
+
         return pd.concat([LSV_curve, Tafel_curve], axis=1)
 
     def get_multiindex_labels(self, columns, curve_index, add_curve_index=True):
@@ -1085,3 +1098,18 @@ class Corporator():
     def __init__(self):
         self.loader = ExperimentLoader()
         
+if __name__ == "__main__":
+    from tkinter import Tk
+    from visualizer import *
+    loader = ExperimentLoader()
+    loader.load_testing()
+    manager = ExperimentManager()
+    manager.list_of_experiments = loader.list_of_experiments 
+    manager.filter('ECSA', 1)
+    for exp in manager.filtered:
+        exp.load_data()
+        exp.process_data()
+    x = manager.filtered
+    root = Tk()
+    gui = VisualizerWindow(root, x)
+    root.mainloop()
