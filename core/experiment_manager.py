@@ -7,6 +7,7 @@ class ExperimentManager():
         self.atr = None
         self.filtered = None
         self.list_of_experiments = []
+
             
     def combine_experiment(self, experiment_list):
             return pd.concat(experiment_list, axis=1)
@@ -165,6 +166,8 @@ class ExperimentManager():
     ):
 
         if experiment_collectible is None:
+            experiment_collectible = self.list_of_experiments
+        else:
             experiment_collectible = self.filtered
 
         # Ensure group_by is always a tuple/list
@@ -197,3 +200,11 @@ class ExperimentManager():
 
         print(f"Data saved to {save_name}.xlsx")
         return experiment_collectible
+    
+    def set_experiments(self, data):
+        self.list_of_experiments = data
+
+    def get_unique_experiments(self):
+        #MY FIRST USE OF A SET. THE NEAT THING ABOUT THIS COLLECTION IS THE FACT THAT IT DOESNT STORE DUPLICATES!
+        return list({obj.__class__.__name__ for obj in self.list_of_experiments})
+        #return list({type(obj) for obj in self.list_of_experiments})

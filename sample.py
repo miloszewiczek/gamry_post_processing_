@@ -17,7 +17,8 @@ x = manager.filtered[0]
 x.load_data()
 x.process_data()
 
-InteractivePlotApp(x)
+app = InteractivePlotApp(x)
+app.mainloop()
 
 def load_config():
     with open('app_config/settings2.json', 'r') as f:

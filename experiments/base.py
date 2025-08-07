@@ -65,10 +65,7 @@ class Experiment():
 
     def process_data(self, **kwargs) -> pd.DataFrame:
         
-        if len(self.data_list) > 1:
-            include_curve_index = True
-        else:
-            include_curve_index = False
+
 
         print(messages.processing_messages['processing_data_fp_id_len'].format(
             file_path = self.file_path,
@@ -81,12 +78,27 @@ class Experiment():
             
             processed_curve = self._add_computed_column(curve)
 
-            level_values, level_names = self.get_multiindex_labels(processed_curve.columns, curve_index, add_curve_index = include_curve_index)
-            processed_curve.columns = pd.MultiIndex.from_product(level_values, names = level_names)
             dfs.append(processed_curve)
         
-        self.processed_data = pd.concat(dfs,axis=1)
+        self.processed_data = dfs
+
         return self.processed_data
+    
+    def make_multiindex(self, data):
+
+        dfs = []
+        
+        if len(data) > 1:
+            include_curve_index = True
+        else:
+            include_curve_index = False
+
+        for curve_index, curve in enumerate(data):
+            level_values, level_names = self.get_multiindex_labels(curve.columns, curve_index, add_curve_index= include_curve_index)
+            curve.columns = pd.MultiIndex.from_product(level_values, names = level_names)
+            dfs.append(curve)
+
+        return pd.concat(dfs, axis=1)
 
     def get_tree_structure(self) -> dict:
         """Return a nested dictionary representing the file → [curve or potential] → parameters tree.

@@ -46,6 +46,7 @@ class ExperimentLoader():
         files = askopenfilenames(filetypes=[('Gamry Experiment Files', '*.DTA')])
         for file in files:
             self.create_experiment(file)
+        return self.list_of_experiments
         
     def create_experiment(self, file_path):
         '''Factory function to create the experiment and store it in a manager.
