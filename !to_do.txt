@@ -1,7 +1,15 @@
-1. Wrzucenie wszystkich stringów w osobny plik.
 2. Wrzucenie wszystkich parametrów w osobny plik.
-3. Switch case zamiast elif.
-4. Zdefiniować mniejsze funkcji zamiast kobył i dodać najlepiej do osobnych plików.
-5. Zdefiniować obiekt składający się z nazwy eksperymentu i parametrów.
 6. Podmieniarka TAGów w *.DTA
-7. Rozbudować system przydzielania eksperymentu do odpowiedniego cyklu - patrz plik MYCIE_#1.DTA, który jest wczytywany błędnie do cyklu 0.
+
+0. Definicja parametrów dla każdego z eksperymentu (e.g. CDL/RF dla ECSA, nadpotencjały dla LSV/CV)
+    - zrobić to na zasadzie nadpisywania funkcji np. get_additional_parameters()
+1. Połączenie managera, loadera i innych, aby tworzyło jedną całość
+2. Tworzenie workflow e.g. co program ma liczyć i jak?
+    - automatyczny workflow bazujący na funkcji Counter (która w sumie może nawet 
+    liczyć konkretne cykle?)
+3. Dodawanie kolumn J GEO ECSA
+4. Jednostki do parametrów
+    - może odrębny wiersz do DataFrameów?
+    - definicja w configu?
+5. Dodać sortowanie po plikach, żeby 10 nie było przed 2
+6. Wizualizator

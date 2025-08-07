@@ -4,6 +4,7 @@ from os import path
 from tkinter.filedialog  import askopenfilenames
 from glob import glob
 from os import walk
+from matplotlib import pyplot as plt
 
 gp = gamry_parser.GamryParser()
 
