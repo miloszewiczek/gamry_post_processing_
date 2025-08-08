@@ -31,7 +31,6 @@ class ECSA(Voltammetry):
             minimal_distance_index = distances.argsort()[:2]
             current_values = curve.iloc[minimal_distance_index]['Im']
             result = abs(current_values.iloc[0] - current_values.iloc[1])
-            #print(f'Difference at {potential} calculated to be {result}')
             
             current_diff_list.append(result)
 
@@ -68,11 +67,6 @@ class ECSA(Voltammetry):
     
     def process_data(self):
 
-        self.diff = []
-        for potential in settings.options['potential']:
-            print(messages.processing_messages['line_method_potential'].format(potential = potential))
-            self.diff.append(self.calculate_difference_at_potential(potential = potential)) 
-        self.integral = self.calculate_CDL_integral()
         self.processed_data  = super().process_data()
         return self.processed_data
     
@@ -81,4 +75,14 @@ class ECSA(Voltammetry):
         results_dict = {'id': self.id, 'integral': self.integral, 'diff': (self.diff)}
         #return {'Difference(s)': self.diff, 'Integral': self.integral}
         return results_dict
+    
+    def perform_postprocessing(self):
+    
+        self.diff = []
+        for potential in settings.options['potential']:
+            print(messages.processing_messages['line_method_potential'].format(potential = potential))
+            self.diff.append(self.calculate_difference_at_potential(potential = potential)) 
+
+        self.integral = self.calculate_CDL_integral()
         
+        return (self.file_path, self.meta_data['SCANRATE'], self.diff, self.integral)

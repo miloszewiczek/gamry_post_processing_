@@ -41,6 +41,7 @@ class ExperimentLoader():
         for file in files:
             self.create_experiment(file)
         print('Added testing files (input/*)')
+        return self.list_of_experiments
 
     def choose_folder(self):
         files = askopenfilenames(filetypes=[('Gamry Experiment Files', '*.DTA')])

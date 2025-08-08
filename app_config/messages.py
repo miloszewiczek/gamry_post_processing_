@@ -28,8 +28,8 @@ manager_messages = {
     'no_experiments' : 'No experiments with provided id(s)',
     'chronology': ['Cycle number: {cycle_number}',
                    'Subcycle type: {experiment_name}',
-                   'Total duration: {total_duration}']
-
+                   'Total duration: {total_duration}'],
+    'request_processing': 'No attribute: processed_data. Please run the process_data() method',
 }
 
 #GENERIC ERROR MESSAGES

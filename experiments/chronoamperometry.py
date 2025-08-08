@@ -109,3 +109,8 @@ class Chronoamperometry(Experiment):
 
         results_dict = {'id': self.id, 'current': self.current}
         return results_dict
+    
+    def perform_postprocessing(self):
+        
+        self.get_current_at_time(5)
+        self.pick_current()

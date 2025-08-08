@@ -125,3 +125,15 @@ class Experiment():
             tree[self.file_path]["[flat]"] = list(df.columns)
 
         return dict(tree)
+    
+    def perform_postprocessing(self):
+        return 'Base class has no postprocessing defined'
+    
+    def get_curves(self, index:int|None):
+
+        #None is a string, because the treeview stores values as strings!
+        if index == "None":
+            return self.data_list
+        else:
+            index = int(index)
+            return [self.data_list[index]]

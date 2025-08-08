@@ -18,6 +18,7 @@ class ExperimentManager():
         name: str | list[str] = None,
         cycle: int | list[int] = None,
         object_type: type | str | list[type | str] = None,
+        inclusive:bool = True
     ) -> list[Experiment]:
         """
         General filter method to select experiments matching all given criteria.
@@ -32,6 +33,12 @@ class ExperimentManager():
         """
         if experiments == None:
             experiments = self.list_of_experiments
+
+        if cycle is not None:
+            try:
+                cycle = int(cycle)
+            except TypeError:
+                return
 
         def name_matches(exp):
             if name is None:
@@ -58,35 +65,44 @@ class ExperimentManager():
                     return True
             return False
 
-        self.filtered = [exp for exp in experiments if name_matches(exp) and cycle_matches(exp) and type_matches(exp)]
+        if inclusive:
+            #AND LOGIC
+            self.filtered = [exp for exp in experiments if name_matches(exp) and cycle_matches(exp) and type_matches(exp)]
+        else:
+            #OR LOGIC - ONLY APPLY FILTERS THAT WERE ACTUALLY GIVEN
+            active_filters = []
+            if name is not None:
+                #THIS IS REALLY COOL, YOU APPEND THE FUNCTIONS THAT YOU WANT TO PERFORM! CAN BE USED FOR WORKFLOWS PERHAPS?
+                active_filters.append(name_matches)
+            if cycle is not None:
+                active_filters.append(cycle_matches)
+            if object_type is not None:
+                active_filters.append(type_matches)
+
+            if active_filters:
+                self.filtered = [exp for exp in experiments if any(f(exp) for f in active_filters)] #THE LAST LOGIC APPLIES THE FUNCTIONS ON THE exp AND CHECKS IF ANY ARE TRUE
         return self.filtered
 
     
-    def filter_by_id(self, id):
+    def filter_by_id(self, id: int|list[int]) -> Experiment | list[Experiment]:
         
         if not isinstance(id, list):
             id = [id]
-
+            
+        id = [int(id) for id in id]
         tmp = []
-        tmp2 = {key:None for key in id}
 
-        for experiment in self.filtered:
+        for experiment in self.list_of_experiments:
             if experiment.id in id:
                 tmp.append(experiment)
-                tmp2[experiment.id] = experiment
 
-        for id_number, experiment in tmp2.items():
-            if experiment is not None:
-                print(f'Retrieved experiment with id: {id_number}')
-            else: 
-                print(f'Failed to retrieve experiment with id: {id_number}')
-
-        if len(tmp) == 1:
-            return tmp[0]
-        elif len(tmp) == 0:
-            print(f'No experiments found')
-        else:
+        if len(tmp) > 1:
             return tmp
+        elif len(tmp) == 1:
+            return tmp[0]
+        
+        #ADD A MESSAGE
+        print('No experiment found by given ids')
 
     def list_items(self, experiment_collectible = None):
         """Function to print all experiments in the form of a table 
@@ -203,6 +219,18 @@ class ExperimentManager():
     
     def set_experiments(self, data):
         self.list_of_experiments = data
+
+    def get_experiments(self, type_of_experiments = 'all'):
+        
+        match type_of_experiments:
+
+            case 'all':
+                return self.list_of_experiments
+            case 'filtered':
+                return self.filtered
+            case 'processed':
+                return self.processed_data
+            
 
     def get_unique_experiments(self):
         #MY FIRST USE OF A SET. THE NEAT THING ABOUT THIS COLLECTION IS THE FACT THAT IT DOESNT STORE DUPLICATES!

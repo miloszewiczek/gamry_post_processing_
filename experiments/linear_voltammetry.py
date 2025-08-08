@@ -26,25 +26,34 @@ class LinearVoltammetry(Experiment):
         level_names = ['Path', 'Parameter']
         return level_values, level_names
     
-    def calculate_overpotentials(self, curve:pd.DataFrame, ECSA = None, GEO = -10):
+    def calculate_overpotentials(self, curves:list[pd.DataFrame] = None, ECSA = None, GEO = -10):
 
-        tmp = {}
+        tmp = defaultdict(list)
         if not isinstance(GEO, list):
             GEO = [GEO]
+        
+        if curves is None:
+            if not getattr(self, 'processed_data'):
+                print(messages.error_messages['reqeuest_processing'])
+                return
+            curves = self.processed_data
 
-        for current in GEO:
-            if current < 0: 
-                mask = curve['J_GEO'] * 1000 < current
-            elif current > 0:
-                mask = curve['J_GEO'] * 1000  > current
-            
-            index = mask.idxmax()
-            tmp[current] = ( curve.at[index, 'E vs RHE'] )
-            
-            self.overpotential = tmp
+        for curve in curves:
+            for current in GEO:
+                if current < 0: 
+                    mask = curve['J_GEO [A/cm2]'] * 1000 < current
+                elif current > 0:
+                    mask = curve['J_GEO [A/cm2]'] * 1000  > current
+                
+                index = mask.idxmax()
+                overpotential = curve.at[index, 'E vs RHE [V]'].iloc[0] #ADDING ILOC BECAUSE FOR SOME REASON THE at FUNCTION RETURNED AN ARRAY WITH LEN = 2
+                tmp[current].append(overpotential)
+                
+        self.overpotential_data = tmp
+
         return tmp
 
-    def calculate_tafel_slope(self, data, starting_point, step, overlap, name = 'Sample', curve_number = None, i = None):
+    def calculate_tafel_slope(self, starting_point, step, overlap, data = None, name = 'Sample', curve_number = None, i = None):
         '''
         Function to calcualte the tafel slope based on a publication entitled: 
         Tafel Slope Plot as a Tool to Analyze Electrocatalytic Reactions
@@ -65,6 +74,8 @@ class LinearVoltammetry(Experiment):
         Returns:
         self.tafel_analysis: pd.DataFrame
         '''
+        if data is None:
+            data = self.tafel_curves[0]
 
         i_start = (np.abs(data['E vs RHE [V]'] - starting_point)).argmin()
         print(messages.processing_messages['tafel_slope_new'][0].format(i_start = i_start))
@@ -92,11 +103,12 @@ class LinearVoltammetry(Experiment):
 
         if min(data['E vs RHE [V]']) < new_search and cont_calculation:
             
-            self.calculate_tafel_slope(data, new_search_overlap, step, overlap = overlap, name = name, curve_number = curve_number, i = 1)
+            self.calculate_tafel_slope(new_search_overlap, step, overlap = overlap, data = data, name = name, curve_number = curve_number, i = 1)
 
         else:
             try:
                 self.tafel_analysis = pd.DataFrame(self.tafel_analysis, columns = ['E1 [V]', 'E2[V]', 'Average log10 J_GEO [A/cm2]', 'Tafel Slope [V/dec]'])
+                return self.tafel_analysis
             except:
                 return 'Couldnt do that, dummy'
 
@@ -164,4 +176,9 @@ class LinearVoltammetry(Experiment):
 
 
     def get_parameter_dict(self):
-        return self.overpotential
+
+        return self.overpotential_data
+    
+    def perform_postprocessing(self, **kwargs):
+        
+        return self.calculate_overpotentials(**kwargs)
