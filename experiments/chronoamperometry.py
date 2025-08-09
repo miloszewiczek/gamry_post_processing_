@@ -5,6 +5,7 @@ class Chronoamperometry(Experiment):
     def __init__(self, file_path, date_time, id, tag, cycle):
         super().__init__(file_path, date_time, id, tag, cycle)
         self.current = None
+        self.default_plot_columns = ['T [s]', 'J_GEO [A/cm2]']
     
     def process_data(self, interactive = False):
 

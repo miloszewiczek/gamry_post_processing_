@@ -20,6 +20,7 @@ class Experiment():
         self.parameters = {}
         self.processed_data = []
         self.cycle = cycle
+        self.default_plot_columns = ['E vs RHE [V]', 'J_GEO [A/cm2]']
 
     def load_data(self):
         
@@ -128,12 +129,18 @@ class Experiment():
     
     def perform_postprocessing(self):
         return 'Base class has no postprocessing defined'
-    
-    def get_curves(self, index:int|None):
 
+    def get_data(self, index:int|None, data_type: str = 'data_list'):
+        #Need to add functionality to get either self.data_list or processed_list or even something different
         #None is a string, because the treeview stores values as strings!
+
+        data = getattr(self, data_type)
+        
         if index == "None":
-            return self.data_list
+            return data 
         else:
             index = int(index)
-            return [self.data_list[index]]
+            return [data[index]]
+        
+    def get_columns(self):
+        return self.default_plot_columns

@@ -3,7 +3,8 @@ from .base import *
 class EIS(Experiment):
     def __init__(self, file_path, date_time, id, tag, cycle):
         super().__init__(file_path, date_time, id, tag, cycle)
-    
+        self.default_plot_columns = ['Zreal [Ohm]', '-Zimag [Ohm]']
+
     def process_data(self):
         
         result = super().process_data()
@@ -32,5 +33,6 @@ class EIS(Experiment):
         
         curve = curve.reset_index(drop=True)
         curve = curve[['Freq','Zreal','Zimag']]
-        curve.columns = ['Freq [Hz]', 'Zreal [Ohm]', 'Zimag [Ohm]']
+        curve['Zimag'] = -curve['Zimag']
+        curve.columns = ['Freq [Hz]', 'Zreal [Ohm]', '-Zimag [Ohm]']
         return curve
