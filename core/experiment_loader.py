@@ -36,6 +36,8 @@ class ExperimentLoader():
         
 
     def load_testing(self):
+        """Helper function for testing of the program. 
+        Loads all the files in the input folder."""
         
         files = [os.path.join('input/', file) for file in os.listdir('input/') if os.path.isfile(os.path.join('input/', file))]
         for file in files:
@@ -43,11 +45,23 @@ class ExperimentLoader():
         print('Added testing files (input/*)')
         return self.list_of_experiments
 
-    def choose_folder(self):
+    def choose_files(self):
+        """
+        A function to choose files from a folder based on tkinter askopenfilenames.
+        
+        Args:
+            self (ExperimentLoader)
+        
+        Returns:
+            list_of_experiments (list) - a list of Experiment objects. The list is also set as the attribute of the same name for the loader"""
         files = askopenfilenames(filetypes=[('Gamry Experiment Files', '*.DTA')])
+
+        list_of_experiments = []
         for file in files:
-            self.create_experiment(file)
-        return self.list_of_experiments
+            experiment = self.create_experiment(file)
+            if experiment is not None:
+                list_of_experiments.append(self.create_experiment(file))
+        return list_of_experiments
         
     def create_experiment(self, file_path):
         '''Factory function to create the experiment and store it in a manager.
@@ -92,7 +106,7 @@ class ExperimentLoader():
                         tag = experiment_identifier,
                         cycle = experiment_keys[1])
         
-        self.add_experiment(experiment)
+        #self.add_experiment(experiment)
         self.id_counter +=1
         
         return experiment

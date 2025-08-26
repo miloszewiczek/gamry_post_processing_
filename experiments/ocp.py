@@ -3,10 +3,12 @@ from .base import *
 class OpenCircuit(Experiment):
     def __init__(self, file_path, date_time, id, tag, cycle):
         super().__init__(file_path, date_time, id, tag, cycle)
+        self.default_x = 'T [s]'
+        self.default_y = 'E vs RHE [V]'
 
 
     def _add_computed_column(self, curve:pd.DataFrame) -> pd.DataFrame:
-        curve['E vs RHE [V]'] = curve['Vf'] + reference_potential
+        curve['E vs RHE [V]'] = curve['Vf'] + self.reference_potential
         curve['T [s]'] = curve['T']
         return curve[['T [s]', 'E vs RHE [V]']] 
     

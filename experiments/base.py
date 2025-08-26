@@ -6,9 +6,8 @@ from matplotlib import pyplot as plt
 from collections import defaultdict
 from utilities.other import ask_user
 from app_config import messages, settings
+from typing import Literal
 
-reference_potential = settings.options['reference_potential']
-geometrical_area = settings.options['geometrical_area']
 
 class Experiment():
     def __init__(self, file_path, date_time, id, tag, cycle):
@@ -20,7 +19,10 @@ class Experiment():
         self.parameters = {}
         self.processed_data = []
         self.cycle = cycle
-        self.default_plot_columns = ['E vs RHE [V]', 'J_GEO [A/cm2]']
+        self.default_x = 'E vs RHE [V]'
+        self.default_y = 'J_GEO [A/cm2]'
+        self.geometrical_area = 1
+        self.reference_potential = 0
 
     def load_data(self):
         
@@ -49,22 +51,22 @@ class Experiment():
 
 
     def set_Ru(self, Ru_value):
+        print(self.__class__.__name__, 'set Ru of ', str(Ru_value))
         self.Ru = Ru_value
     
     def _add_computed_column(self, curve:pd.DataFrame) -> pd.DataFrame:
 
-        curve['J_GEO [A/cm2]'] = curve['Im']/geometrical_area
-        curve['E vs RHE [V]'] = curve['Vf'] + reference_potential
+        curve['J_GEO [A/cm2]'] = curve['Im']/self.geometrical_area
+        curve['E vs RHE [V]'] = curve['Vf'] + self.reference_potential
+        curve = curve.reset_index(drop=True)
 
         if hasattr(self, 'Ru'):
-            curve['E_iR vs RHE [V]'] = curve['Vf'] + reference_potential - self.Ru * curve['Im']
+            curve['E_iR vs RHE [V]'] = curve['Vf'] + self.reference_potential - self.Ru * curve['Im']
             return curve[['E vs RHE [V]', 'E_iR vs RHE [V]', 'J_GEO [A/cm2]']]
-        
-        curve = curve.reset_index(drop=True)
 
         return curve[['E vs RHE [V]', 'J_GEO [A/cm2]']]
 
-    def process_data(self, **kwargs) -> pd.DataFrame:
+    def process_data(self, **kwargs) -> list[pd.DataFrame]:
         
 
 
@@ -130,7 +132,7 @@ class Experiment():
     def perform_postprocessing(self):
         return 'Base class has no postprocessing defined'
 
-    def get_data(self, index:int|None, data_type: str = 'data_list'):
+    def get_data(self, index:int|None, data_type: str = Literal['data_list', 'processed_data']):
         #Need to add functionality to get either self.data_list or processed_list or even something different
         #None is a string, because the treeview stores values as strings!
 
@@ -142,5 +144,14 @@ class Experiment():
             index = int(index)
             return [data[index]]
         
-    def get_columns(self):
-        return self.default_plot_columns
+    def get_columns(self, axis: Literal['x','y','both']):
+        '''Helper function that returns the default column name stored in default_x or default_y'''
+
+        match axis:
+            case 'x':
+                return self.default_x
+            case 'y':
+                return self.default_y
+            case 'both':
+                return self.default_x, self.default_y
+    

@@ -1,6 +1,7 @@
 from experiments import *
 import tabulate
 import re
+from typing import Literal
 
 class ExperimentManager():
     def __init__(self):
@@ -84,7 +85,7 @@ class ExperimentManager():
         return self.filtered
 
     
-    def filter_by_id(self, id: int|list[int]) -> Experiment | list[Experiment]:
+    def filter_by_id(self, id: int|list[int]) -> list[Experiment] | Experiment: 
         
         if not isinstance(id, list):
             id = [id]
@@ -96,10 +97,10 @@ class ExperimentManager():
             if experiment.id in id:
                 tmp.append(experiment)
 
-        if len(tmp) > 1:
-            return tmp
-        elif len(tmp) == 1:
+        if len(tmp) == 1:
             return tmp[0]
+
+        return tmp
         
         #ADD A MESSAGE
         print('No experiment found by given ids')
@@ -182,8 +183,6 @@ class ExperimentManager():
     ):
 
         if experiment_collectible is None:
-            experiment_collectible = self.list_of_experiments
-        else:
             experiment_collectible = self.filtered
 
         # Ensure group_by is always a tuple/list
@@ -192,6 +191,8 @@ class ExperimentManager():
 
         grouped_data = defaultdict(list)
 
+        print(experiment_collectible)
+        print(type(experiment_collectible))
         # Group experiments by multiple keys
         for experiment in experiment_collectible:
             key_parts = []
@@ -199,14 +200,21 @@ class ExperimentManager():
                 value = getattr(experiment, attr, "NA")
                 key_parts.append(str(value))
             key = tuple(key_parts)
-            experiment.load_data()
-            processed = experiment.process_data()
+
+            if not getattr(experiment, 'processed_data'):
+                experiment.load_data()
+                processed = experiment.process_data()
+            else:
+                processed = getattr(experiment, 'processed_data')
+
+            #make multiindexed dataframe
+            processed = experiment.make_multiindex(experiment.processed_data)
             grouped_data[key].append(processed)
 
         if save_name is None:
             save_name = input("Name of data to save: ")
 
-        with pd.ExcelWriter(f"{save_name}.xlsx", engine="openpyxl") as writer:
+        with pd.ExcelWriter(f"{save_name}.xlsx", engine="openpyxl", mode='w') as writer:
             for key_tuple, experiment_group in grouped_data.items():
                 combined_df = pd.concat(experiment_group, axis=1)
 
@@ -218,7 +226,17 @@ class ExperimentManager():
         return experiment_collectible
     
     def set_experiments(self, data):
+        """
+        Setter function to set list_of_experiments, most likely from experiment_loader class
+        
+        Args:
+            self (ExperimentManager)
+            data (list)"""
         self.list_of_experiments = data
+
+    def append_experiments(self, data):
+        self.list_of_experiments += data
+        
 
     def get_experiments(self, type_of_experiments = 'all'):
         

@@ -5,7 +5,8 @@ class Chronoamperometry(Experiment):
     def __init__(self, file_path, date_time, id, tag, cycle):
         super().__init__(file_path, date_time, id, tag, cycle)
         self.current = None
-        self.default_plot_columns = ['T [s]', 'J_GEO [A/cm2]']
+        self.default_x = 'T [s]'
+        self.default_y = 'J_GEO [A/cm2]'
     
     def process_data(self, interactive = False):
 
@@ -26,7 +27,7 @@ class Chronoamperometry(Experiment):
         - list of lists: values for each level of the Multiindex (e.g. [[path], [curve_name], [column1, column2, column2, ...]])
         - list of level names (e.g. ['Path, 'Curve', 'Metric])
         """
-        final_potential = self.meta_data['VSTEP2'] + reference_potential
+        final_potential = self.meta_data['VSTEP2'] + self.reference_potential
         final_potential = '{:.2f}'.format(final_potential)
 
         level_values = [[self.file_path], [final_potential], columns]
@@ -35,13 +36,13 @@ class Chronoamperometry(Experiment):
 
     def _add_computed_column(self, curve:pd.DataFrame) -> pd.DataFrame:
 
-        curve['J_GEO [A/cm2]'] = curve['Im']/geometrical_area
-        curve['E vs RHE [V]'] = curve['Vf'] + reference_potential
+        curve['J_GEO [A/cm2]'] = curve['Im']/self.geometrical_area
+        curve['E vs RHE [V]'] = curve['Vf'] + self.reference_potential
         curve['T [s]'] = curve['T']
 
         if hasattr(self, 'Ru'):
-            curve['E_iR vs RHE [V]'] = curve['Vf'] + reference_potential - self.Ru * curve['Im']
-            return curve[['E vs RHE [V]', 'E_iR vs RHE [V]', 'J_GEO [A/cm2]']]
+            curve['E_iR vs RHE [V]'] = curve['Vf'] + self.reference_potential - self.Ru * curve['Im']
+            return curve[['T [s]', 'E vs RHE [V]', 'E_iR vs RHE [V]', 'J_GEO [A/cm2]']]
         
         curve = curve.reset_index(drop=True)
 

@@ -15,10 +15,15 @@ class LinearVoltammetry(Experiment):
     def _add_computed_column(self, curve):
         LSV_curve =  super()._add_computed_column(curve)
         curve['log10 J_GEO [A/cm2]'] = np.log10(0-LSV_curve['J_GEO [A/cm2]'])
-        Tafel_curve = pd.concat([curve['log10 J_GEO [A/cm2]'], LSV_curve['E vs RHE [V]']], axis=1)
-        self.tafel_curves.append(Tafel_curve)
 
-        return pd.concat([LSV_curve, Tafel_curve], axis=1)
+        if hasattr(self, 'Ru'):
+            columns = 'E_iR vs RHE [V]'
+        else:
+            columns = 'E vs RHE [V]'
+        Tafel_curve = pd.concat([curve['log10 J_GEO [A/cm2]'], LSV_curve[columns]], axis=1)
+        self.tafel_curves = [Tafel_curve]
+
+        return LSV_curve
 
     def get_multiindex_labels(self, columns, curve_index, add_curve_index=True):
 

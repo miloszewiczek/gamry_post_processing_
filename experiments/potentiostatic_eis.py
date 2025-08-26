@@ -3,7 +3,8 @@ from .base import *
 class EIS(Experiment):
     def __init__(self, file_path, date_time, id, tag, cycle):
         super().__init__(file_path, date_time, id, tag, cycle)
-        self.default_plot_columns = ['Zreal [Ohm]', '-Zimag [Ohm]']
+        self.default_x = 'Zreal [Ohm]'
+        self.default_y = '-Zimag [Ohm]'
 
     def process_data(self):
         
@@ -18,7 +19,7 @@ class EIS(Experiment):
         - list of lists: values for each level of the Multiindex (e.g. [[path], [curve_name], [column1, column2, column2, ...]])
         - list of level names (e.g. ['Path, 'Curve', 'Metric])
         """
-        final_potential = self.meta_data['VDC'] + reference_potential
+        final_potential = self.meta_data['VDC'] + self.reference_potential
         final_potential = '{:.2f}'.format(final_potential)
 
         level_values = [[self.file_path], [final_potential], columns]
