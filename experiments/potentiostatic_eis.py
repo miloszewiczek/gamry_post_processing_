@@ -26,10 +26,6 @@ class EIS(Experiment):
         level_names = ['Path', 'E vs RHE [V]', 'Parameter']
         return level_values, level_names
 
-
-    def set_Ru(self, Ru_value):
-        self.Ru = Ru_value
-    
     def _add_computed_column(self, curve:pd.DataFrame) -> pd.DataFrame:
         
         curve = curve.reset_index(drop=True)

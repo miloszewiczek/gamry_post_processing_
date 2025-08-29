@@ -81,9 +81,12 @@ def calculate_slopes(data, start_potential, step, overlap, name='Sample'):
         cid = fig.canvas.mpl_connect('button_press_event', on_click)
         plt.show()
 
-    
-    x_data = np.array(data['E_iR vs RHE [V]'])
-    y_data = np.array(data.get('log10 J_GEO [A/cm2]', data.get('log10 J_ECSA [A/cm2]')))
+    try:
+        x_data = np.array(data['E_iR vs RHE [V]'])
+        y_data = np.array(data.get('log10 J_GEO [A/cm2]', data.get('log10 J_ECSA [A/cm2]')))
+    except:
+        x_data = np.array(data['E vs RHE [V]'])
+        y_data = np.array(data['log10 J_GEO [A/cm2]'])
 
     results = []
     current_potential = start_potential

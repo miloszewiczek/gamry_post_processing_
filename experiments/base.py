@@ -4,7 +4,6 @@ import gamry_parser
 DTA_parser = gamry_parser.GamryParser()
 from matplotlib import pyplot as plt
 from collections import defaultdict
-from utilities.other import ask_user
 from app_config import messages, settings
 from typing import Literal
 
@@ -23,6 +22,7 @@ class Experiment():
         self.default_y = 'J_GEO [A/cm2]'
         self.geometrical_area = 1
         self.reference_potential = 0
+        self.Ru = 0
 
     def load_data(self):
         
@@ -60,7 +60,8 @@ class Experiment():
         curve['E vs RHE [V]'] = curve['Vf'] + self.reference_potential
         curve = curve.reset_index(drop=True)
 
-        if hasattr(self, 'Ru'):
+        if self.Ru != 0:
+            self.default_x = 'E_iR vs RHE [V]'
             curve['E_iR vs RHE [V]'] = curve['Vf'] + self.reference_potential - self.Ru * curve['Im']
             return curve[['E vs RHE [V]', 'E_iR vs RHE [V]', 'J_GEO [A/cm2]']]
 
@@ -68,8 +69,6 @@ class Experiment():
 
     def process_data(self, **kwargs) -> list[pd.DataFrame]:
         
-
-
         print(messages.processing_messages['processing_data_fp_id_len'].format(
             file_path = self.file_path,
             id = self.id,
@@ -154,4 +153,24 @@ class Experiment():
                 return self.default_y
             case 'both':
                 return self.default_x, self.default_y
+            
+
+    def get_meta_data(self) -> dict:
+        return self.meta_data
+
+    def get_essentials(self):
+
+        essentials = {
+            'FILEPATH': (self.file_path, 'LABEL', str, 'file_path'),
+            'TITLE': (self.meta_data['TITLE'],'LABEL', str, 'TITLE'),
+            'PSTAT': (self.meta_data['PSTAT'],'LABEL', str, 'PSTAT'),
+            'TAG': (self.meta_data['TAG'], 'LABEL', str, 'TAG'),
+            'NO OF CURVES': (len(self.data_list), 'LABEL', int, 'NONE'),
+            'DATE': (self.meta_data['DATE'], 'LABEL', str, 'DATE'),
+            'TIME': (self.meta_data['TIME'], 'LABEL', str, 'TIME'),
+            'GEOMETRICAL AREA [cm2]': (self.geometrical_area, 'ENTRY', float, 'geometrical_area'),
+            'REFERENCE ELECTRODE POTENTIAL [V]': (self.reference_potential, 'ENTRY', float, 'reference_potential'),
+            'Ru [Ohm]': (self.Ru, 'ENTRY', float, 'Ru')
+        }
+        return essentials
     

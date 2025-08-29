@@ -5,6 +5,7 @@ from os import path
 from glob import glob
 import matplotlib
 import matplotlib.pyplot as plt 
+from functions.functions import calculate_slopes
 
 global resulting_dfs
 output = {}
@@ -54,7 +55,8 @@ def tafel(cycle, sciezka, klucz=None, mode = 'GEO'):
     elif mode == 'ECSA':
         current_column = 'log10 Im_ECSA'
     
-    files = glob(f'{sciezka}/*{klucz}*.xlsx')
+    if klucz is not None:
+        files = glob(f'{sciezka}/*{klucz}*.xlsx')
     dfs = []
     for file in files:
         i = 0
@@ -82,7 +84,7 @@ def tafel(cycle, sciezka, klucz=None, mode = 'GEO'):
                 if len(vf_ir) > 0 and len(j) > 0:
                     df_tmp = pd.DataFrame({'Vf_iR':vf_ir, 'log10 Im_GEO':j})
                     print(df_tmp)
-                    result = calculate_slope(df_tmp, -25, -5, -2.5, name = path.basename(file), curve_number = i)
+                    result = calculate_slopes(df_tmp, -25, -5, -2.5, name = path.basename(file), curve_number = i)
         
                     vf_ir = []
                     j = []
@@ -104,7 +106,7 @@ def tafel(cycle, sciezka, klucz=None, mode = 'GEO'):
 klucz = '2RU'
 normalization = 'ECSA'
 sciezka = path.abspath(input('Podaj ścieżke: '))
-tafel(1,sciezka, klucz, mode = normalization)
+tafel(1,sciezka, mode = normalization)
 name = 'TAFEL'
 
 
@@ -120,7 +122,7 @@ except:
 
 
 resulting_dfs = []
-tafel(2,sciezka, klucz, mode = normalization)
+tafel(2,sciezka, mode = normalization)
 resulting_dfs = pd.concat(resulting_dfs, axis=1)
 
 try: 

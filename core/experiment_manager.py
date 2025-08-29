@@ -235,6 +235,13 @@ class ExperimentManager():
         self.list_of_experiments = data
 
     def append_experiments(self, data):
+        """
+        Setter function to append to list_of_experiments, most likely from experiment_loader class
+        
+        Args:
+            self (ExperimentManager)
+            data (list)"""
+        
         self.list_of_experiments += data
         
 

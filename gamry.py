@@ -592,7 +592,7 @@ def plot_ecsa(axes,x,y, ecsa, p):
     
     for i, (p, df) in enumerate(zip(p, ecsa)):
         label =f'Cycle {i}: {p[1]:.1e} $[{{{units[1][0]}}} F$'
-        x, y, y_err = df["Scanrate"], df["dj"], df["dj_err"]
+        x, y, y_err = df["Scanrate [mV/s]"], df["dj [mA]"], df["dj_err [mA]"]
         xticks = np.arange(min(x),max(x)+1, 10)
         
         axarr.plot(x, x *p[1] + p[0],  label = label)

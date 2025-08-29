@@ -65,9 +65,8 @@ class tafel_window(tk.Toplevel):
         tk.Button(self.config_frame, text = 'print data', command = self.print_data).grid(row=5, column =0)
     def get_data(self):
 
-        experiment_dicts = get_treeview_experiments(self.data_treeview, 'selected')
-        experiment_dicts = map_ids_to_experiments(experiment_dicts, manager = self.parent.manager)
-        return experiment_dicts
+        experiment_mappings = get_experiments(self.data_treeview, self.parent.manager, mode = 'selected')
+        return experiment_mappings
     
     def print_data(self):
 
@@ -75,11 +74,9 @@ class tafel_window(tk.Toplevel):
         overlap = float(self.overlap_var.get())
         interval = float(self.interval_var.get())
 
-        data = get_treeview_experiments(self.data_treeview, 'selected')
-        data = map_ids_to_experiments(data, self.parent.manager)
-        for exp in data:
-            for tafel_curve in exp['experiment'].tafel_curves:
-
+        experiments = get_experiments(self.data_treeview, self.parent.manager, mode = 'selected')
+        for exp in experiments:
+            for tafel_curve in getattr(exp, 'tafel_curves'):
                 calculate_slopes(tafel_curve, start_pot, interval, overlap)
                 
 

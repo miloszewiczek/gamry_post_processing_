@@ -16,7 +16,7 @@ class LinearVoltammetry(Experiment):
         LSV_curve =  super()._add_computed_column(curve)
         curve['log10 J_GEO [A/cm2]'] = np.log10(0-LSV_curve['J_GEO [A/cm2]'])
 
-        if hasattr(self, 'Ru'):
+        if self.Ru != 0:
             columns = 'E_iR vs RHE [V]'
         else:
             columns = 'E vs RHE [V]'

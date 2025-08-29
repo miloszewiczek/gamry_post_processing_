@@ -1,9 +1,20 @@
 from openpyxl import Workbook
 import os
+import tkinter as tk
 from tkinter import ttk
 from tkinter import messagebox
 from matplotlib import pyplot as plt
 from typing import Literal
+from dataclasses import dataclass
+from experiments import Experiment
+
+
+@dataclass
+class ExperimentMapping:
+    treeview_id: str
+    experiment: object
+    curve_number: int
+    column: str | int
 
 def create_empty_excel(file_name: str):
     if not os.path.exists(file_name):
@@ -12,7 +23,7 @@ def create_empty_excel(file_name: str):
         ws.title = "temp"  # dummy sheet
         wb.save(file_name+'.xlsx')
 
-def ask_user(prompt_string, input_types, *format_args, **format_kwargs):
+def ask_user(prompt_string:str, input_types, *format_args, **format_kwargs):
     while True:
         user_input = input(prompt_string.format(*format_args, **format_kwargs))
         
@@ -129,7 +140,7 @@ def get_treeview_experiments(tkinter_treeview: ttk.Treeview, mode:str = Literal[
     return experiment_dicts
 
 
-def map_ids_to_experiments(items: list[dict], manager) -> list[dict]:
+def map_ids_to_experiments(items: list[dict], manager) -> list[ExperimentMapping]:
     """Function that assigns tkinter treeview dictionary from the function get_treeview_experiments
     and assigns them to another dictionary with experiment, curve number and column, based on the type of parent/child.
     Args:
@@ -148,21 +159,34 @@ def map_ids_to_experiments(items: list[dict], manager) -> list[dict]:
         
         experiment = manager.filter_by_id(experiment_id)
 
-        experiment_dictionary = {
-                                    "experiment": experiment,
-                                    "curve_number": curve_index,
-                                    "column": column,
-                                    "treeview_id": item["treeview_id"]
-                                    }
-        
-        experiment_dicts.append(experiment_dictionary)
+        exp_mapping = ExperimentMapping(treeview_id = item['treeview_id'],
+                          experiment = experiment,
+                          curve_number = curve_index,
+                          column = column)
+    
+        experiment_dicts.append(exp_mapping)
 
     return experiment_dicts
 
 
+def get_experiments(treeview: ttk.Treeview, manager, mode: Literal['selected', 'all'] = 'selected') -> list[Experiment]:
+    """A wrapper to return a list of Experiments from a list of a treeview."""
+    items = get_treeview_experiments(treeview, mode)
+    if not items:
+        return []
+    experiment_mappers = map_ids_to_experiments(items, manager)
+    return [d.experiment for d in experiment_mappers]
+
+def get_mappers(treeview: ttk.Treeview, manager, mode: Literal['selected', 'all'] = 'selected') -> list[Experiment]:
+    """A wrapper to return a list of Experiments from a list of a treeview."""
+    items = get_treeview_experiments(treeview, mode)
+    if not items:
+        return []
+    experiment_mappers = map_ids_to_experiments(items, manager)
+    return experiment_mappers
 
 
-def get_selection_xy_columns(experiment_dict:dict) -> tuple[str, str]:
+def get_selection_xy_columns(experiment_mapping) -> tuple[str, str]:
     """
     Helper function that takes a dictionary and returns the default_x, default_y attributes of an experiment class,
     each defined differently.
@@ -174,16 +198,16 @@ def get_selection_xy_columns(experiment_dict:dict) -> tuple[str, str]:
         tuple[str, str] - A tuple containing two strings - default_x and default_y.
     """
     
-    print(experiment_dict)
-    default_x = getattr(experiment_dict['experiment'], 'default_x')
+    
+    default_x = getattr(experiment_mapping.experiment, 'default_x')
     #Gets the first x and y columns to verify subsequent experiments.
-    if hasattr(experiment_dict['experiment'], 'Ru') and 'E vs RHE [V]' in default_x:
-        setattr(experiment_dict['experiment'], 'default_x', 'E_iR vs RHE [V]')
+    if experiment_mapping.experiment.Ru != 0 and 'E vs RHE [V]' in default_x:
+        setattr(experiment_mapping.experiment, 'default_x', 'E_iR vs RHE [V]')
         default_x = 'E_iR vs RHE [V]'
     
-    default_y = experiment_dict['column']
+    default_y = experiment_mapping.column
     if default_y == 'None':
-        default_y = getattr(experiment_dict['experiment'], 'default_y')
+        default_y = getattr(experiment_mapping.experiment, 'default_y')
 
     return default_x, default_y
     
@@ -191,16 +215,16 @@ def get_selection_xy_columns(experiment_dict:dict) -> tuple[str, str]:
 
 
 
-def validate_selection_compatibility(experiment_dicts, first_x, first_y):
+def validate_selection_compatibility(experiment_mappers:list[ExperimentMapping], first_x, first_y):
 
     #This ensures different behavior dependent on level
-    for experiment_dict in experiment_dicts:
+    for mapper in experiment_mappers:
 
-        experiment = experiment_dict['experiment']
-        curve_number = experiment_dict['curve_number']
+        experiment = mapper.experiment
+        curve_number = mapper.curve_number
         
         x_column = getattr(experiment, 'default_x')
-        y_column = experiment_dict['column']
+        y_column = mapper.column
         
         if y_column == 'None':
             y_column = getattr(experiment, 'default_y')
@@ -216,7 +240,7 @@ def validate_selection_compatibility(experiment_dicts, first_x, first_y):
     return True
     
 
-def plot_experiment(experiment_dict, ax, canvas, x_column, y_column, **kwargs):
+def plot_experiment(experiment_mapping, ax, canvas, x_column, y_column, **kwargs):
 
     def set_equal_axis_limits(ax: plt.Axes):
         """Adjust plot so X and Y have the same limits and scale."""
@@ -230,8 +254,8 @@ def plot_experiment(experiment_dict, ax, canvas, x_column, y_column, **kwargs):
 
 
     plots = []
-    experiment = experiment_dict['experiment']
-    curve_number = experiment_dict['curve_number']
+    experiment = experiment_mapping.experiment
+    curve_number = experiment_mapping.curve_number
     name = getattr(experiment, 'file_path')
 
     data = experiment.get_data(index = curve_number, data_type = 'processed_data')
@@ -284,4 +308,33 @@ def get_tree_level(tkinter_tree ,item_id, get_parent_name:bool = False):
     else:
         return level
 
+
+
+def shorten_path(path: str, max_length: int = 50) -> str:
+    """Shorten a file path with '...' in the middle if it's too long."""
     
+    if len(path) <= max_length:
+        return path
+    head, tail = os.path.split(path)
+    return os.path.join("...", tail)
+
+
+def add_tooltip(widget, text: str):
+    tooltip = None
+
+    def on_enter(event):
+        nonlocal tooltip
+        tooltip = tk.Toplevel(widget)
+        tooltip.wm_overrideredirect(True)
+        tooltip.wm_geometry(f"+{event.x_root+10}+{event.y_root+10}")
+        tk.Label(tooltip, text=text, background="lightyellow",
+                 relief="solid", borderwidth=1, padx=2, pady=2).pack()
+
+    def on_leave(event):
+        nonlocal tooltip
+        if tooltip:
+            tooltip.destroy()
+            tooltip = None
+
+    widget.bind("<Enter>", on_enter)
+    widget.bind("<Leave>", on_leave)

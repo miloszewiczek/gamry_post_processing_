@@ -1,5 +1,5 @@
 from .base import *
-
+from utilities.other import ask_user
 
 class Chronoamperometry(Experiment):
     def __init__(self, file_path, date_time, id, tag, cycle):
@@ -40,7 +40,7 @@ class Chronoamperometry(Experiment):
         curve['E vs RHE [V]'] = curve['Vf'] + self.reference_potential
         curve['T [s]'] = curve['T']
 
-        if hasattr(self, 'Ru'):
+        if self.Ru != 0:
             curve['E_iR vs RHE [V]'] = curve['Vf'] + self.reference_potential - self.Ru * curve['Im']
             return curve[['T [s]', 'E vs RHE [V]', 'E_iR vs RHE [V]', 'J_GEO [A/cm2]']]
         
@@ -67,17 +67,28 @@ class Chronoamperometry(Experiment):
                 time_input = ask_user(messages.input_messages['time_not_in_range'], (float, int), time_in_seconds = maximum_time)
                 return self.get_current_at_time(time_input)
 
-            closest_index = (curve['T'] - time).abs().idxmin()
-            current = curve.iloc[closest_index]['J_GEO [A/cm2]']
-            self.current = current
-            return current
+            if time == -1:
+                closest_index = -1
+                self.time = curve.iloc[-1]['T']
+            else:
+                closest_index = (curve['T'] - time).abs().idxmin()
+                self.time = curve.iloc[closest_index]['T']
+                
+            self.potential = self.meta_data['VSTEP2'] + self.reference_potential - curve.iloc[closest_index]['Im'] * self.Ru
+        
+            current_density = curve.iloc[closest_index]['J_GEO [A/cm2]']
+
+            
+            self.current_density = current_density
+            return current_density
         
 
     def pick_current(self):
 
-        time, potential, current = self.data_list[0]['T'], self.data_list[0]['E vs RHE [V]'], self.data_list[0]['J_GEO [A/cm2]']
+        current = self.data_list[0]['Im']
+        time, potential, current_density = self.data_list[0]['T'], self.data_list[0]['E vs RHE [V]'], self.data_list[0]['J_GEO [A/cm2]']
         fig, ax = plt.subplots()
-        line, = ax.plot(time, current)
+        line, = ax.plot(time, current_density)
         selected_point, = ax.plot([], [], 'ro')
         plt.xlabel("T [s]")
         plt.ylabel("Current density [A/cm2]")
@@ -88,20 +99,27 @@ class Chronoamperometry(Experiment):
                 return
             x_click = event.xdata
             y_click = event.ydata
-            distances = np.sqrt((time - x_click)**2 + (current - y_click)**2)
+            distances = np.sqrt((time - x_click)**2 + (current_density - y_click)**2)
             idx = np.argmin(distances)
             x_sel = time[idx]
-            y_sel = current[idx]
+            y_sel = current_density[idx]
             
-            pot_iR = potential[idx] - current[idx]
+            if hasattr(self, 'Ru'):
+                pot_iR = potential[idx] - current[idx]* self.Ru
+                setattr(self, 'potential', pot_iR)
+            else:
+                setattr(self, 'potential', potential)
 
             selected_point.set_data([x_sel], [y_sel])
             fig.canvas.draw()
 
             # Save point and close plot
-            self.time = x_sel
-            self.current = y_sel
-            self.potential = pot_iR
+            setattr(self, 'time', x_sel)
+            setattr(self, 'current_density', y_sel)
+            
+            #self.time = x_sel
+            #self.current = y_sel
+            
             plt.close(fig)
 
         cid = fig.canvas.mpl_connect('button_press_event', onclick)

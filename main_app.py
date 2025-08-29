@@ -5,7 +5,7 @@ from experiments import *
 import tkinter as tk
 from tkinter import ttk
 import matplotlib.pyplot as plt
-from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
+from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg, NavigationToolbar2Tk
 import os
 from tkinter import messagebox
 from utilities.other import *
@@ -20,6 +20,7 @@ class ExperimentOrchestrator(tk.Tk):
 
         self.loader = ExperimentLoader()
         self.manager = ExperimentManager()
+        self.tmp = []
         
         self._setup_gui()
         
@@ -41,6 +42,7 @@ class ExperimentOrchestrator(tk.Tk):
         vsb = ttk.Scrollbar(self.filtering_tree_frame, orient="vertical", command=self.filtered_tree.yview)
         vsb.pack(side='right', fill='y')
         self.filtered_tree.configure(yscrollcommand= vsb.set)
+        self.filtered_tree.bind('<Double-Button-1>', self.inspect)
 
 
 
@@ -73,6 +75,10 @@ class ExperimentOrchestrator(tk.Tk):
         self.preview_ax.set_position((0.15,0.15, 0.75, 0.75))
         self.preview_canvas = FigureCanvasTkAgg(self.preview_figure, self.preview_frame)
         self.preview_canvas.get_tk_widget().pack()
+        toolbar = NavigationToolbar2Tk(self.preview_canvas, self.preview_frame)
+        toolbar.update()
+        self.preview_canvas.get_tk_widget().pack(side=tk.TOP, fill=tk.BOTH, expand=1)
+
         tk.Button(self.preview_frame, text = 'Plot selected', command = self.plot_selected).pack()
 
 
@@ -109,24 +115,29 @@ class ExperimentOrchestrator(tk.Tk):
 
         #CDL SLIDER GUI
 
-        self.cdl_slider_button = tk.Button(self.preview_frame, text='CDL Slider', command = self.cdl_slider)
-        self.cdl_slider_button.pack()
+        #self.cdl_slider_button = tk.Button(self.preview_frame, text='CDL Slider', command = self.cdl_slider)
+        #self.cdl_slider_button.pack()
 
         #TAFEL BTN
         tk.Button(self.button_frame, text = 'Calculate Tafel', command = self.tafel_plot).grid(row=2, column=0)
 
 
-        #INSPECTOR FRAME
+        #INSPECTOR FRAME (WIP)
         self.inspector_frame = tk.LabelFrame(text = 'Object Inspector')
         self.inspector_frame.grid(row=1, column = 1)
         self.inspect_btn = tk.Button(self.inspector_frame, text = 'inspect', command = self.print_experiment_data)
         self.inspect_btn.grid(row=0,column=0)
 
+
+        #CHRONOP_BTN (TEMPRORARY)
+        tk.Button(self.button_frame, text = 'Process chronop', command = self.process_chronop).grid(row=3, column =0)
+        tk.Button(self.button_frame, text = 'Join', command = self.join).grid(row=3, column = 1)
+
     
     def print_experiment_data(self):
-        experiments = get_treeview_experiments(self.filtered_tree, 'selected')
-        exps = map_ids_to_experiments(experiments, self.manager)
-        exp = exps[0]['experiment'].data_list
+        experiment = self.filtered_tree.selection()[0]
+        exps = map_ids_to_experiments(experiment, self.manager)
+        exp = exps[0]['experiment'].data_listex
         print(len(exp))
 
     def tafel_plot(self):
@@ -137,16 +148,13 @@ class ExperimentOrchestrator(tk.Tk):
 
     def apply_attr_to_all(self):
             
-        experiments = get_treeview_experiments(self.filtered_tree, mode = 'all')
-        experiment_dicts = map_ids_to_experiments(experiments, self.manager)
+        experiments = get_experiments(self.filtered_tree, self.manager, 'all')
         Ru_value = float(self.Ru_var.get())
         geometrical_area = float(self.geometrical_area_var.get())
         reference_potential = float(self.reference_electrode_var.get())
 
-
-        for experiment_dict in experiment_dicts:
-            experiment = experiment_dict['experiment']
-
+        for experiment in experiments:
+    
             setattr(experiment, 'Ru', Ru_value)
             setattr(experiment, 'geometrical_area', geometrical_area)
             setattr(experiment, 'reference_potential', reference_potential)
@@ -162,20 +170,13 @@ class ExperimentOrchestrator(tk.Tk):
     def process_selected(self):
         
         #get selected experiments 
-        experiments = get_treeview_experiments(self.filtered_tree, mode = 'selected')
-        experiment_dicts = map_ids_to_experiments(experiments, self.manager)
-        for experiment_dict in experiment_dicts:
-
-            #add the functionality that map_ids_to_expeirmetns rerturns the experiments
-            experiment = experiment_dict['experiment']
+        for experiment in get_experiments(self.filtered_tree, self.manager, 'selected'):
             experiment.process_data()
 
     def process_all(self):
-        
-        experiments = get_treeview_experiments(self.filtered_tree, mode = 'all')
-        experiment_dicts = map_ids_to_experiments(experiments, self.manager)
-        for experiment_dict in experiment_dicts:
-            experiment = experiment_dict['experiment']
+
+        #get all experiments
+        for experiment in get_experiments(self.filtered_tree, self.manager, 'all'):
             experiment.process_data()
 
 
@@ -185,17 +186,17 @@ class ExperimentOrchestrator(tk.Tk):
         clear_plot(self.preview_ax)
         
 
-        experiments = get_treeview_experiments(self.filtered_tree, mode = 'selected')
-        experiment_dictionaries = map_ids_to_experiments(experiments, self.manager)
-        if experiment_dictionaries is None:
+        experiment_mappers = get_mappers(self.filtered_tree, self.manager, 'selected')
+        if experiment_mappers is None:
             return
         
         #get first_x and first_y attributes of the first experiment for further validation
-        first_x, first_y = get_selection_xy_columns(experiment_dictionaries[0])
+        first_x, first_y = get_selection_xy_columns(experiment_mappers[0])
+        print(first_x)
 
         #validating the column names, returns an error window if they are different
-        validate_selection_compatibility(experiment_dicts= experiment_dictionaries, first_x= first_x, first_y = first_y)
-        for experiment_dict in experiment_dictionaries:
+        validate_selection_compatibility(experiment_mappers = experiment_mappers, first_x= first_x, first_y = first_y)
+        for experiment_dict in experiment_mappers:
             plot_experiment(experiment_dict, self.preview_ax, self.preview_canvas, first_x, first_y)
     
 
@@ -265,10 +266,8 @@ class ExperimentOrchestrator(tk.Tk):
         if not save_name:
             return
         
-        experiments = get_treeview_experiments(self.filtered_tree, 'all')
-        experiment_dicts = map_ids_to_experiments(experiments, self.manager)
-        experiments = [exp['experiment'] for exp in experiment_dicts]
-        self.manager.batch_process_selected_experiments(experiment_collectible =experiments, save_name = save_name)
+        experiments = get_experiments(self.filtered_tree, manager = self.manager, mode = 'selected')
+        self.manager.batch_process_selected_experiments(experiment_collectible = experiments, save_name = save_name)
 
         messagebox.showinfo(title = 'Save', 
                             message = f'Saved {save_name} successfully!')
@@ -292,7 +291,7 @@ class ExperimentOrchestrator(tk.Tk):
     def append_files(self):
         list_of_experiments = self.loader.choose_files()
         self.manager.append_experiments(list_of_experiments)
-        set_tree_data(tree_item= self.filtered_tree, experiment_list= list_of_experiments, replace = False)
+        set_tree_data(tree_item= self.filtered_tree, experiment_list = list_of_experiments, replace = False)
         
 
     def get_entry_values(self, entries:tk.Entry | list[tk.Entry]):
@@ -313,8 +312,90 @@ class ExperimentOrchestrator(tk.Tk):
         
         return results[0] 
     
+    def process_chronop(self):
+        experiments = self.manager.filter(object_type = Chronoamperometry)
+        results = []
+        for exp in experiments:
+            #interactive picking of current
+            exp.get_current_at_time(-1)
+
+            #the function doesn't return cause it's based on a click. Access the attributes )WIP)
+            results.append((exp.time, exp.potential*1000, exp.current_density*1000))
+        print(results)
+        df = pd.DataFrame(results)
+        self.tmp.append(df)
 
     
+    def join(self):
+        x = pd.concat(self.tmp,axis=1)
+        x.to_excel('FINAL.xlsx', engine = 'openpyxl')
+
+    
+    def inspect(self, event):
+        x = get_experiments(self.filtered_tree, self.manager, 'selected')[0]
+        dict_to_show = x.get_essentials()
+
+        top = tk.Toplevel(self)
+        top.title("Experiment Metadata")
+
+        entries = {}  # keep references to Entry widgets
+
+        for i, (widget_label, (value, widget_type, data_type, attr_name)) in enumerate(dict_to_show.items()):
+            tk.Label(top, text=str(widget_label)).grid(row=i, column=0, sticky="w", padx=5, pady=2)
+
+
+            if widget_type == 'ENTRY':
+
+                entry = tk.Entry(top)
+                entry.insert(0, str(value))   # pre-fill with current value
+                entry.grid(row=i, column=1, sticky="we", padx=5, pady=2)
+                entries[widget_label] = (entry, data_type, attr_name) # store reference by key
+            
+            elif widget_type == 'LABEL':
+
+                display_text = value
+                if isinstance(value, str) and os.path.exists(value):  # crude "looks like a path"
+                    display_text = shorten_path(value, 40)
+
+                label = tk.Label(top, text = str(display_text))
+                label.grid(row = i, column = 1, sticky = "we", padx= 5, pady=2)
+
+                if display_text != value:
+                    add_tooltip(label, str(value))
+
+        def save_changes():
+
+            for key, (entry, data_type, attr_name) in entries.items():
+                str_val = entry.get()
+                data_type = data_type
+                
+                try:
+                    if data_type is int:
+                        new_val = int(str_val)
+                    elif data_type is float:
+                        new_val = float(str_val)
+                
+
+                except ValueError:
+                    tk.messagebox.showerror(
+                        "Invalid Input",
+                        f"Parameter '{key}' must be {data_type.__name__}, but got: {str_val}"
+                    )
+                    return  # stop saving on first error
+                
+                dict_to_show[key] = (new_val, "ENTRY", data_type, attr_name)   # update dict in-place
+                
+                if key is None:
+                    continue
+                elif key in x.meta_data:
+                    x.meta_data[key] = new_val
+                else:
+                    setattr(x, attr_name, new_val)
+            top.destroy()
+
+        save_button = tk.Button(top, text="Save", command=save_changes)
+        save_button.grid(row=len(dict_to_show), column=0, columnspan=2, pady=10)
+
 if __name__ == '__main__':
     app = ExperimentOrchestrator()
     app.mainloop()

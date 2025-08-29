@@ -1,4 +1,5 @@
 from .base import *
+from .base import Experiment
 from .chronoamperometry import Chronoamperometry
 from .cyclic_voltammetry import Voltammetry
 from .ecsa import ECSA
