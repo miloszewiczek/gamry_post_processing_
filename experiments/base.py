@@ -6,6 +6,7 @@ from matplotlib import pyplot as plt
 from collections import defaultdict
 from app_config import messages, settings
 from typing import Literal
+from unicode_mapping import uni_map
 
 
 class Experiment():
@@ -161,16 +162,16 @@ class Experiment():
     def get_essentials(self):
 
         essentials = {
-            'FILEPATH': (self.file_path, 'LABEL', str, 'file_path'),
-            'TITLE': (self.meta_data['TITLE'],'LABEL', str, 'TITLE'),
-            'PSTAT': (self.meta_data['PSTAT'],'LABEL', str, 'PSTAT'),
-            'TAG': (self.meta_data['TAG'], 'LABEL', str, 'TAG'),
-            'NO OF CURVES': (len(self.data_list), 'LABEL', int, 'NONE'),
-            'DATE': (self.meta_data['DATE'], 'LABEL', str, 'DATE'),
-            'TIME': (self.meta_data['TIME'], 'LABEL', str, 'TIME'),
-            'GEOMETRICAL AREA [cm2]': (self.geometrical_area, 'ENTRY', float, 'geometrical_area'),
-            'REFERENCE ELECTRODE POTENTIAL [V]': (self.reference_potential, 'ENTRY', float, 'reference_potential'),
-            'Ru [Ohm]': (self.Ru, 'ENTRY', float, 'Ru')
+            'Filepath': (self.file_path, 'LABEL', str, 'file_path'),
+            'Experiment ID': (self.id, 'LABEL', int, 'id'),
+            'Experiment TAG': (self.meta_data['TAG'], 'LABEL', str, 'TAG'),
+            'Number of curves': (len(self.data_list), 'LABEL', int, 'NONE'),
+            'Title': (self.meta_data['TITLE'],'LABEL', str, 'TITLE'),
+            'Potentiostat': (self.meta_data['PSTAT'],'LABEL', str, 'PSTAT'),
+            'Date | Time': (" | ".join([self.meta_data['DATE'], self.meta_data['TIME']]), 'LABEL', str, 'NONE'),
+            f'Area [cm{uni_map['square']}]': (self.geometrical_area, 'ENTRY', float, 'geometrical_area'),
+            'Reference Potential [V]': (self.reference_potential, 'ENTRY', float, 'reference_potential'),
+            f'Ru [{uni_map['Ohm']}]': (self.Ru, 'ENTRY', float, 'Ru')
         }
         return essentials
     

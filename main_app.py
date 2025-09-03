@@ -12,12 +12,15 @@ from utilities.other import *
 from functions.functions import calculate_slopes
 from tkinter.filedialog import asksaveasfilename
 from tafel_window import tafel_window
+import copy
+import ttkbootstrap as ttk
+from gui import ExperimentTree
 
-class ExperimentOrchestrator(tk.Tk):
+
+class ExperimentOrchestrator(ttk.Window):
     def __init__(self):
-        super().__init__()
+        super().__init__(themename = 'flatly')
         self.title('Miloszs app for electrochemical data!')
-
         self.loader = ExperimentLoader()
         self.manager = ExperimentManager()
         self.tmp = []
@@ -29,45 +32,29 @@ class ExperimentOrchestrator(tk.Tk):
   
         #CONFIGURE FILTERING TREE SIZE
         self.columnconfigure(0, minsize=300, weight = 1)
-        self.rowconfigure(0, weight=1)
+        self.rowconfigure(0, weight=1, minsize = 50)
 
 
         #FILTERING TREE
-        self.filtering_tree_frame = tk.Frame(self)
-        self.filtering_tree_frame.grid(row=0, column = 0, sticky = 'nsew')
-        self.filtered_tree = ttk.Treeview(self.filtering_tree_frame)
-        self.filtered_tree.heading('#0', text ='Type')
-        self.filtered_tree.column('#0', width = 50)   
-        self.filtered_tree.pack(side='left', fill = tk.BOTH, expand = 1)
-        vsb = ttk.Scrollbar(self.filtering_tree_frame, orient="vertical", command=self.filtered_tree.yview)
-        vsb.pack(side='right', fill='y')
-        self.filtered_tree.configure(yscrollcommand= vsb.set)
-        self.filtered_tree.bind('<Double-Button-1>', self.inspect)
-
-
+        
+        self.filtered_tree_frame = ExperimentTree(self)
+        self.filtered_tree_frame.grid(row=1, column = 0)
+        self.filtered_tree = self.filtered_tree_frame.filtered_tree
+        
 
         #BUTTON FRAME
-        self.button_frame = tk.Frame(self)
-        self.button_frame.grid(row=1, column=0, sticky = 'ew')
+        self.button_frame = tk.LabelFrame(self, text = 'File management')
+        self.button_frame.grid(row=0, column=0, sticky = 'nsew', pady = 10, padx=20)
         self.load_btn = tk.Button(self.button_frame, text = 'Load', command = self.create_new_project)
-        self.load_btn.grid(row = 0, column = 0)
+        self.load_btn.grid(row = 0, column = 0, padx = 10)
+        tk.Button(self.button_frame, text = 'Append', command = self.append_files).grid(row=0,column=1)
 
-        self.process_btn = tk.Button(self.button_frame, text = 'Process selected', command = self.process_selected)
-        self.process_btn.grid(row=0, column = 1)
-
-        self.filter_btn = tk.Button(self.button_frame, text = 'Filter', command = self.filter_experiments)
-        self.filter_btn.grid(row = 0, column = 2)
-
-        self.process_all_btn = tk.Button(self.button_frame, text = 'Process All', command = self.process_all)
-        self.process_all_btn.grid(row=0, column =3 )
 
         tk.Button(self.button_frame, text = 'Save all', command = self.process_and_save).grid(row=0,column=4)
-        tk.Button(self.button_frame, text = 'Append', command = self.append_files).grid(row=1,column=0)
-
-
+       
         #PREVIEW FRAME
         self.preview_frame = tk.Frame(self, width = 50, height = 50)
-        self.preview_frame.grid(column=2, row=0, sticky = 'nsew')
+        self.preview_frame.grid(column=2, row=1, sticky = 'nsew')
 
             #PREVIEW FIGURE
         self.preview_figure, self.preview_ax = plt.subplots()
@@ -83,8 +70,8 @@ class ExperimentOrchestrator(tk.Tk):
 
 
         #CONFIG SECTION FRAME
-        self.config_frame = tk.LabelFrame(self, bd = 1, text = 'Config', padx = 10, pady=10)
-        self.config_frame.grid(column=1, row =0)
+        self.config_frame = tk.LabelFrame(self, bd = 1, text = 'Config')
+        self.config_frame.grid(column=1, row =0, sticky = 'nsew', pady = 10)
 
             #UNCOMPENSATED RESISTANCE
         tk.Label(self.config_frame,text = 'Uncompensated resistance [Ohm]').grid(column=0, row =0, sticky = 'w')
@@ -113,13 +100,21 @@ class ExperimentOrchestrator(tk.Tk):
         self.reference_electrode_entry['values'] = ('0.21', '0.255')
         self.reference_electrode_entry.grid(column=1, row = 2)
 
+
+        self.process_btn = tk.Button(self.config_frame, text = 'Process selected', command = self.process_selected)
+        self.process_btn.grid(row=3, column = 1)
+
+        self.process_all_btn = tk.Button(self.config_frame, text = 'Process All', command = self.process_all)
+        self.process_all_btn.grid(row=3, column =2 )
+
+
         #CDL SLIDER GUI
 
         #self.cdl_slider_button = tk.Button(self.preview_frame, text='CDL Slider', command = self.cdl_slider)
         #self.cdl_slider_button.pack()
 
         #TAFEL BTN
-        tk.Button(self.button_frame, text = 'Calculate Tafel', command = self.tafel_plot).grid(row=2, column=0)
+        #tk.Button(self.button_frame, text = 'Calculate Tafel', command = self.tafel_plot).grid(row=2, column=0)
 
 
         #INSPECTOR FRAME (WIP)
@@ -130,10 +125,10 @@ class ExperimentOrchestrator(tk.Tk):
 
 
         #CHRONOP_BTN (TEMPRORARY)
-        tk.Button(self.button_frame, text = 'Process chronop', command = self.process_chronop).grid(row=3, column =0)
-        tk.Button(self.button_frame, text = 'Join', command = self.join).grid(row=3, column = 1)
+        #tk.Button(self.button_frame, text = 'Process chronop', command = self.process_chronop).grid(row=3, column =0)
+        #tk.Button(self.button_frame, text = 'Join', command = self.join).grid(row=3, column = 1)
 
-    
+
     def print_experiment_data(self):
         experiment = self.filtered_tree.selection()[0]
         exps = map_ids_to_experiments(experiment, self.manager)
@@ -186,7 +181,7 @@ class ExperimentOrchestrator(tk.Tk):
         clear_plot(self.preview_ax)
         
 
-        experiment_mappers = get_mappers(self.filtered_tree, self.manager, 'selected')
+        experiment_mappers = get_experiments(self.filtered_tree, self.manager, 'selected', output = 'mappers')
         if experiment_mappers is None:
             return
         
@@ -223,11 +218,26 @@ class ExperimentOrchestrator(tk.Tk):
             #close popup
             top.destroy()
 
+            #build a human-readable filtering description
+            desc_parts = []
+            if name_filter:
+                desc_parts.append(f'Name = {name_filter}')
+            if cycle_filter:
+                desc_parts.append(f'Cycle = {cycle_filter}')
+            if object_type_filter:
+                desc_parts.append(f'Type = {object_type_filter}')
+            desc = " | ".join(desc_parts) if desc_parts else 'No filter applied'
+
+            self.current_filter_var.set(f'Active filter: {desc}')
+
+
+
         def on_cancel():
 
             top.destroy()
             return
 
+            
 
         #create a new window with filter entries
         top = tk.Toplevel(self)
@@ -256,8 +266,12 @@ class ExperimentOrchestrator(tk.Tk):
 
         inclusive_filtering_chckbtn = tk.Checkbutton(top, text = 'Inclusive filtering', variable= var)
         inclusive_filtering_chckbtn.grid(row=5, column =1, padx= 10)
-        
-
+    
+    def reset(self):
+        """Helper function to reset a tkinter treeview filtering"""
+        experiments = self.manager.get_experiments('all')
+        set_tree_data(self.filtered_tree, experiments, replace = True)
+        self.current_filter_var.set('No active filter')
 
     def process_and_save(self, save_name = None):
 
@@ -287,12 +301,32 @@ class ExperimentOrchestrator(tk.Tk):
         set_tree_data(tree_item = self.filtered_tree, experiment_list = self.manager.get_experiments('all'), replace = True)
         messagebox.showinfo('Loaded', 'Data loaded successfully!')
 
-    
     def append_files(self):
         list_of_experiments = self.loader.choose_files()
         self.manager.append_experiments(list_of_experiments)
         set_tree_data(tree_item= self.filtered_tree, experiment_list = list_of_experiments, replace = False)
-        
+
+    def copy_experiment(self):
+        experiments = get_experiments(self.filtered_tree, self.manager, 'selected')
+        list_of_copies = []
+        for experiment in experiments:
+            experiment_copy = copy.deepcopy(experiment)
+
+            new_id = self.loader.update_counter(+1)
+            setattr(experiment_copy, 'id', new_id)
+            self.manager.append_experiments(experiment_copy)
+            list_of_copies.append(experiment_copy)
+
+        set_tree_data(tree_item= self.filtered_tree, experiment_list = list_of_copies, replace = False)
+
+    def delete_selected(self):
+        experiments = get_experiments(self.filtered_tree, self.manager, 'selected')
+        self.manager.delete_experiments(experiments)
+        for experiment in experiments:
+            id = str(experiment.id)
+            self.filtered_tree.delete(id)
+        delete_empty_tag_nodes(self.filtered_tree)
+            
 
     def get_entry_values(self, entries:tk.Entry | list[tk.Entry]):
 
@@ -340,7 +374,10 @@ class ExperimentOrchestrator(tk.Tk):
 
         entries = {}  # keep references to Entry widgets
 
-        for i, (widget_label, (value, widget_type, data_type, attr_name)) in enumerate(dict_to_show.items()):
+        tk.Label(top, text = 'Parameter', font = 'TkDefaultFont 13 bold').grid(row=0, column = 0, padx = 5, pady = 10, sticky='w')
+        tk.Label(top, text = 'Value', font = 'TkDefaultFont 13 bold').grid(row=0, column =1, padx =5, pady=10, sticky = 'w')
+
+        for i, (widget_label, (value, widget_type, data_type, attr_name)) in enumerate(dict_to_show.items(), start = 1):
             tk.Label(top, text=str(widget_label)).grid(row=i, column=0, sticky="w", padx=5, pady=2)
 
 
@@ -348,7 +385,7 @@ class ExperimentOrchestrator(tk.Tk):
 
                 entry = tk.Entry(top)
                 entry.insert(0, str(value))   # pre-fill with current value
-                entry.grid(row=i, column=1, sticky="we", padx=5, pady=2)
+                entry.grid(row=i, column=1, sticky="w", padx=5, pady=2)
                 entries[widget_label] = (entry, data_type, attr_name) # store reference by key
             
             elif widget_type == 'LABEL':
@@ -358,7 +395,7 @@ class ExperimentOrchestrator(tk.Tk):
                     display_text = shorten_path(value, 40)
 
                 label = tk.Label(top, text = str(display_text))
-                label.grid(row = i, column = 1, sticky = "we", padx= 5, pady=2)
+                label.grid(row = i, column = 1, sticky = "w", padx= 5, pady=2)
 
                 if display_text != value:
                     add_tooltip(label, str(value))
@@ -393,8 +430,20 @@ class ExperimentOrchestrator(tk.Tk):
                     setattr(x, attr_name, new_val)
             top.destroy()
 
-        save_button = tk.Button(top, text="Save", command=save_changes)
-        save_button.grid(row=len(dict_to_show), column=0, columnspan=2, pady=10)
+        def cancel():
+            top.destroy()
+            return
+
+        button_frame = tk.Frame(top)
+        button_frame.grid(row = len(dict_to_show)+1, column = 0, columnspan = 2, pady=10, sticky = 'we')
+        
+        cancel_button = tk.Button(button_frame, text = 'Cancel', command = cancel, padx=5, pady=2)
+        cancel_button.pack(side = 'right', padx = 10)
+        save_button = tk.Button(button_frame, text="Save", command=save_changes, padx =5, pady = 2)
+        save_button.pack(side = 'right', padx = 10)
+
+ 
+
 
 if __name__ == '__main__':
     app = ExperimentOrchestrator()

@@ -8,6 +8,10 @@ class ExperimentManager():
         self.atr = None
         self.filtered = None
         self.list_of_experiments = []
+        self.counter = 0
+
+    def _update_counter(self, delta):
+        self.counter += delta
 
             
     def combine_experiment(self, experiment_list):
@@ -233,17 +237,24 @@ class ExperimentManager():
             self (ExperimentManager)
             data (list)"""
         self.list_of_experiments = data
+        self.counter = len(data)
 
-    def append_experiments(self, data):
+    def append_experiments(self, data: list | Experiment):
         """
         Setter function to append to list_of_experiments, most likely from experiment_loader class
         
         Args:
             self (ExperimentManager)
             data (list)"""
-        
-        self.list_of_experiments += data
-        
+        if isinstance(data, list):
+            self.list_of_experiments += data
+            self.counter += len(data)
+        elif isinstance(data, Experiment):
+            self.list_of_experiments.append(data)
+            self.counter += 1
+        else:
+            print('Wrong!')
+            return
 
     def get_experiments(self, type_of_experiments = 'all'):
         
@@ -256,6 +267,14 @@ class ExperimentManager():
             case 'processed':
                 return self.processed_data
             
+    def delete_experiments(self, experiments):
+        tmp = []
+        for experiment in self.list_of_experiments:
+            if experiment in experiments:
+                continue
+            else:
+                tmp.append(experiment)
+        self.list_of_experiments = tmp
 
     def get_unique_experiments(self):
         #MY FIRST USE OF A SET. THE NEAT THING ABOUT THIS COLLECTION IS THE FACT THAT IT DOESNT STORE DUPLICATES!

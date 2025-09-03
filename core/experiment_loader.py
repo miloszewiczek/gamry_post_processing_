@@ -33,7 +33,10 @@ class ExperimentLoader():
                 "EISPOT": EIS
                 }
         }
-        
+    
+    def update_counter(self, delta):
+        self.id_counter += delta
+        return self.id_counter
 
     def load_testing(self):
         """Helper function for testing of the program. 
@@ -60,7 +63,8 @@ class ExperimentLoader():
         for file in files:
             experiment = self.create_experiment(file)
             if experiment is not None:
-                list_of_experiments.append(self.create_experiment(file))
+                list_of_experiments.append(experiment)
+                self.update_counter(+1)
         return list_of_experiments
         
     def create_experiment(self, file_path):
@@ -107,7 +111,6 @@ class ExperimentLoader():
                         cycle = experiment_keys[1])
         
         #self.add_experiment(experiment)
-        self.id_counter +=1
         
         return experiment
                     
