@@ -79,6 +79,19 @@ def reset(tree, manager):
     set_tree_data(tree, experiments, replace = True)
     #current_filter_var.set('No active filter')
 
+def process(tree, manager, selection_mode: Literal['selected','all'] = 'selected') -> None:
+
+    nodes = get_treeview_nodes(tree, manager, mode = selection_mode)
+
+    if selection_mode == 'selected':
+        is_both_type_of_nodes = check_nodes_if_selected(nodes)
+        if is_both_type_of_nodes:
+            result = messagebox.askyesno('Tag end Experiment nodes selected', 'Both types of nodes were selected.\nIf you want to process all Experiments, press yes. Otherwise, select a single Experiment node and try again.')
+    exps = get_experiments_from_nodes(nodes)
+    for exp in exps:
+        exp.process_data()
+    
+
 def process_and_save(tree, manager, save_name = None):
 
     #save_name = self.get_entry_values(entries = save_name_entry) 
@@ -86,7 +99,8 @@ def process_and_save(tree, manager, save_name = None):
     if not save_name:
         return
     
-    experiments = get_experiments(tree, manager, mode = 'selected', output = 'experiments')
+    nodes = get_treeview_nodes(tree, mode='selected')
+    
     manager.batch_process_selected_experiments(experiment_collectible = experiments, save_name = save_name)
 
     messagebox.showinfo(title = 'Save', 
@@ -101,10 +115,16 @@ def process_and_save(tree, manager, save_name = None):
         tk.Button(top, text = 'OK', command = save).pack()
     '''
 
-def create_new_project(loader, tree, manager):
+def load_files(loader, tree, manager):
     list_of_experiments = loader.choose_files()
     manager.set_experiments(list_of_experiments)
     set_tree_data(tree_item = tree, experiment_list = manager.get_experiments('all'), replace = True)
+    messagebox.showinfo('Loaded', 'Data loaded successfully!')
+
+def load_folder(loader, tree, manager):
+    list_of_experiments = loader.choose_folder()
+    manager.set_experiments(list_of_experiments)
+    set_tree_data(tree_item = tree, experiment_list = manager.get_experiments('all'), replace =True)
     messagebox.showinfo('Loaded', 'Data loaded successfully!')
 
 def append_files(loader,tree, manager):
@@ -112,9 +132,17 @@ def append_files(loader,tree, manager):
     manager.append_experiments(list_of_experiments)
     set_tree_data(tree_item= tree, experiment_list = list_of_experiments, replace = False)
 
+def append_folder(loader,tree, manager):
+    list_of_experiments = loader.choose_folder()
+    manager.append_experiments(list_of_experiments)
+    set_tree_data(tree_item= tree, experiment_list = list_of_experiments, replace = False)
+
+
 def copy_experiment(loader,tree, manager):
-    experiments = get_experiments(tree, manager, 'selected', output = 'experiments')
+    nodes = get_treeview_nodes(tree, manager, 'selected')
+    experiments = get_experiments_from_nodes(nodes)
     list_of_copies = []
+
     for experiment in experiments:
         experiment_copy = copy.deepcopy(experiment)
 
@@ -127,12 +155,15 @@ def copy_experiment(loader,tree, manager):
 
 
 def delete_selected(tree, manager):
-    experiments = get_experiments(tree, manager, 'selected', output = 'experiments')
+    nodes = get_treeview_nodes(tree, manager, 'selected')
+    experiments = get_experiments_from_nodes(nodes)
     manager.delete_experiments(experiments)
+
     for experiment in experiments:
         id = str(experiment.id)
         tree.delete(id)
     delete_empty_tag_nodes(tree)
+
         
 def get_entry_values(entries:tk.Entry | list[tk.Entry]):
 
@@ -165,41 +196,39 @@ def process_chronop(manager):
     df = pd.DataFrame(results)
     
 
-def join(self):
-    x = pd.concat(self.tmp,axis=1)
-    x.to_excel('FINAL.xlsx', engine = 'openpyxl')
-
-
 def inspect_wrapper(event, tree, manager):
-    object_to_inspect = get_experiments(tree, manager, 'selected', output = 'mappers')
-    #need to add a function which validates whether it's a node or list of experiments
-    #to do that I will need to change the get_experiments functino to only yield experiments
-    #Possibly introduce get_node()?
+   
+    #this returns a list, however get_info needs a list
+    node_to_inspect = get_treeview_nodes(tree, manager, 'selected' )
+    node_type  = get_info_from_nodes(node_to_inspect, 'node_type')
+    match node_type:
+        case 'Node':
+            inspect_node(tree, node_to_inspect)
+        
+        case 'Experiment':
+            #grab first one
+            exp = get_experiments_from_nodes(node_to_inspect)[0]
+            inspect_experiment(exp)
+
+def inspect_node(tree:ttk.Treeview, node, **kwargs):
     
-    if isinstance(object_to_inspect, str):
-        node_id = object_to_inspect
-        inspect_node(tree, node_id, manager = manager)
-
-    elif isinstance(object_to_inspect, list): #otherwise it's a list of experiments
-        experiment = get_experiments(tree, manager, 'selected', output = 'experiments')[0]
-        inspect_experiment(experiment)
-
-    else:
-        print('I do not know what to do with that item. It is neither a node no a list of experiments')
-
-def inspect_node(tree:ttk.Treeview, node_id: str, **kwargs):
-    
-    def process_node(children_ids):
-        experiments = get_experiments_by_tree_ids(tree, kwargs['manager'], children_ids)
-        for exp in experiments:
-            exp.process_data()
+    def process_node(children):
+        experiments = get_experiments_from_nodes(children)
+        if isinstance(experiments, list):
+            for exp in experiments:
+                exp.process_data()
+        else:
+            experiments.process_data()
 
     top = tk.Toplevel()
     top.title("Node Information")
     tk.Label(top, text = 'Parameter', font = 'TkDefaultFont 13 bold').grid(row=0, column = 0, padx = 5, pady = 10, sticky='w')
     tk.Label(top, text = 'Value', font = 'TkDefaultFont 13 bold').grid(row=0, column =1, padx =5, pady=10, sticky = 'w')
 
-    text, children = tree.item(node_id)['text'], tree.get_children(node_id)
+    node_id = node.treeview_id
+    children = node.exp_id
+    text = node.text
+
     ttk.Label(top, text = 'ID').grid(row = 1, column = 0, padx = 5, pady = 2, sticky = 'w')
     ttk.Label(top, text = node_id).grid(row = 1, column = 1, padx = 5, pady = 2, sticky = 'w')
     ttk.Label(top, text = 'Node name').grid(row = 2, column = 0, padx = 5, pady = 2, sticky = 'w')
@@ -302,7 +331,7 @@ def plot_selected(tree, manager, ax, canvas):
     clear_plot(ax)
     
 
-    experiment_mappers = get_experiments(tree, manager, 'selected', output = 'mappers')
+    experiment_mappers = get_treeview_nodes(tree, mode = 'selected')
     if experiment_mappers is None:
         return
     
@@ -314,13 +343,6 @@ def plot_selected(tree, manager, ax, canvas):
     validate_selection_compatibility(experiment_mappers = experiment_mappers, first_x= first_x, first_y = first_y)
     for experiment_dict in experiment_mappers:
         plot_experiment(experiment_dict, ax, canvas, first_x, first_y)
-
-
-def process(tree, manager, mode: Literal['selected', 'all'] ):
-    
-    #get selected experiments 
-    for experiment in get_experiments(tree, manager, mode, output = 'experiments'):
-        experiment.process_data()
 
 def apply_attr_to_all(self):
         

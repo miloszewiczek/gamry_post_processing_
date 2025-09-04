@@ -3,7 +3,8 @@ import os
 from datetime import datetime
 import re
 from itertools import chain
-from tkinter.filedialog import askopenfilenames
+from glob import glob
+from tkinter.filedialog import askopenfilenames, askdirectory
 
 class ExperimentLoader():
     '''An interface class to aggregate and manage the experiments. '''
@@ -48,6 +49,16 @@ class ExperimentLoader():
         print('Added testing files (input/*)')
         return self.list_of_experiments
 
+    def populate_list_of_experiments(self,files):
+
+        list_of_experiments = []
+        for file in files:
+            experiment = self.create_experiment(file)
+            if experiment is not None:
+                list_of_experiments.append(experiment)
+                self.update_counter(+1)
+        return list_of_experiments
+
     def choose_files(self):
         """
         A function to choose files from a folder based on tkinter askopenfilenames.
@@ -58,14 +69,21 @@ class ExperimentLoader():
         Returns:
             list_of_experiments (list) - a list of Experiment objects. The list is also set as the attribute of the same name for the loader"""
         files = askopenfilenames(filetypes=[('Gamry Experiment Files', '*.DTA')])
+        return self.populate_list_of_experiments(files)
+    
+    def choose_folder(self):
+        """
+        A function to choose files from a folder based on tkinter askopenfilenames.
+        
+        Args:
+            self (ExperimentLoader)
+        
+        Returns:
+            list_of_experiments (list) - a list of Experiment objects. The list is also set as the attribute of the same name for the loader"""
+        dir = askdirectory()
+        files = glob(os.path.join(dir, '*.DTA'))
+        return self.populate_list_of_experiments(files)
 
-        list_of_experiments = []
-        for file in files:
-            experiment = self.create_experiment(file)
-            if experiment is not None:
-                list_of_experiments.append(experiment)
-                self.update_counter(+1)
-        return list_of_experiments
         
     def create_experiment(self, file_path):
         '''Factory function to create the experiment and store it in a manager.

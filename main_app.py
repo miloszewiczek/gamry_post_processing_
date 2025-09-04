@@ -68,11 +68,6 @@ class ExperimentOrchestrator(ttk.Window):
         #tk.Button(self.button_frame, text = 'Join', command = self.join).grid(row=3, column = 1)
 
 
-    def print_experiment_data(self):
-        experiment = self.filtered_tree.selection()[0]
-        exps = map_ids_to_experiments(experiment, self.manager)
-        exp = exps[0]['experiment'].data_listex
-        print(len(exp))
 
     def tafel_plot(self):
         experiment = self.manager.filter(object_type=LinearVoltammetry)
@@ -257,7 +252,8 @@ class ExperimentOrchestrator(ttk.Window):
 
     
     def inspect(self, event):
-        x = get_experiments(self.filtered_tree, self.manager, 'selected')[0]
+        nodes = get_treeview_nodes(t)
+        x = get_experiments_from_nodes(self.filtered_tree, self.manager, 'selected')[0]
         dict_to_show = x.get_essentials()
 
         top = tk.Toplevel(self)

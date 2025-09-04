@@ -4,7 +4,7 @@ import tkinter as tk
 from tkinter import ttk
 from tkinter import messagebox
 from matplotlib import pyplot as plt
-from typing import Literal
+from typing import Literal, Any
 from dataclasses import dataclass
 from experiments import Experiment
 
@@ -112,24 +112,45 @@ def get_all_treeview_nodes(tkinter_treeeview: ttk.Treeview, parent = ''):
         #this function returns a generator, so it needs to be turned into a list
         yield from get_all_treeview_nodes(tkinter_treeeview, child)
 
-def create_dictionaries_from_ids(tkinter_treeview: ttk.Treeview, collection_of_ids: tuple|list) -> list[dict]:
+
+def create_nodes_from_ids(tkinter_treeview: ttk.Treeview, collection_of_ids: tuple|list, manager) -> list[dict]:
     """Helper function to create dictionaries from a treeview and a collection of ids."""
 
-    experiment_dicts = []
+    @dataclass
+    class TreeNode:
+        treeview_id: str
+        text: str
+        node_type: str
+        exp_id: str | tuple
+        other_info: Any
+
+
+    tree_nodes = []
     for item_id in collection_of_ids:
+        
         item = tkinter_treeview.item(item_id)
+        node_type, exp_id, other_info = item['values']
+        
+        if node_type == 'Node':
+            exp_id = tkinter_treeview.get_children(item_id)
+            exp_id = create_nodes_from_ids(tkinter_treeview, exp_id, manager)
+
+        
+        elif node_type == 'Experiment':
+            exp_id = manager.filter_by_id(item_id)
 
         #create a dictionary for each treeview item
-        experiment_dictionary = {
-                                    "treeview_id": item_id,
-                                    "text": item['text'],
-                                    "values": item['values']
-                                    }
-        experiment_dicts.append(experiment_dictionary)
-    
-    return experiment_dicts
+        node = TreeNode(treeview_id = item_id,
+                        text = item['text'],
+                        node_type = node_type,
+                        exp_id = exp_id,
+                        other_info = other_info)
 
-def get_treeview_experiments(tkinter_treeview: ttk.Treeview, mode:str = Literal['selected', 'all'], input_list = None) -> list[dict]:
+        tree_nodes.append(node)
+        
+    return tree_nodes
+
+def get_treeview_nodes(tkinter_treeview: ttk.Treeview, manager, mode:str = Literal['selected', 'all'], ) -> list[dict]:
     '''Helper function to get treeview items and assign them to a universal dictionary with treeview_id, text and values of the item.
     The dictionaries can then be passed to anothe function map_ids_to_experiment to get experiments.
     Args:
@@ -140,90 +161,71 @@ def get_treeview_experiments(tkinter_treeview: ttk.Treeview, mode:str = Literal[
     a list of dictionaries.'''
 
     #if input_list is provided, the mode is overriden
-    if input_list is not None:
-        list_of_ids = input_list
 
-    else:
+    match mode:
 
-        match mode:
+        case 'selected':
+            list_of_ids = tkinter_treeview.selection()
 
-            case 'selected':
-                list_of_ids = tkinter_treeview.selection()
-
-            case 'all':
-                
-                #returns a generator from yield
-                list_of_ids = get_all_treeview_nodes(tkinter_treeview, '')
-                #change to list
-                list_of_ids = list(list_of_ids)
+        case 'all':
+            
+            #returns a generator from yield
+            list_of_ids = get_all_treeview_nodes(tkinter_treeview, '')
+            #change to list
+            list_of_ids = list(list_of_ids)
 
     #error check
     if len(list_of_ids) == 0:
         return
     
     #create dicts from tkinter values
-    experiment_dicts = create_dictionaries_from_ids(tkinter_treeview, list_of_ids)
-    return experiment_dicts
-
-def map_ids_to_experiments(items: list[dict], manager) -> list[ExperimentMapping]:
-    """Function that assigns tkinter treeview dictionary from the function get_treeview_experiments
-    and assigns them to another dictionary with experiment, curve number and column, based on the type of parent/child.
-    Args:
-    items: list of dictionaries with keys treeview_id, text and values
-    manager: this function requires filtering by ids, and this is done by an experiment_manager class
+    experiment_nodes = create_nodes_from_ids(tkinter_treeview, list_of_ids, manager)
     
-    Returns:
-    experiment_dicts - a list of dictionaires mapping treeview_id to experiments and optionally, the curve numbers/column
-    """
+    if len(experiment_nodes) == 1:
+        return experiment_nodes[0]
+    
+    return experiment_nodes
 
-    experiment_dicts = []
 
-    for item in items:
-        node_type, experiment_id, column = item['values']
+def check_nodes_if_selected(nodes):
+    
+    list_of_node_types = get_info_from_nodes(nodes, 'node_type')
+    if ('Node' in list_of_node_types) and ('Experiment' in list_of_node_types):
+        return True
+    
+    return False
+
+def get_experiments_from_nodes(nodes: list) -> list[Experiment]:
+
+    if not isinstance(nodes, list):
+        nodes = [nodes]
+
+    experiments = [node.exp_id for node in nodes if node.node_type != 'Node']
+
+    return experiments
+
+
+def get_info_from_nodes(nodes: list, info: Literal['node_type', 'exp_id', 'text', 'other_info', 'treeview_id']):
+
+    if isinstance(nodes, list): #if its a list of nodes
+
+        if isinstance(info, tuple):
+            results = [
+                tuple(getattr(node, key) for key in info)
+                for node in nodes
+            ]
+        else:
+            results = [getattr(node, info) for node in nodes]
+ 
+    else: #if its a single node
         
-        #checking if node
-        node_type = check_type(item)
-        
-        experiment = manager.filter_by_id(experiment_id)
+        if isinstance(info, tuple):
+            results =  tuple(getattr(nodes, key) for key in info)
+        else:
+            results = getattr(nodes, info)
 
-        exp_mapping = ExperimentMapping(treeview_id = item['treeview_id'],
-                          experiment = experiment,
-                          curve_number = None,
-                          column = column)
+    return results
     
-        experiment_dicts.append(exp_mapping)
-
-    return experiment_dicts
-
-
-
-def get_experiments_by_tree_ids(tree: ttk.Treeview, manager, ids: tuple):
-    """A wrapper to return a list of Eperimetns directly from ids"""
-    experiment_dicts = create_dictionaries_from_ids(tree, collection_of_ids = ids)
-    if not experiment_dicts:
-        return []
-    experiment_mappers = get_experiments(tree, manager, output = 'experiments', input_list=ids)
-    return experiment_mappers
-
-
-def get_experiments(treeview: ttk.Treeview, manager, 
-                mode: Literal['selected', 'all', 'list'] = 'selected', 
-                output = Literal['experiments', 'mappers'],
-                input_list: tuple|list = None) -> list[ExperimentMapping]:
-    """A wrapper to return a list of Experiments from a list of a treeview."""
-
-    experiment_dicts = get_treeview_experiments(treeview, mode, input_list)
-    if not experiment_dicts:
-        return []
-    
-    experiment_mappers = map_ids_to_experiments(experiment_dicts, manager)
-
-    match output:
-        case 'experiments':
-            return [d.experiment for d in experiment_mappers]
-        case 'mappers':
-            return experiment_mappers
-
 
 def get_selection_xy_columns(experiment_mapping) -> tuple[str, str]:
     """
