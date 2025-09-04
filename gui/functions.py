@@ -172,6 +172,9 @@ def join(self):
 
 def inspect_wrapper(event, tree, manager):
     object_to_inspect = get_experiments(tree, manager, 'selected', output = 'mappers')
+    #need to add a function which validates whether it's a node or list of experiments
+    #to do that I will need to change the get_experiments functino to only yield experiments
+    #Possibly introduce get_node()?
     
     if isinstance(object_to_inspect, str):
         node_id = object_to_inspect
@@ -291,3 +294,46 @@ def inspect_experiment(experiment: Experiment):
 
     save_and_process_button = tk.Button(button_frame, text = 'Save and process', command = save_and_process, padx = 5, pady = 2)
     save_and_process_button.pack(side = 'right', padx = 10)
+
+
+def plot_selected(tree, manager, ax, canvas):
+
+    #clear the preview plot
+    clear_plot(ax)
+    
+
+    experiment_mappers = get_experiments(tree, manager, 'selected', output = 'mappers')
+    if experiment_mappers is None:
+        return
+    
+    #get first_x and first_y attributes of the first experiment for further validation
+    first_x, first_y = get_selection_xy_columns(experiment_mappers[0])
+    print(first_x)
+
+    #validating the column names, returns an error window if they are different
+    validate_selection_compatibility(experiment_mappers = experiment_mappers, first_x= first_x, first_y = first_y)
+    for experiment_dict in experiment_mappers:
+        plot_experiment(experiment_dict, ax, canvas, first_x, first_y)
+
+
+def process(tree, manager, mode: Literal['selected', 'all'] ):
+    
+    #get selected experiments 
+    for experiment in get_experiments(tree, manager, mode, output = 'experiments'):
+        experiment.process_data()
+
+def apply_attr_to_all(self):
+        
+    experiments = get_experiments(self.filtered_tree, self.manager, 'all')
+    Ru_value = float(self.Ru_var.get())
+    geometrical_area = float(self.geometrical_area_var.get())
+    reference_potential = float(self.reference_electrode_var.get())
+
+    for experiment in experiments:
+
+        setattr(experiment, 'Ru', Ru_value)
+        setattr(experiment, 'geometrical_area', geometrical_area)
+        setattr(experiment, 'reference_potential', reference_potential)
+
+        experiment.process_data()
+

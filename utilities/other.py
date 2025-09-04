@@ -88,7 +88,7 @@ def set_tree_data(tree_item:ttk.Treeview, experiment_list: list | Experiment, re
             text=filename,
             iid=exp.id,  # unique ID for the row
             open=False,
-            values=(exp.id, None, None)
+            values=('Experiment', exp.id, None)
         )
 
         if not hasattr(exp, 'data_list'):
@@ -175,20 +175,20 @@ def map_ids_to_experiments(items: list[dict], manager) -> list[ExperimentMapping
     Returns:
     experiment_dicts - a list of dictionaires mapping treeview_id to experiments and optionally, the curve numbers/column
     """
+
     experiment_dicts = []
 
     for item in items:
-        experiment_id, curve_index, column = item['values']
+        node_type, experiment_id, column = item['values']
         
         #checking if node
-        if experiment_id == 'None' or experiment_id == 'Node':
-            return item['treeview_id']
+        node_type = check_type(item)
         
         experiment = manager.filter_by_id(experiment_id)
 
         exp_mapping = ExperimentMapping(treeview_id = item['treeview_id'],
                           experiment = experiment,
-                          curve_number = curve_index,
+                          curve_number = None,
                           column = column)
     
         experiment_dicts.append(exp_mapping)
@@ -215,6 +215,7 @@ def get_experiments(treeview: ttk.Treeview, manager,
     experiment_dicts = get_treeview_experiments(treeview, mode, input_list)
     if not experiment_dicts:
         return []
+    
     experiment_mappers = map_ids_to_experiments(experiment_dicts, manager)
 
     match output:
@@ -376,3 +377,22 @@ def add_tooltip(widget, text: str):
 
     widget.bind("<Enter>", on_enter)
     widget.bind("<Leave>", on_leave)
+
+
+def check_type(tree: ttk.Treeview, ids: str | tuple) -> str:
+    """Checks what type of node is being passed. If a tuple, the function will return a set containing node types"""
+
+    if isinstance(ids, str):
+        item_values = tree.item(ids)['values']
+        node_type, node_id, other_info = item_values
+        return node_type
+    
+    elif isinstance(ids, (tuple, list)):
+        node_types = {}
+        for item in ids:
+            item_values = tree.item(ids)['values']
+            node_type, node_id, other_info = item_values
+            node_types.update(node_type)
+        return node_types
+
+
