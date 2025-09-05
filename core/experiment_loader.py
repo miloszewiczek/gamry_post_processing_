@@ -59,6 +59,9 @@ class ExperimentLoader():
                 self.update_counter(+1)
         return list_of_experiments
 
+    def get_counter(self):
+        return self.id_counter
+
     def choose_files(self):
         """
         A function to choose files from a folder based on tkinter askopenfilenames.

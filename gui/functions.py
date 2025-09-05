@@ -2,9 +2,10 @@ from utilities.other import *
 from experiments import *
 from tkinter.filedialog import asksaveasfile, asksaveasfilename
 import copy
+from core import ExperimentLoader, ExperimentManager
 
 
-def filter_experiments(tree, manager, variable):
+def filter_experiments(tree, manager:ExperimentManager, variable):
 
     #ZMIENIĆ FUNCKE FILTER, PO UWZGLĘDNIENIU NOWEJ WERSJI get_entry_and_destroy
 
@@ -73,13 +74,13 @@ def filter_experiments(tree, manager, variable):
     inclusive_filtering_chckbtn = tk.Checkbutton(top, text = 'Inclusive filtering', variable= var)
     inclusive_filtering_chckbtn.grid(row=5, column =1, padx= 10)
     
-def reset(tree, manager):
+def reset(tree:ttk.Treeview, manager:ExperimentManager):
     """Helper function to reset a tkinter treeview filtering"""
     experiments = manager.get_experiments('all')
     set_tree_data(tree, experiments, replace = True)
     #current_filter_var.set('No active filter')
 
-def process(tree, manager, selection_mode: Literal['selected','all'] = 'selected') -> None:
+def process(tree:ttk.Treeview, manager:ExperimentManager, selection_mode: Literal['selected','all'] = 'selected') -> None:
 
     nodes = get_treeview_nodes(tree, manager, mode = selection_mode)
 
@@ -92,7 +93,7 @@ def process(tree, manager, selection_mode: Literal['selected','all'] = 'selected
         exp.process_data()
     
 
-def process_and_save(tree, manager, save_name = None):
+def process_and_save(tree:ttk.Treeview, manager:ExperimentManager, save_name = None):
 
     #save_name = self.get_entry_values(entries = save_name_entry) 
     save_name = asksaveasfilename(filetypes = [('Excel files', '*.xlsx'), ('All files', '*.*')], initialfile = 'RAPORT')
@@ -115,46 +116,54 @@ def process_and_save(tree, manager, save_name = None):
         tk.Button(top, text = 'OK', command = save).pack()
     '''
 
-def load_files(loader, tree, manager):
+def load_files(loader:ExperimentLoader, tree: ttk.Treeview, manager:ExperimentManager):
     list_of_experiments = loader.choose_files()
     manager.set_experiments(list_of_experiments)
     set_tree_data(tree_item = tree, experiment_list = manager.get_experiments('all'), replace = True)
     messagebox.showinfo('Loaded', 'Data loaded successfully!')
 
-def load_folder(loader, tree, manager):
+def load_folder(loader:ExperimentLoader, tree: ttk.Treeview, manager:ExperimentManager):
     list_of_experiments = loader.choose_folder()
     manager.set_experiments(list_of_experiments)
     set_tree_data(tree_item = tree, experiment_list = manager.get_experiments('all'), replace =True)
     messagebox.showinfo('Loaded', 'Data loaded successfully!')
 
-def append_files(loader,tree, manager):
+def append_files(loader:ExperimentLoader, tree: ttk.Treeview, manager:ExperimentManager):
     list_of_experiments = loader.choose_files()
     manager.append_experiments(list_of_experiments)
     set_tree_data(tree_item= tree, experiment_list = list_of_experiments, replace = False)
 
-def append_folder(loader,tree, manager):
+def append_folder(loader:ExperimentLoader, tree: ttk.Treeview, manager:ExperimentManager):
     list_of_experiments = loader.choose_folder()
     manager.append_experiments(list_of_experiments)
     set_tree_data(tree_item= tree, experiment_list = list_of_experiments, replace = False)
 
 
-def copy_experiment(loader,tree, manager):
+def copy_experiment(loader:ExperimentLoader, tree: ttk.Treeview, manager:ExperimentManager):
     nodes = get_treeview_nodes(tree, manager, 'selected')
+    
     experiments = get_experiments_from_nodes(nodes)
     list_of_copies = []
+    
 
     for experiment in experiments:
+        print(experiment.id)
         experiment_copy = copy.deepcopy(experiment)
 
-        new_id = loader.update_counter(+1)
+        print(loader.id_counter)
+        new_id = loader.get_counter()
+        print(new_id)
+
         setattr(experiment_copy, 'id', new_id)
         manager.append_experiments(experiment_copy)
         list_of_copies.append(experiment_copy)
 
+        loader.update_counter(+1)
+
     set_tree_data(tree_item= tree, experiment_list = list_of_copies, replace = False)
 
 
-def delete_selected(tree, manager):
+def delete_selected(tree:ttk.Treeview, manager:ExperimentManager):
     nodes = get_treeview_nodes(tree, manager, 'selected')
     experiments = get_experiments_from_nodes(nodes)
     manager.delete_experiments(experiments)
@@ -183,7 +192,7 @@ def get_entry_values(entries:tk.Entry | list[tk.Entry]):
     
     return results[0] 
 
-def process_chronop(manager):
+def process_chronop(manager:ExperimentManager):
     experiments = manager.filter(object_type = Chronoamperometry)
     results = []
     for exp in experiments:
@@ -196,29 +205,32 @@ def process_chronop(manager):
     df = pd.DataFrame(results)
     
 
-def inspect_wrapper(event, tree, manager):
+def inspect_wrapper(event, tree:ttk.Treeview, manager:ExperimentManager):
    
     #this returns a list, however get_info needs a list
-    node_to_inspect = get_treeview_nodes(tree, manager, 'selected' )
+    node_to_inspect = get_treeview_nodes(tree, manager, 'selected' )[0]
     node_type  = get_info_from_nodes(node_to_inspect, 'node_type')
+    print(node_to_inspect.treeview_id)
     match node_type:
         case 'Node':
-            inspect_node(tree, node_to_inspect)
+            inspect_node(node_to_inspect)
         
         case 'Experiment':
             #grab first one
             exp = get_experiments_from_nodes(node_to_inspect)[0]
             inspect_experiment(exp)
 
-def inspect_node(tree:ttk.Treeview, node, **kwargs):
+def inspect_node(node, **kwargs):
     
     def process_node(children):
         experiments = get_experiments_from_nodes(children)
         if isinstance(experiments, list):
             for exp in experiments:
                 exp.process_data()
-        else:
+        elif isinstance(experiments, Experiment):
             experiments.process_data()
+        else:
+            messagebox.showwarning('Unknown node type', 'I do not know what to do with that type of node...')
 
     top = tk.Toplevel()
     top.title("Node Information")
@@ -330,32 +342,28 @@ def plot_selected(tree, manager, ax, canvas):
     #clear the preview plot
     clear_plot(ax)
     
-
-    experiment_mappers = get_treeview_nodes(tree, mode = 'selected')
-    if experiment_mappers is None:
+    nodes = get_treeview_nodes(tree, manager, mode = 'selected')
+    if nodes is None:
         return
     
     #get first_x and first_y attributes of the first experiment for further validation
-    first_x, first_y = get_selection_xy_columns(experiment_mappers[0])
+    first_node = nodes[0]
+    first_x, first_y = get_selection_xy_columns(first_node)
     print(first_x)
 
     #validating the column names, returns an error window if they are different
-    validate_selection_compatibility(experiment_mappers = experiment_mappers, first_x= first_x, first_y = first_y)
-    for experiment_dict in experiment_mappers:
+    validate_selection_compatibility(nodes, first_x= first_x, first_y = first_y)
+    for experiment_dict in nodes:
         plot_experiment(experiment_dict, ax, canvas, first_x, first_y)
 
-def apply_attr_to_all(self):
+
+def apply_attr_to_selected(tree:ttk.Treeview, manager, tk_var: tk.Variable, var_name: 'str'):
         
-    experiments = get_experiments(self.filtered_tree, self.manager, 'all')
-    Ru_value = float(self.Ru_var.get())
-    geometrical_area = float(self.geometrical_area_var.get())
-    reference_potential = float(self.reference_electrode_var.get())
+    nodes = get_treeview_nodes(tree, manager, 'selected')
+    experiments = get_experiments_from_nodes(nodes)
+    attr_to_apply = tk_var.get()
 
     for experiment in experiments:
-
-        setattr(experiment, 'Ru', Ru_value)
-        setattr(experiment, 'geometrical_area', geometrical_area)
-        setattr(experiment, 'reference_potential', reference_potential)
-
+        setattr(experiment, var_name, attr_to_apply)
         experiment.process_data()
 

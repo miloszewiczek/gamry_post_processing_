@@ -181,9 +181,6 @@ def get_treeview_nodes(tkinter_treeview: ttk.Treeview, manager, mode:str = Liter
     #create dicts from tkinter values
     experiment_nodes = create_nodes_from_ids(tkinter_treeview, list_of_ids, manager)
     
-    if len(experiment_nodes) == 1:
-        return experiment_nodes[0]
-    
     return experiment_nodes
 
 
@@ -195,7 +192,7 @@ def check_nodes_if_selected(nodes):
     
     return False
 
-def get_experiments_from_nodes(nodes: list) -> list[Experiment]:
+def get_experiments_from_nodes(nodes: list) -> list[Experiment] | Experiment:
 
     if not isinstance(nodes, list):
         nodes = [nodes]
@@ -227,7 +224,7 @@ def get_info_from_nodes(nodes: list, info: Literal['node_type', 'exp_id', 'text'
     return results
     
 
-def get_selection_xy_columns(experiment_mapping) -> tuple[str, str]:
+def get_selection_xy_columns(node) -> tuple[str, str]:
     """
     Helper function that takes a dictionary and returns the default_x, default_y attributes of an experiment class,
     each defined differently.
@@ -240,15 +237,13 @@ def get_selection_xy_columns(experiment_mapping) -> tuple[str, str]:
     """
     
     
-    default_x = getattr(experiment_mapping.experiment, 'default_x')
+    default_x = getattr(node.exp_id, 'default_x')
     #Gets the first x and y columns to verify subsequent experiments.
-    if experiment_mapping.experiment.Ru != 0 and 'E vs RHE [V]' in default_x:
-        setattr(experiment_mapping.experiment, 'default_x', 'E_iR vs RHE [V]')
+    if node.exp_id.Ru != 0 and 'E vs RHE [V]' in default_x:
+        setattr(node.exp_id, 'default_x', 'E_iR vs RHE [V]')
         default_x = 'E_iR vs RHE [V]'
     
-    default_y = experiment_mapping.column
-    if default_y == 'None':
-        default_y = getattr(experiment_mapping.experiment, 'default_y')
+    default_y = getattr(node.exp_id, 'default_y')
 
     return default_x, default_y
     
@@ -256,16 +251,15 @@ def get_selection_xy_columns(experiment_mapping) -> tuple[str, str]:
 
 
 
-def validate_selection_compatibility(experiment_mappers:list[ExperimentMapping], first_x, first_y):
+def validate_selection_compatibility(nodes, first_x, first_y):
 
     #This ensures different behavior dependent on level
-    for mapper in experiment_mappers:
+    for node in nodes:
 
-        experiment = mapper.experiment
-        curve_number = mapper.curve_number
+        experiment = node.exp_id
         
         x_column = getattr(experiment, 'default_x')
-        y_column = mapper.column
+        y_column = getattr(experiment, 'default_y')
         
         if y_column == 'None':
             y_column = getattr(experiment, 'default_y')
@@ -281,7 +275,7 @@ def validate_selection_compatibility(experiment_mappers:list[ExperimentMapping],
     return True
     
 
-def plot_experiment(experiment_mapping, ax, canvas, x_column, y_column, **kwargs):
+def plot_experiment(node, ax, canvas, x_column, y_column, **kwargs):
 
     def set_equal_axis_limits(ax: plt.Axes):
         """Adjust plot so X and Y have the same limits and scale."""
@@ -295,11 +289,10 @@ def plot_experiment(experiment_mapping, ax, canvas, x_column, y_column, **kwargs
 
 
     plots = []
-    experiment = experiment_mapping.experiment
-    curve_number = experiment_mapping.curve_number
+    experiment = node.exp_id
     name = getattr(experiment, 'file_path')
 
-    data = experiment.get_data(index = curve_number, data_type = 'processed_data')
+    data = experiment.get_data(index = 0, data_type = 'processed_data')
 
     for curve in data:
             x = curve[x_column]

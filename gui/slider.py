@@ -32,8 +32,6 @@ class InteractivePlotApp(tk.Toplevel):
         self.test = ttk.Button(self.config_frame, text = 'TESTING', command = self.get_data)
         self.test.grid(column=1,row=3)
 
-
-
         self.plot_frame = ttk.Frame(self)
         self.plot_frame.pack()
 
