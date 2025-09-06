@@ -60,7 +60,7 @@ class InteractivePlotApp(tk.Toplevel):
 
         self.vline_pos = tk.DoubleVar()
         #Button to calculate difference
-        self.button = ttk.Button(self.plot_frame, text = 'Calculate difference!', command = lambda: self.calculate_difference(self.vline_pos))
+        self.button = ttk.Button(self.plot_frame, text = 'Calculate difference!', command = lambda: self.calculate_difference(self.vline_pos.get()))
         self.button.pack()
         self.difference_info_label = ttk.Label(self.plot_frame, text = "0")
         self.difference_info_label.pack()
@@ -75,14 +75,25 @@ class InteractivePlotApp(tk.Toplevel):
 
 
     def calculate_difference(self, potential):
-        nodes = self.get_data(self.analysis_list, 'all')
-        experiments = get_experiments_from_nodes(nodes)
-        for line in self.ax1.get_lines():
-            x_data = line.get_xdata()
-            y_data = line.get_ydata()
-            print(x_data)
 
-        #result = self.y_vals.diff().iloc[-1]
+        nodes = self.get_data(self.analysis_list, 'all')
+
+        #this also returns the vertical line, have to filter it out! (WIP)
+        
+        for line in self.ax1.get_lines():
+            if line is self.vline:
+                continue
+
+            x_data = np.array(line.get_xdata())
+            y_data = np.array(line.get_ydata())
+            #grab the first two indices, one for each sweep
+            idx = np.argsort(np.abs(x_data - potential))[:2]
+            two_currents = y_data[idx]
+            difference = abs(two_currents[0] - two_currents[1])
+            print(difference)
+
+
+            #print(f'Difference: {result}')
         #self.difference_info_label.config(text = f"{result}")
         
         #return result
