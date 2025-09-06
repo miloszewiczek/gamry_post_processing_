@@ -22,3 +22,5 @@ class PreviewImageFrame(tk.Frame):
         self.preview_canvas.get_tk_widget().pack(side=tk.TOP, fill=tk.BOTH, expand=1)
 
         tk.Button(self, text = 'Plot selected', command = lambda: plot_selected(self.preview_tree, self.manager, self.preview_ax, self.preview_canvas )).pack()
+        #self.preview_tree.bind('<ButtonRelease-1>', lambda event: plot_selected(self.preview_tree, self.manager, self.preview_ax, self.preview_canvas ))
+        self.preview_tree.bind('<ButtonRelease-1>', lambda event: print(self.preview_tree.identify_row(event.y)))

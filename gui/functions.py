@@ -22,7 +22,7 @@ def filter_experiments(tree, manager:ExperimentManager, variable):
                                         inclusive = var.get())
     
         #update tree
-        set_tree_data(tree_item = tree, experiment_list = experiments, replace = True)
+        set_tree_data(tree = tree, experiment_list = experiments, replace = True)
 
         #close popup
         top.destroy()
@@ -91,6 +91,8 @@ def process(tree:ttk.Treeview, manager:ExperimentManager, selection_mode: Litera
     exps = get_experiments_from_nodes(nodes)
     for exp in exps:
         exp.process_data()
+    for node in nodes:
+        tree.item(node.treeview_id, tags = ('processed'))
     
 
 def process_and_save(tree:ttk.Treeview, manager:ExperimentManager, save_name = None):
@@ -100,7 +102,8 @@ def process_and_save(tree:ttk.Treeview, manager:ExperimentManager, save_name = N
     if not save_name:
         return
     
-    nodes = get_treeview_nodes(tree, mode='selected')
+    nodes = get_treeview_nodes(tree, manager,  mode='selected')
+    experiments = get_experiments_from_nodes(nodes)
     
     manager.batch_process_selected_experiments(experiment_collectible = experiments, save_name = save_name)
 
@@ -116,27 +119,29 @@ def process_and_save(tree:ttk.Treeview, manager:ExperimentManager, save_name = N
         tk.Button(top, text = 'OK', command = save).pack()
     '''
 
-def load_files(loader:ExperimentLoader, tree: ttk.Treeview, manager:ExperimentManager):
-    list_of_experiments = loader.choose_files()
+def load(loader:ExperimentLoader, tree: ttk.Treeview, manager:ExperimentManager, from_ = Literal['folder', 'files']):
+    
+    match from_:
+        case 'folder':
+            list_of_experiments = loader.choose_folder()
+        case 'files':
+            list_of_experiments = loader.choose_files()
+
     manager.set_experiments(list_of_experiments)
-    set_tree_data(tree_item = tree, experiment_list = manager.get_experiments('all'), replace = True)
+    set_tree_data(tree = tree, experiment_list = manager.get_experiments('all'), replace = True)
     messagebox.showinfo('Loaded', 'Data loaded successfully!')
 
-def load_folder(loader:ExperimentLoader, tree: ttk.Treeview, manager:ExperimentManager):
-    list_of_experiments = loader.choose_folder()
-    manager.set_experiments(list_of_experiments)
-    set_tree_data(tree_item = tree, experiment_list = manager.get_experiments('all'), replace =True)
-    messagebox.showinfo('Loaded', 'Data loaded successfully!')
 
-def append_files(loader:ExperimentLoader, tree: ttk.Treeview, manager:ExperimentManager):
-    list_of_experiments = loader.choose_files()
-    manager.append_experiments(list_of_experiments)
-    set_tree_data(tree_item= tree, experiment_list = list_of_experiments, replace = False)
+def append(loader:ExperimentLoader, tree: ttk.Treeview, manager:ExperimentManager, from_ = Literal['folder','files']):
+    
+    match from_:
+        case 'folder':
+            list_of_experiments = loader.choose_folder()
+        case 'files':
+            list_of_experiments = loader.choose_files()
 
-def append_folder(loader:ExperimentLoader, tree: ttk.Treeview, manager:ExperimentManager):
-    list_of_experiments = loader.choose_folder()
     manager.append_experiments(list_of_experiments)
-    set_tree_data(tree_item= tree, experiment_list = list_of_experiments, replace = False)
+    set_tree_data(tree= tree, experiment_list = list_of_experiments, replace = False)
 
 
 def copy_experiment(loader:ExperimentLoader, tree: ttk.Treeview, manager:ExperimentManager):
@@ -160,7 +165,7 @@ def copy_experiment(loader:ExperimentLoader, tree: ttk.Treeview, manager:Experim
 
         loader.update_counter(+1)
 
-    set_tree_data(tree_item= tree, experiment_list = list_of_copies, replace = False)
+    set_tree_data(tree = tree, experiment_list = list_of_copies, replace = False)
 
 
 def delete_selected(tree:ttk.Treeview, manager:ExperimentManager):
@@ -222,13 +227,10 @@ def inspect_wrapper(event, tree:ttk.Treeview, manager:ExperimentManager):
 
 def inspect_node(node, **kwargs):
     
-    def process_node(children):
-        experiments = get_experiments_from_nodes(children)
+    def process_node(experiments):
         if isinstance(experiments, list):
             for exp in experiments:
                 exp.process_data()
-        elif isinstance(experiments, Experiment):
-            experiments.process_data()
         else:
             messagebox.showwarning('Unknown node type', 'I do not know what to do with that type of node...')
 
@@ -238,7 +240,7 @@ def inspect_node(node, **kwargs):
     tk.Label(top, text = 'Value', font = 'TkDefaultFont 13 bold').grid(row=0, column =1, padx =5, pady=10, sticky = 'w')
 
     node_id = node.treeview_id
-    children = node.exp_id
+    experiments = node.experiments
     text = node.text
 
     ttk.Label(top, text = 'ID').grid(row = 1, column = 0, padx = 5, pady = 2, sticky = 'w')
@@ -246,9 +248,9 @@ def inspect_node(node, **kwargs):
     ttk.Label(top, text = 'Node name').grid(row = 2, column = 0, padx = 5, pady = 2, sticky = 'w')
     ttk.Label(top, text = text).grid(row=2, column = 1, padx = 5, pady = 2, sticky = 'w')
     ttk.Label(top, text = 'Number of experiments').grid(row=3, column = 0, padx = 5, pady = 2, sticky = 'w')
-    ttk.Label(top, text = f'{len(children)}').grid(row=3, column = 1, padx = 5, pady = 2, sticky = 'w')
+    ttk.Label(top, text = f'{len(experiments)}').grid(row=3, column = 1, padx = 5, pady = 2, sticky = 'w')
 
-    ttk.Button(top, text = 'Process all', command = lambda: process_node(children)).grid(row = 4, column = 0, padx = 5, pady=2)
+    ttk.Button(top, text = 'Process all', command = lambda: process_node(experiments)).grid(row = 4, column = 0, padx = 5, pady=2)
     ttk.Button(top, text = 'Cancel', command = top.destroy).grid(row = 4, column = 1, padx = 5, pady =2)
 
 
@@ -353,8 +355,8 @@ def plot_selected(tree, manager, ax, canvas):
 
     #validating the column names, returns an error window if they are different
     validate_selection_compatibility(nodes, first_x= first_x, first_y = first_y)
-    for experiment_dict in nodes:
-        plot_experiment(experiment_dict, ax, canvas, first_x, first_y)
+    for node in nodes:
+        plot_experiment(node, ax, canvas, first_x, first_y)
 
 
 def apply_attr_to_selected(tree:ttk.Treeview, manager, tk_var: tk.Variable, var_name: 'str'):

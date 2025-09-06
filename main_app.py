@@ -30,34 +30,32 @@ class ExperimentOrchestrator(ttk.Window):
 
     def _setup_gui(self):
   
-        #CONFIGURE FILTERING TREE SIZE
-        self.columnconfigure(0, minsize=300, weight = 1)
-        self.rowconfigure(0, weight=1, minsize = 50)
-
-
         #FILTERING TREE
-        
+        #CONFIGURE FILTERING TREE SIZE
+        self.columnconfigure(0, minsize = 350, weight = 0)
+        self.rowconfigure(0, weight = 0, minsize = 50)
+        self.rowconfigure(1, weight = 1)
+        self.columnconfigure(1, weight = 1)
+
         self.filtered_tree_frame = ExperimentTree(self)
-        self.filtered_tree_frame.grid(row=1, column = 0)
-        self.filtered_tree = self.filtered_tree_frame.filtered_tree
+        self.filtered_tree_frame.grid(row = 1, column = 0, sticky = 'news', padx = 5, pady = 10)
+        self.filtered_tree = self.filtered_tree_frame.tree
         
         #BUTTON FRAME
         self.file_management_frame = FileManagementFrame(self)
-        self.file_management_frame.grid(row = 0, column= 0 )
-       
-        #PREVIEW IMAGE FRAME
-        self.preview_image_frame = PreviewImageFrame(self)
-        self.preview_image_frame.grid(row = 1, column = 1)
+        self.file_management_frame.grid(row = 0, column= 0, sticky = 'nsew', padx = 5, pady = 10)
 
         #CONFIG SECTION FRAME
         self.config_frame = ConfigFrame(self)
-        self.config_frame.grid(column=1, row =0, sticky = 'nsew', pady = 10)
+        self.config_frame.grid(column = 1, row = 0, sticky = 'nsew', padx = 5, pady = 10)
+       
+        #PREVIEW IMAGE FRAME
+        self.preview_image_frame = PreviewImageFrame(self)
+        self.preview_image_frame.grid(row = 1, column = 1, sticky = 'nsew')
 
 
-        #CDL SLIDER GUI
-
-        #self.cdl_slider_button = tk.Button(self.preview_frame, text='CDL Slider', command = self.cdl_slider)
-        #self.cdl_slider_button.pack()
+        self.cdl_slider_button = tk.Button(self, text='CDL Slider', command = self.cdl_slider)
+        self.cdl_slider_button.grid(column = 2, row = 2)
 
         #TAFEL BTN
         #tk.Button(self.button_frame, text = 'Calculate Tafel', command = self.tafel_plot).grid(row=2, column=0)

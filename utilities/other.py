@@ -10,11 +10,13 @@ from experiments import Experiment
 
 
 @dataclass
-class ExperimentMapping:
+class TreeNode:
     treeview_id: str
-    experiment: object
-    curve_number: int
-    column: str | int
+    text: str
+    node_type: str
+    experiments: Experiment | list[Experiment]
+    other_info: Any
+
 
 def create_empty_excel(file_name: str):
     if not os.path.exists(file_name):
@@ -38,43 +40,43 @@ def ask_user(prompt_string:str, input_types, *format_args, **format_kwargs):
 
         print(f"Wrong input type. Expected one of: {', '.join(t.__name__ for t in input_types)}. Try again.")
 
-def update_tag_nodes(tree_item:ttk.Treeview, experiment_list):
+def update_tag_nodes(tree:ttk.Treeview, experiment_list):
     
-    tag_nodes = getattr(tree_item, 'tag_nodes', {})
+    tag_nodes = getattr(tree, 'tag_nodes', {})
     for exp in experiment_list:
         tag = exp.tag if hasattr(exp, 'tag') else 'Untagged'
         if tag not in tag_nodes:
-            tag_node = tree_item.insert('', 'end', text=tag, open=True, values = ('Node', None, None))  # parent node for this tag
+            tag_node = tree.insert('', 'end', text=tag, open=True, values = ('Node', None, None))  # parent node for this tag
             tag_nodes[tag] = tag_node
     
-    setattr(tree_item, 'tag_nodes', tag_nodes)
+    setattr(tree, 'tag_nodes', tag_nodes)
     return tag_nodes
 
-def delete_empty_tag_nodes(tree_item:ttk.Treeview):
+def delete_empty_tag_nodes(tree:ttk.Treeview):
     
-    tag_nodes = getattr(tree_item, 'tag_nodes')
+    tag_nodes = getattr(tree, 'tag_nodes')
     
     #tag is visible name in treeview, iterating over keys to avoid modifying in place
     for tag in list(tag_nodes.keys()):
         tag_id = tag_nodes[tag]
 
         #grab children of tag_node - experiment rows
-        existing_rows = tree_item.get_children(tag_id)
+        existing_rows = tree.get_children(tag_id)
         if len(existing_rows) == 0:
             tag_nodes.pop(tag)
-            tree_item.delete(tag_id)
+            tree.delete(tag_id)
         
 
-def set_tree_data(tree_item:ttk.Treeview, experiment_list: list | Experiment, replace: bool = False):
+def set_tree_data(tree:ttk.Treeview, experiment_list: list | Experiment, replace: bool = False):
     
     if replace:
-        experiments = list(get_all_treeview_nodes(tree_item, ''))
-        tree_item.delete(*experiments)
-        setattr(tree_item, 'tag_nodes', {})
+        experiments = list(get_all_treeview_nodes(tree, ''))
+        tree.delete(*experiments)
+        setattr(tree, 'tag_nodes', {})
 
 
     # Create mapping tag -> tree node ID
-    tag_nodes = update_tag_nodes(tree_item, experiment_list)
+    tag_nodes = update_tag_nodes(tree, experiment_list)
 
     # Now insert each experiment under the correct tag node
 
@@ -83,7 +85,7 @@ def set_tree_data(tree_item:ttk.Treeview, experiment_list: list | Experiment, re
         tag = exp.tag if hasattr(exp, 'tag') else 'Untagged'
         parent_node = tag_nodes[tag]
         
-        tree_item.insert(
+        tree.insert(
             parent_node, 'end',
             text=filename,
             iid=exp.id,  # unique ID for the row
@@ -103,74 +105,64 @@ def set_tree_data(tree_item:ttk.Treeview, experiment_list: list | Experiment, re
         #        column_node = tree_item.insert(curve_node, 'end', text = column, values = (exp.id, i, column))
 
 
-def get_all_treeview_nodes(tkinter_treeeview: ttk.Treeview, parent = ''):
+def get_all_treeview_nodes(tree: ttk.Treeview, parent = ''):
     '''Recursively yield all items under the given parent'''
 
-    for child in tkinter_treeeview.get_children(parent):
+    for child in tree.get_children(parent):
         yield child
 
         #this function returns a generator, so it needs to be turned into a list
-        yield from get_all_treeview_nodes(tkinter_treeeview, child)
+        yield from get_all_treeview_nodes(tree, child)
 
 
-def create_nodes_from_ids(tkinter_treeview: ttk.Treeview, collection_of_ids: tuple|list, manager) -> list[dict]:
+def create_nodes_from_ids(tree: ttk.Treeview, collection_of_ids: tuple|list, manager) -> list[dict]:
     """Helper function to create dictionaries from a treeview and a collection of ids."""
-
-    @dataclass
-    class TreeNode:
-        treeview_id: str
-        text: str
-        node_type: str
-        exp_id: str | tuple
-        other_info: Any
-
 
     tree_nodes = []
     for item_id in collection_of_ids:
         
-        item = tkinter_treeview.item(item_id)
+        item = tree.item(item_id)
         node_type, exp_id, other_info = item['values']
         
         if node_type == 'Node':
-            exp_id = tkinter_treeview.get_children(item_id)
-            exp_id = create_nodes_from_ids(tkinter_treeview, exp_id, manager)
+            experiment_ids = tree.get_children(item_id)
+            experiment_nodes = create_nodes_from_ids(tree, experiment_ids, manager)
+            experiments = get_experiments_from_nodes(experiment_nodes)
 
         
         elif node_type == 'Experiment':
-            exp_id = manager.filter_by_id(item_id)
+            experiments = manager.filter_by_id(item_id)
 
         #create a dictionary for each treeview item
         node = TreeNode(treeview_id = item_id,
                         text = item['text'],
                         node_type = node_type,
-                        exp_id = exp_id,
+                        experiments = experiments,
                         other_info = other_info)
 
         tree_nodes.append(node)
         
     return tree_nodes
 
-def get_treeview_nodes(tkinter_treeview: ttk.Treeview, manager, mode:str = Literal['selected', 'all'], ) -> list[dict]:
+def get_treeview_nodes(tree: ttk.Treeview, manager, mode:str = Literal['selected', 'all'], ) -> list[dict]:
     '''Helper function to get treeview items and assign them to a universal dictionary with treeview_id, text and values of the item.
     The dictionaries can then be passed to anothe function map_ids_to_experiment to get experiments.
     Args:
-    tkinter_treeview: a treeview to get the items from,
+    tree: a treeview to get the items from,
     mode: a literal to get either selected experiments or all items in the treeview
     
     Returns:
     a list of dictionaries.'''
 
-    #if input_list is provided, the mode is overriden
-
     match mode:
 
         case 'selected':
-            list_of_ids = tkinter_treeview.selection()
+            list_of_ids = tree.selection()
 
         case 'all':
             
             #returns a generator from yield
-            list_of_ids = get_all_treeview_nodes(tkinter_treeview, '')
+            list_of_ids = get_all_treeview_nodes(tree, '')
             #change to list
             list_of_ids = list(list_of_ids)
 
@@ -179,7 +171,7 @@ def get_treeview_nodes(tkinter_treeview: ttk.Treeview, manager, mode:str = Liter
         return
     
     #create dicts from tkinter values
-    experiment_nodes = create_nodes_from_ids(tkinter_treeview, list_of_ids, manager)
+    experiment_nodes = create_nodes_from_ids(tree, list_of_ids, manager)
     
     return experiment_nodes
 
@@ -192,17 +184,17 @@ def check_nodes_if_selected(nodes):
     
     return False
 
-def get_experiments_from_nodes(nodes: list) -> list[Experiment] | Experiment:
+def get_experiments_from_nodes(nodes: list[TreeNode]) -> list[Experiment] | Experiment:
 
     if not isinstance(nodes, list):
         nodes = [nodes]
 
-    experiments = [node.exp_id for node in nodes if node.node_type != 'Node']
+    experiments = [node.experiments for node in nodes if node.node_type != 'Node']
 
     return experiments
 
 
-def get_info_from_nodes(nodes: list, info: Literal['node_type', 'exp_id', 'text', 'other_info', 'treeview_id']):
+def get_info_from_nodes(nodes: list, info: Literal['node_type', 'experiments', 'text', 'other_info', 'treeview_id']):
 
     if isinstance(nodes, list): #if its a list of nodes
 
@@ -237,13 +229,13 @@ def get_selection_xy_columns(node) -> tuple[str, str]:
     """
     
     
-    default_x = getattr(node.exp_id, 'default_x')
+    default_x = getattr(node.experiments, 'default_x')
     #Gets the first x and y columns to verify subsequent experiments.
-    if node.exp_id.Ru != 0 and 'E vs RHE [V]' in default_x:
-        setattr(node.exp_id, 'default_x', 'E_iR vs RHE [V]')
+    if node.experiments.Ru != 0 and 'E vs RHE [V]' in default_x:
+        setattr(node.experiments, 'default_x', 'E_iR vs RHE [V]')
         default_x = 'E_iR vs RHE [V]'
     
-    default_y = getattr(node.exp_id, 'default_y')
+    default_y = getattr(node.experiments, 'default_y')
 
     return default_x, default_y
     
@@ -256,7 +248,7 @@ def validate_selection_compatibility(nodes, first_x, first_y):
     #This ensures different behavior dependent on level
     for node in nodes:
 
-        experiment = node.exp_id
+        experiment = node.experiments
         
         x_column = getattr(experiment, 'default_x')
         y_column = getattr(experiment, 'default_y')
@@ -289,10 +281,10 @@ def plot_experiment(node, ax, canvas, x_column, y_column, **kwargs):
 
 
     plots = []
-    experiment = node.exp_id
+    experiment = node.experiments
     name = getattr(experiment, 'file_path')
 
-    data = experiment.get_data(index = 0, data_type = 'processed_data')
+    data = experiment.get_data(index = None, data_type = 'processed_data')
 
     for curve in data:
             x = curve[x_column]
@@ -316,32 +308,6 @@ def plot_experiment(node, ax, canvas, x_column, y_column, **kwargs):
 
 def clear_plot(ax: plt.Axes):
     ax.clear()
-
-def get_tree_level(tkinter_tree ,item_id, get_parent_name:bool = False):
-
-    final_parent_name = []
-
-    level = 0
-    parent = tkinter_tree.parent(item_id)
-    parent_name = tkinter_tree.item(parent, 'text')
-    final_parent_name.append(parent_name)
-
-    while parent:
-        level += 1
-        
-        parent = tkinter_tree.parent(parent)
-        parent_name = tkinter_tree.item(parent, 'text')
-        final_parent_name.append(parent_name)
-
-    if get_parent_name:
-
-        final_parent_name.reverse()
-        final = ".".join(final_parent_name)
-        return level, final
-    
-    else:
-        return level
-
 
 
 def shorten_path(path: str, max_length: int = 50) -> str:
@@ -372,22 +338,5 @@ def add_tooltip(widget, text: str):
 
     widget.bind("<Enter>", on_enter)
     widget.bind("<Leave>", on_leave)
-
-
-def check_type(tree: ttk.Treeview, ids: str | tuple) -> str:
-    """Checks what type of node is being passed. If a tuple, the function will return a set containing node types"""
-
-    if isinstance(ids, str):
-        item_values = tree.item(ids)['values']
-        node_type, node_id, other_info = item_values
-        return node_type
-    
-    elif isinstance(ids, (tuple, list)):
-        node_types = {}
-        for item in ids:
-            item_values = tree.item(ids)['values']
-            node_type, node_id, other_info = item_values
-            node_types.update(node_type)
-        return node_types
 
 

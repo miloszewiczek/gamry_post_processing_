@@ -97,9 +97,10 @@ class Experiment():
             include_curve_index = False
 
         for curve_index, curve in enumerate(data):
-            level_values, level_names = self.get_multiindex_labels(curve.columns, curve_index, add_curve_index= include_curve_index)
-            curve.columns = pd.MultiIndex.from_product(level_values, names = level_names)
-            dfs.append(curve)
+            curve_copy = curve.copy()
+            level_values, level_names = self.get_multiindex_labels(curve_copy.columns, curve_index, add_curve_index= include_curve_index)
+            curve_copy.columns = pd.MultiIndex.from_product(level_values, names = level_names)
+            dfs.append(curve_copy)
 
         return pd.concat(dfs, axis=1)
 
@@ -138,13 +139,13 @@ class Experiment():
 
         data = getattr(self, data_type)
         
-        if index == "None":
+        if index == "None" or index == None:
             return data 
         else:
             index = int(index)
             return [data[index]]
         
-    def get_columns(self, axis: Literal['x','y','both']):
+    def get_columns(self, axis: Literal['x','y','both'], columns:list = None):
         '''Helper function that returns the default column name stored in default_x or default_y'''
 
         match axis:
@@ -154,7 +155,12 @@ class Experiment():
                 return self.default_y
             case 'both':
                 return self.default_x, self.default_y
-            
+        
+        if columns is not None:
+            try:
+                return self.processed_data[0][columns]
+            except:
+                print(f'No column {columns}')
 
     def get_meta_data(self) -> dict:
         return self.meta_data

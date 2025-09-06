@@ -1,6 +1,6 @@
 import tkinter as tk
 from tkinter import ttk
-from .functions import inspect_wrapper, filter_experiments, copy_experiment, delete_selected, reset
+from .functions import inspect_wrapper, filter_experiments, copy_experiment, delete_selected, reset, plot_selected, process
 
 class ExperimentTree(ttk.Frame):
     def __init__(self,parent):
@@ -17,32 +17,43 @@ class ExperimentTree(ttk.Frame):
         self.tree_frame.grid(row=2, column = 0, sticky = 'nsew')
         
         #main tree
-        self.filtered_tree = ttk.Treeview(self.tree_frame)
-        self.filtered_tree.heading('#0', text ='Type')
-        self.filtered_tree.column('#0', width = 50)   
-        self.filtered_tree.pack(side='left', fill = tk.BOTH, expand = 1)
-        vsb = ttk.Scrollbar(self.tree_frame, orient="vertical", command=self.filtered_tree.yview)
+        self.tree = ttk.Treeview(self.tree_frame)
+        self.tree.heading('#0', text ='Type')
+        self.tree.column('#0', width = 50)   
+        self.tree.pack(side='left', fill = tk.BOTH, expand = 1)
+        vsb = ttk.Scrollbar(self.tree_frame, orient="vertical", command=self.tree.yview)
         vsb.pack(side='right', fill='both')
-        self.filtered_tree.configure(yscrollcommand= vsb.set)
-        self.filtered_tree.bind('<Double-Button-1>', lambda event: inspect_wrapper(event, self.filtered_tree, self.manager))
-        
+        self.tree.configure(yscrollcommand= vsb.set)
+        self.tree.bind('<Double-Button-1>', lambda event: inspect_wrapper(event, self.tree, self.manager))
+
+            #tag configuration
+        self.tree.tag_configure('processed', background = 'lightgreen')
+
+    
         #filtering actions
         self.filtering_actions_frame = tk.LabelFrame(self, text = 'Filtering tree actions', bd = 1, relief = 'groove')
         self.filtering_actions_frame.grid(row=0, column = 0, sticky = 'nsew', pady = 5)
         self.filtering_actions_frame.rowconfigure(0, weight = 0)
-        self.filter_btn = tk.Button(self.filtering_actions_frame, text = 'Filter', command = lambda: filter_experiments(self.filtered_tree, self.manager, self.current_filter_var))
-        self.filter_btn.grid(row = 0, column = 0, padx = 5, pady = 5, sticky = 'w')
-        self.reset_filter_btn = tk.Button(self.filtering_actions_frame, text = 'Reset', command = lambda: reset(self.filtered_tree, self.manager))
-        self.reset_filter_btn.grid(row=0, column = 1, pady = 5)
+        
+        #buttons
+        self.filter_btn = tk.Button(self.filtering_actions_frame, text = 'Filter', command = lambda: filter_experiments(self.tree, self.manager, self.current_filter_var))
+        self.reset_filter_btn = tk.Button(self.filtering_actions_frame, text = 'Reset', command = lambda: reset(self.tree, self.manager))
 
-        #additional buttons
-        tk.Button(self.filtering_actions_frame, text = 'Copy', command = lambda: copy_experiment(parent.loader,
-                                                                                         self.filtered_tree,
+        self.copy_btn = tk.Button(self.filtering_actions_frame, text = 'Copy', command = lambda: copy_experiment(parent.loader,
+                                                                                         self.tree,
                                                                                          self.manager)
-                                                                                        ).grid(row=0,column=2, padx = 5, pady = 5)
-        tk.Button(self.filtering_actions_frame, text = 'Delete', command = lambda: delete_selected(self.filtered_tree,
-                                                                                           self.manager)
-                                                                                        ).grid(row=0,column=3, padx = 5, pady=5, sticky = 'e')
+                                                                                        )
+
+        self.delete_btn = tk.Button(self.filtering_actions_frame, text = 'Delete', command = lambda: delete_selected(self.tree,
+                                                                                           self.manager))
+
+        self.process_btn = tk.Button(self.filtering_actions_frame, text = 'Process selected', command = lambda: process(self.tree, self.manager, 'selected'))
+        self.process_all_btn = tk.Button(self.filtering_actions_frame, text = 'Process All', command = lambda: process(self.tree, self.manager, 'all'))
+
+        
+        self.buttons = [self.filter_btn, self.reset_filter_btn, self.copy_btn, self.delete_btn, self.process_btn, self.process_all_btn]
+        for bttn in self.buttons:
+            bttn.pack(side = 'left', padx = 2, pady = 5, ipadx = 2)
 
         self.current_filter_frame = tk.Frame(self)
         self.current_filter_frame.grid(row=1, column =0)

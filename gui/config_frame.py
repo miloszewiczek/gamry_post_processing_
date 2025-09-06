@@ -1,6 +1,7 @@
 import tkinter as tk
 from tkinter import ttk
-from .functions import process, apply_attr_to_selected
+from .functions import process, apply_attr_to_selected, process_and_save
+from unicode_mapping import uni_map
 
 class ConfigFrame(ttk.Labelframe):
     def __init__(self, parent):
@@ -11,7 +12,7 @@ class ConfigFrame(ttk.Labelframe):
 
 
         #UNCOMPENSATED RESISTANCE
-        self.Ru_label = tk.Label(self,text = 'Uncompensated resistance [Ohm]')
+        self.Ru_label = tk.Label(self, text = f'Uncompensated resistance [{uni_map['Ohm']}]')
         self.Ru_var = tk.DoubleVar(value=0)
         self.Ru_cbox = ttk.Combobox(self, textvariable = self.Ru_var)
         self.apply_Ru_btn = tk.Button(self, 
@@ -20,7 +21,7 @@ class ConfigFrame(ttk.Labelframe):
 
 
         #GEOMETRICAL AREA
-        self.geometrical_area_label = tk.Label(self, text = 'Geometric Area [cm2]', justify='left')
+        self.geometrical_area_label = tk.Label(self, text = f'Geometric Area [cm{uni_map['square']}]', justify='left')
         self.geometrical_area_var = tk.DoubleVar(value = 0.07069)
         self.geometrical_area_entry = ttk.Combobox(self, textvariable = self.geometrical_area_var)
         self.geometrical_area_entry['values'] = (0.07069, 
@@ -32,7 +33,7 @@ class ConfigFrame(ttk.Labelframe):
                                 command = lambda: apply_attr_to_selected(self.tree, self.manager, self.geometrical_area_var, 'geometrical_area'))
 
         #REFERENCE POTENTIAL
-        self.reference_potential_label = tk.Label(self, text = 'Reference Electrode potential [V]', justify = 'left')
+        self.reference_potential_label = tk.Label(self, text = f'Reference Electrode potential [V]', justify = 'left')
         self.reference_potential_var = tk.DoubleVar(value = 0.21)
         self.reference_potential_entry = ttk.Combobox(self, textvariable= self.reference_potential_var)
         self.reference_potential_entry['values'] = ('0.21', '0.255')
@@ -40,22 +41,20 @@ class ConfigFrame(ttk.Labelframe):
                                 text = '+', 
                                 command = lambda: apply_attr_to_selected(self.tree, self.manager, self.reference_potential_var, 'reference_potential'))        
         
-        #PROCESSING BUTTONS
-        self.process_btn = tk.Button(self, text = 'Process selected', command = lambda: process(self.tree, self.manager, 'selected'))
-        self.process_all_btn = tk.Button(self, text = 'Process All', command = lambda: process(self.tree, self.manager, 'all'))
+       
         
 
-        self.geometrical_area_label.grid(column= 0, row = 0, sticky = 'w')
-        self.reference_potential_label.grid(column= 0, row = 1, sticky = 'w')
-        self.Ru_label.grid(column = 0, row = 2, sticky = 'w')
+        self.geometrical_area_label.grid(column= 0, row = 0, sticky = 'w', padx = 10)
+        self.reference_potential_label.grid(column= 0, row = 1, sticky = 'w', padx = 10)
+        self.Ru_label.grid(column = 0, row = 2, sticky = 'w', padx = 10)
 
         self.geometrical_area_entry.grid(column = 1, row = 0)
         self.reference_potential_entry.grid(column = 1, row = 1)
         self.Ru_cbox.grid(column = 1, row = 2)
         
-        self.geometrical_area_btn.grid(column = 2, row = 0, sticky ='w')
-        self.reference_potential_btn.grid(column = 2, row = 1 )
-        self.apply_Ru_btn.grid(column = 2, row = 2)
+        self.geometrical_area_btn.grid(column = 2, row = 0, sticky ='w', ipadx = 2, ipady= 2)
+        self.reference_potential_btn.grid(column = 2, row = 1, ipadx = 2, ipady= 2)
+        self.apply_Ru_btn.grid(column = 2, row = 2, ipadx = 2, ipady= 2)
 
-        self.process_btn.grid(column = 3, row=1, sticky = 'e')
-        self.process_all_btn.grid(column = 3, row=2, sticky = 'e')
+
+
