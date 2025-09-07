@@ -297,11 +297,13 @@ def plot_experiment(node, ax, canvas, x_column, y_column, **kwargs):
                 set_equal_axis_limits(ax)
             else:
                 line_plot, = ax.plot(x,y, label = f'{os.path.basename(name)}', alpha = kwargs.get('alpha', 1.0))
+            
+            setattr(line_plot, 'experiment', experiment)
             plots.append(line_plot)
 
     ax.set_xlabel(x_column)
     ax.set_ylabel(y_column)
-    ax.legend()
+    #ax.legend()
     canvas.draw()
     return plots
 
