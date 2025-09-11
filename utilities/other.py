@@ -40,17 +40,36 @@ def ask_user(prompt_string:str, input_types, *format_args, **format_kwargs):
 
         print(f"Wrong input type. Expected one of: {', '.join(t.__name__ for t in input_types)}. Try again.")
 
-def update_tag_nodes(tree:ttk.Treeview, experiment_list):
-    
+def update_tag_nodes(tree:ttk.Treeview, experiment_list, mode = Literal['tag', 'folder']):
+
     tag_nodes = getattr(tree, 'tag_nodes', {})
     for exp in experiment_list:
-        tag = exp.tag if hasattr(exp, 'tag') else 'Untagged'
+
+        if mode == 'folder':
+            dir = os.path.dirname(exp.file_path)
+            tag = dir
+        else:
+            tag = getattr(exp, mode) if hasattr(exp, mode) else 'Untagged'
+        print(tag)
         if tag not in tag_nodes:
             tag_node = tree.insert('', 'end', text=tag, open=True, values = ('Node', None, None))  # parent node for this tag
             tag_nodes[tag] = tag_node
     
     setattr(tree, 'tag_nodes', tag_nodes)
     return tag_nodes
+
+def create_filepath_nodes(tree: ttk.Treeview, experiment_list):
+    
+    file_path_nodes = getattr(tree, 'file_path_nodes', [])
+    for exp in experiment_list:
+        file_path = exp.file_path
+        if file_path not in file_path_nodes:
+            file_path_nodes.append(file_path)
+        else:
+            continue
+
+    setattr(tree, 'file_path_nodes', file_path_nodes)
+
 
 def delete_empty_tag_nodes(tree:ttk.Treeview):
     
@@ -76,13 +95,14 @@ def set_tree_data(tree:ttk.Treeview, experiment_list: list | Experiment, replace
 
 
     # Create mapping tag -> tree node ID
-    tag_nodes = update_tag_nodes(tree, experiment_list)
+    tag_nodes = update_tag_nodes(tree, experiment_list, mode = 'tag')
 
     # Now insert each experiment under the correct tag node
 
     for exp in experiment_list:
         filename = os.path.basename(exp.file_path)
         tag = exp.tag if hasattr(exp, 'tag') else 'Untagged'
+
         parent_node = tag_nodes[tag]
         
         tree.insert(
@@ -95,6 +115,8 @@ def set_tree_data(tree:ttk.Treeview, experiment_list: list | Experiment, replace
 
         if not hasattr(exp, 'data_list'):
             exp.load_data()
+
+
         #    exp.process_data()
             
         #for i, curve in enumerate(exp.processed_data):
@@ -301,8 +323,6 @@ def plot_experiment(node, ax, canvas, x_column, y_column, **kwargs):
             setattr(line_plot, 'experiment', experiment)
             plots.append(line_plot)
 
-    ax.set_xlabel(x_column)
-    ax.set_ylabel(y_column)
     #ax.legend()
     canvas.draw()
     return plots

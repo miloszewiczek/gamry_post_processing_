@@ -77,6 +77,27 @@ class ExperimentOrchestrator(ttk.Window):
         d = self.manager.filter(object_type = Voltammetry)
         window = InteractivePlotApp(self)
         set_tree_data(window.data_treeview, d)
+        
+    
+    def receive(self, analyses: dict[TreeNode]):
+        if not hasattr(self, 'analyses'):
+            self.analyses = analyses
+            self.tmp = ttk.Treeview(self)
+            self.tmp.grid(row=4, column = 5)
+        else:
+            self.analyses.update(analyses)
+            print(self.analyses)
+        
+        self.update_treeview(self.tmp, self.analyses)
+
+
+    def update_treeview(self, treeview:ttk.Treeview, where_from):
+        children = get_all_treeview_nodes(treeview, '')
+        treeview.delete(*children)
+        
+        for tk_id, node_info in where_from.items():
+            treeview.insert('', 'end', tk_id, text = node_info.text, values = node_info)
+            
 
 
 if __name__ == '__main__':

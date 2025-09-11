@@ -6,18 +6,19 @@ from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 from utilities.other import *
 from gui.functions import delete_selected
 import math
+from tkinter.simpledialog import askstring
 
 class InteractivePlotApp(tk.Toplevel):
     def __init__(self, parent):
         super().__init__()
-        self.title("Interactive Vertical Line Plot")
-        self.geometry("1000x1000")
+
         self.parent = parent
-        self.nodes = []
+        self.analyses: dict[str, TreeNode] = {}
+        self.title('Double Layer Calculator')
 
 
         self.config_frame = ttk.Frame(self)
-        self.config_frame.pack()
+        self.config_frame.grid(column = 0, row = 0)
 
         self.data_treeview_label = ttk.Label(self.config_frame, text = 'Available experiments')
         self.data_treeview_label.grid(column = 0, row = 0)
@@ -26,14 +27,14 @@ class InteractivePlotApp(tk.Toplevel):
         self.data_treeview.bind("<<TreeviewSelect>>", self.plot_previews)
 
 
-        ttk.Button(self.config_frame, text='Set line', command = self.set_lines).grid(column=1,row=2) 
 
         self.button_frame = ttk.Frame(self.config_frame)
         self.move_to_data_button = tk.Button(self.button_frame, text = '>>', command = lambda: self.move(self.data_treeview, self.analysis_treeview))
-        self.move_to_data_button.grid(column = 0, row = 0, sticky = 'ns')
+        self.move_to_data_button.grid(column = 0, row = 0, pady = 5)
         self.move_to_analysis_button = tk.Button(self.button_frame, text = '<<', command = lambda: self.move(self.analysis_treeview, self.data_treeview))
-        self.move_to_analysis_button.grid(column=0, row= 1, sticky = 'ns')
-        self.button_frame.grid(column = 1, row = 1)
+        self.move_to_analysis_button.grid(column=0, row= 1, pady = 5)
+        ttk.Button(self.button_frame, text='Begin', command = self.set_lines).grid(column = 0,row = 3, sticky = 's', pady = 10) 
+        self.button_frame.grid(column = 1, row = 1, padx = 10)
 
 
         self.data_treeview_label = ttk.Label(self.config_frame, text = 'To analysis')
@@ -43,16 +44,20 @@ class InteractivePlotApp(tk.Toplevel):
 
 
         self.plot_frame = ttk.Frame(self)
-        self.plot_frame.pack(fill = tk.BOTH, expand = True)
+        self.plot_frame.grid(column = 0, row = 1, sticky = 'nsew')
 
         # Create figure
-        self.fig, (self.ax1, self.ax2) = plt.subplots(nrows = 1, ncols = 2)
+        self.fig, (self.ax1, self.ax2) = plt.subplots(nrows = 1, ncols = 2, gridspec_kw= {'width_ratios':[2, 1]})
 
-        self.ax1.set_xlabel("X")
-        self.ax1.set_ylabel("Y")
-        self.ax2.set_xlabel("Scanrate [mV/s]")
+        self.ax1.set_xlabel(r"$E \ vs \ RHE\  [V]$")
+        self.ax1.set_ylabel(r"$J_{GEO}\  [A/cm^2]$")
+        self.ax1.set_title("Cyclic Voltammetry Scans")
+
+        self.ax2.set_title(r"Charging currents - $C_{DL}$")
+        self.ax2.set_xlabel(r"$Scanrate\  [mV/s]$")
+
         #need to change the units on this thing!
-        self.ax2.set_ylabel("J_GEO difference [A/cm2]")
+        self.ax2.set_ylabel(r"$\Delta \ J_{GEO}$ $[A/cm^2]$")
 
         self.canvas = FigureCanvasTkAgg(self.fig, master=self.plot_frame)
         self.canvas.get_tk_widget().pack(fill=tk.BOTH, expand=True)
@@ -61,35 +66,74 @@ class InteractivePlotApp(tk.Toplevel):
         # Label for info
 
         #Slider
+        self.input_frame = ttk.Frame(self)
+        self.input_frame.grid(column = 0, row = 2)
+
         self.vline_pos = tk.DoubleVar()
-        self.slider = ttk.Scale(self, from_=-1, to = 1, orient='horizontal', command=self.on_slider_move, value = 0, variable = self.vline_pos)
-        self.slider.pack(padx=20, pady=10)
+        self.slider = ttk.Scale(self.input_frame, from_=-1, to = 1, orient='horizontal', command=self.on_slider_move, value = 0, variable = self.vline_pos)
         self.slider.bind('<ButtonRelease-1>', self.on_slider_release)
         
         #entry (combined with slider)
-        self.potential_entry = ttk.Entry(self, textvariable = self.vline_pos)
-        self.potential_entry.pack()
+        self.potential_entry = ttk.Entry(self.input_frame, textvariable = self.vline_pos)
+        self.potential_entry.bind('<FocusOut>', self.on_focus_out)
+        self.potential_entry.bind('<Return>', self.on_focus_out)
 
-        #Button to calculate difference
-        self.button = ttk.Button(self.plot_frame, text = 'Calculate difference!', command = self.manual_update)
-        self.button.pack()
-        self.difference_info_label = ttk.Label(self.plot_frame, text = "0")
-        self.difference_info_label.pack()
-        
         self.analysis_list = []
-        self.add_analysis_btn = ttk.Button(self, text = 'Add analysis', command = self.add_analysis)
-        self.save_analysis_btn = ttk.Button(self, text = 'Save analysis', command = lambda: print(self.get_analysis()))
-        self.add_analysis_btn.pack()
-        self.save_analysis_btn.pack()
+        self.add_analysis_btn = ttk.Button(self.input_frame, text = 'Add analysis', command = self.add_analysis)
+
+        self.saved_analyses_frame = ttk.Frame(self)
+        self.saved_analyses_frame.grid(row = 0, column = 1)
+        self.saved_analyses = ttk.Treeview(self.saved_analyses_frame, columns = ('name', 'potential', 'Cdl', 'b'))
+        self.saved_analyses.heading("#0", text = 'ID')
+        self.saved_analyses.heading('name', text = 'Name')
+        self.saved_analyses.heading('Cdl', text = 'CDL [F]')
+        self.saved_analyses.heading('b', text = 'b [F/mV/s]')
+        self.saved_analyses.heading('potential', text = 'Potential [V]')
+
+        self.saved_analyses.column('potential', width = 75, anchor = 'center')
+        self.saved_analyses.column('#0', width = 75)
+        self.saved_analyses.column('name', width = 200, anchor = 'w')
+        self.saved_analyses.column('Cdl', width = 75, anchor = 'center')
+        self.saved_analyses.column('b', width = 75, anchor = 'center')
+
+        self.saved_analyses.grid(row=0, column =0)
+        self.analysis_counter = 1
+
+
+        for children in self.input_frame.winfo_children():
+            children.pack(side = 'left', padx = 5, expand = True)
+
+        self.save_btn = ttk.Button(self, command = self.save_analyses)
+        self.save_btn.grid(column = 2, row = 0)
 
     def add_analysis(self):
-        self.analysis_list.append(self.results)
+        analysis_name = askstring('Analysis Name', 'Analysis Name:')
+        counter = 'A'+str(self.analysis_counter)
+        CDL = f'{self.results[0]:.2e}'
+        b = f'{self.results[1]:.2e}'
+        potential = f'{self.vline_pos.get()}'
 
-    def get_analysis(self):
-        return self.analysis_list
+        tree_view_node = TreeNode(counter,
+                                  analysis_name,
+                                  'analysis',
+                                  len(self.ax1.get_lines()),
+                                  {'potential': self.vline_pos.get(), 'Cdl': self.results[0], 'b':self.results[1]})
+        self.analyses[counter] = tree_view_node
 
-    def on_slider_move(self, val):
-        val = float(val)
+        self.saved_analyses.insert('', 'end', iid = counter, text = counter, values = (analysis_name, potential, CDL, b))
+        self.analysis_counter += 1
+
+    def save_analyses(self):
+        self.parent.receive(self.analyses)
+        
+
+    def on_focus_out(self, event):
+        self.on_slider_move(event)
+        self.on_slider_release(event)
+
+
+    def on_slider_move(self, event):
+        val = self.vline_pos.get()
         print(val)
         self.vline.set_xdata([val,val])
         self.canvas.draw_idle()
@@ -120,14 +164,14 @@ class InteractivePlotApp(tk.Toplevel):
             idx = np.argsort(np.abs(x_data - potential))[:2]
             two_currents = y_data[idx]
             difference = abs(two_currents[0] - two_currents[1])
-            print(f'difference: {difference}, scanrate: {scanrate}')
+            #print(f'difference: {difference}, scanrate: {scanrate}')
             scanrates.append(scanrate)
             current_differences.append(difference)
 
         return scanrates, current_differences
 
     def manual_update(self):
-        self.on_slider_move(self.vline_pos.get())
+        self.on_slider_move()
         self.on_slider_release()
 
 

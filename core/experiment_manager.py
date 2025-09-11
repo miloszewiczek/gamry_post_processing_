@@ -106,8 +106,6 @@ class ExperimentManager():
 
         return tmp
         
-        #ADD A MESSAGE
-        print('No experiment found by given ids')
 
     def list_items(self, experiment_collectible = None):
         """Function to print all experiments in the form of a table 
