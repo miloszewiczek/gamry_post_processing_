@@ -5,16 +5,14 @@ from experiments import *
 import tkinter as tk
 from tkinter import ttk
 import matplotlib.pyplot as plt
-
 import os
 from tkinter import messagebox
-from utilities.other import *
 from functions.functions import calculate_slopes
 from tkinter.filedialog import asksaveasfilename
-from gui.tafel_window import tafel_window
+#from gui.tafel_window import tafel_window
 import copy
 import ttkbootstrap as ttk
-from gui import ExperimentTree, FileManagementFrame, PreviewImageFrame, ConfigFrame
+from gui import ExperimentTree, FileManagementFrame, PreviewImageFrame, ConfigFrame, TreeController
 
 
 class ExperimentOrchestrator(ttk.Window):
@@ -37,20 +35,20 @@ class ExperimentOrchestrator(ttk.Window):
         self.rowconfigure(1, weight = 1)
         self.columnconfigure(1, weight = 1)
 
-        self.filtered_tree_frame = ExperimentTree(self)
+        self.filtered_tree_frame = ExperimentTree(self, self.manager, self.loader)
         self.filtered_tree_frame.grid(row = 1, column = 0, sticky = 'news', padx = 5, pady = 10)
-        self.filtered_tree = self.filtered_tree_frame.tree
+        self.filtered_tree_controller = self.filtered_tree_frame.get_controller()
         
         #BUTTON FRAME
-        self.file_management_frame = FileManagementFrame(self)
+        self.file_management_frame = FileManagementFrame(self, self.filtered_tree_controller)
         self.file_management_frame.grid(row = 0, column= 0, sticky = 'nsew', padx = 5, pady = 10)
 
         #CONFIG SECTION FRAME
-        self.config_frame = ConfigFrame(self)
+        self.config_frame = ConfigFrame(self, self.filtered_tree_controller)
         self.config_frame.grid(column = 1, row = 0, sticky = 'nsew', padx = 5, pady = 10)
        
         #PREVIEW IMAGE FRAME
-        self.preview_image_frame = PreviewImageFrame(self)
+        self.preview_image_frame = PreviewImageFrame(self, self.filtered_tree_controller)
         self.preview_image_frame.grid(row = 1, column = 1, sticky = 'nsew')
 
 
@@ -66,38 +64,33 @@ class ExperimentOrchestrator(ttk.Window):
 
 
 
-    def tafel_plot(self):
-        experiment = self.manager.filter(object_type=LinearVoltammetry)
-        tafel_w = tafel_window(self)
-        set_tree_data(tafel_w.data_treeview, experiment)
+
+    # def tafel_plot(self):
+    #     experiment = self.manager.filter(object_type=LinearVoltammetry)
+    #     tafel_w = tafel_window(self)
+    #     set_tree_data(tafel_w.data_treeview, experiment)
         
     
     def cdl_slider(self):
         from gui.slider import InteractivePlotApp
         d = self.manager.filter(object_type = Voltammetry)
-        window = InteractivePlotApp(self)
-        set_tree_data(window.data_treeview, d)
+        window = InteractivePlotApp(self, d)
         
     
-    def receive(self, analyses: dict[TreeNode]):
-        if not hasattr(self, 'analyses'):
-            self.analyses = analyses
-            self.tmp = ttk.Treeview(self)
-            self.tmp.grid(row=4, column = 5)
-        else:
-            self.analyses.update(analyses)
-            print(self.analyses)
+
+    # def receive(self, analyses: dict[TreeNode]):
+    #     if not hasattr(self, 'analyses'):
+    #         self.analyses = analyses
+    #         self.tmp = ttk.Treeview(self)
+    #         self.tmp.grid(row=4, column = 5)
+    #     else:
+    #         self.analyses.update(analyses)
+    #         print(self.analyses)
         
-        self.update_treeview(self.tmp, self.analyses)
+    #     self.update_treeview(self.tmp, self.analyses)
 
 
-    def update_treeview(self, treeview:ttk.Treeview, where_from):
-        children = get_all_treeview_nodes(treeview, '')
-        treeview.delete(*children)
-        
-        for tk_id, node_info in where_from.items():
-            treeview.insert('', 'end', tk_id, text = node_info.text, values = node_info)
-            
+
 
 
 if __name__ == '__main__':

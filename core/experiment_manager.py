@@ -4,10 +4,12 @@ import re
 from typing import Literal
 
 class ExperimentManager():
-    def __init__(self):
-        self.atr = None
+    def __init__(self, experiments = None):
+
         self.filtered = None
-        self.list_of_experiments = []
+        self.dict_of_experiments: dict[str, Experiment] = {
+            exp.id: exp for exp in (experiments or [])
+        }
         self.counter = 0
 
     def _update_counter(self, delta):
@@ -37,7 +39,7 @@ class ExperimentManager():
             List of Experiment objects matching all filters.
         """
         if experiments == None:
-            experiments = self.list_of_experiments
+            experiments = self.dict_of_experiments.values()
 
         if cycle is not None:
             try:
@@ -97,7 +99,7 @@ class ExperimentManager():
         id = [int(id) for id in id]
         tmp = []
 
-        for experiment in self.list_of_experiments:
+        for experiment in self.dict_of_experiments:
             if experiment.id in id:
                 tmp.append(experiment)
 
@@ -229,52 +231,66 @@ class ExperimentManager():
     
     def set_experiments(self, data):
         """
-        Setter function to set list_of_experiments, most likely from experiment_loader class
+        Setter function to set dict_of_experiments, most likely from experiment_loader class
         
         Args:
             self (ExperimentManager)
             data (list)"""
-        self.list_of_experiments = data
+        self.dict_of_experiments = data
         self.counter = len(data)
+        return self.dict_of_experiments
 
-    def append_experiments(self, data: list | Experiment):
+    def append_experiments(self, data: dict | Experiment):
         """
-        Setter function to append to list_of_experiments, most likely from experiment_loader class
+        Setter function to append to dict_of_experiments, most likely from experiment_loader class
         
         Args:
             self (ExperimentManager)
             data (list)"""
-        if isinstance(data, list):
-            self.list_of_experiments += data
-            self.counter += len(data)
+        if isinstance(data, dict):
+            for exp in data.values():
+                self.update(exp)
+                self.counter += len(data.values())
         elif isinstance(data, Experiment):
-            self.list_of_experiments.append(data)
+            self.update(exp)
             self.counter += 1
         else:
             print('Wrong!')
             return
 
-    def get_experiments(self, type_of_experiments = 'all'):
+    def get(self, exp_id: int | str | list[int]) -> Experiment | None | list[Experiment]:
         
-        match type_of_experiments:
+        if isinstance(exp_id, (str, int)):
+            try:
+                exp_id = int(exp_id)
+            except:
+                print('Error')
+            return self.dict_of_experiments[exp_id]
+        
+        elif isinstance(exp_id, list):
+            return [self.dict_of_experiments[id] for id in exp_id]
+        
+    
+    def get_all(self) -> list[Experiment] | None:
+        return self.dict_of_experiments.values()
+    
+    def update(self, experiment: Experiment):
+        self.dict_of_experiments[experiment.id] = experiment
 
-            case 'all':
-                return self.list_of_experiments
-            case 'filtered':
-                return self.filtered
-            case 'processed':
-                return self.processed_data
+    def remove(self, exp_id: int):
+        if exp_id in self.dict_of_experiments:
+            del self.dict_of_experiments[exp_id]
             
-    def delete_experiments(self, experiments):
-        tmp = []
-        for experiment in self.list_of_experiments:
-            if experiment in experiments:
-                continue
-            else:
-                tmp.append(experiment)
-        self.list_of_experiments = tmp
+    def delete_id(self, key_id):
+        self.dict_of_experiments.pop(key_id, None)
+
+    def delete_experiment(self, exp_to_del):
+        for id, exp in self.dict_of_experiments.items():
+            if exp == exp_to_del:
+                self.dict_of_experiments.pop(id)
+        
 
     def get_unique_experiments(self):
         #MY FIRST USE OF A SET. THE NEAT THING ABOUT THIS COLLECTION IS THE FACT THAT IT DOESNT STORE DUPLICATES!
-        return list({obj.__class__.__name__ for obj in self.list_of_experiments})
-        #return list({type(obj) for obj in self.list_of_experiments})
+        return list({obj.__class__.__name__ for obj in self.dict_of_experiments.values()})
+        #return list({type(obj) for obj in self.dict_of_experiments})

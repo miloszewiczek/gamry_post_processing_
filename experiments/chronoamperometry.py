@@ -1,5 +1,4 @@
 from .base import *
-from utilities.other import ask_user
 
 class Chronoamperometry(Experiment):
     def __init__(self, file_path, date_time, id, tag, cycle):

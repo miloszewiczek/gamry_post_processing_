@@ -3,13 +3,16 @@ from tkinter import ttk
 import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
-from utilities.other import *
+from gui import TreeNode
 from gui.functions import delete_selected
 import math
 from tkinter.simpledialog import askstring
+from experiments.base import Experiment
+from .tree_controller import TreeController
+from .functions import plot_experiment, clear_plot
 
 class InteractivePlotApp(tk.Toplevel):
-    def __init__(self, parent):
+    def __init__(self, parent, data):
         super().__init__()
 
         self.parent = parent
@@ -25,8 +28,7 @@ class InteractivePlotApp(tk.Toplevel):
         self.data_treeview = ttk.Treeview(self.config_frame)
         self.data_treeview.grid(column=0, row=1)
         self.data_treeview.bind("<<TreeviewSelect>>", self.plot_previews)
-
-
+        self.data_treeview_controller = TreeController(parent.loader, self.data_treeview, parent.manager)
 
         self.button_frame = ttk.Frame(self.config_frame)
         self.move_to_data_button = tk.Button(self.button_frame, text = '>>', command = lambda: self.move(self.data_treeview, self.analysis_treeview))
@@ -41,7 +43,7 @@ class InteractivePlotApp(tk.Toplevel):
         self.data_treeview_label.grid(column = 2, row = 0)
         self.analysis_treeview = ttk.Treeview(self.config_frame)
         self.analysis_treeview.grid(column=2, row = 1)
-
+        self.analysis_treeview_controller = TreeController(parent.loader, self.analysis_treeview, parent.manager)
 
         self.plot_frame = ttk.Frame(self)
         self.plot_frame.grid(column = 0, row = 1, sticky = 'nsew')
@@ -105,6 +107,12 @@ class InteractivePlotApp(tk.Toplevel):
 
         self.save_btn = ttk.Button(self, command = self.save_analyses)
         self.save_btn.grid(column = 2, row = 0)
+
+        self.initialize(data = data)
+
+    def initialize(self, data: list[Experiment]):
+        for experiment in data:
+            self.data_treeview.insert('', 'end', experiment.id, text = experiment.file_name)
 
     def add_analysis(self):
         analysis_name = askstring('Analysis Name', 'Analysis Name:')
@@ -205,16 +213,13 @@ class InteractivePlotApp(tk.Toplevel):
         return slope, free_coefficient
 
 
-    def get_data(self, tree, selection_mode):
-        nodes = get_treeview_nodes(tree, self.parent.manager, selection_mode)
-        
-        return nodes
+    def get_data(self, controller:TreeController, selection_mode):
+     
+        return controller.get_nodes(selection_mode)
 
     def set_lines(self):
         
-        nodes = self.get_data(self.analysis_treeview, 'all')
-        experiments = get_experiments_from_nodes(nodes)
-
+        experiments = self.analysis_treeview_controller.get_experiments('all')
         vline_min, vline_max = self.get_minmax_x(experiments)
         vline_position = vline_min + (vline_max - vline_min)/2
         self.slider.config(from_ = vline_min, to = vline_max)
@@ -227,9 +232,9 @@ class InteractivePlotApp(tk.Toplevel):
     def plot_data(self):
         
         clear_plot(self.ax1)
-        nodes = self.get_data(self.analysis_treeview, 'all')
-        for node in nodes:
-            plot_experiment(node, self.ax1, self.canvas, x_column = 'E vs RHE [V]', y_column = 'J_GEO [A/cm2]', alpha = 0.2)
+        experiments = self.analysis_treeview_controller.get_experiments('all')
+        for experiment in experiments:
+            plot_experiment(experiment, self.ax1, self.canvas, x_column = 'E vs RHE [V]', y_column = 'J_GEO [A/cm2]', alpha = 0.2)
     
     def plot_previews(self, event):
         # Make sure we have a list to track preview lines
@@ -242,13 +247,12 @@ class InteractivePlotApp(tk.Toplevel):
                 line.remove()
         self.preview_lines.clear()
 
-        preview_datasets = self.get_data(self.data_treeview, 'selected')
+        preview_datasets = self.data_treeview_controller.get_experiments('selection')
         # Plot new previews
         for preview_dataset in preview_datasets:
             lines = plot_experiment(preview_dataset, self.ax1, self.canvas, x_column = 'E vs RHE [V]', y_column= 'J_GEO [A/cm2]', alpha = 0.2)
             self.preview_lines.extend(lines)
             
-
         self.canvas.draw_idle()
 
     def get_minmax_x(self, experiments:list[Experiment]):
@@ -276,14 +280,14 @@ class InteractivePlotApp(tk.Toplevel):
             to.insert('', 'end', iid = item_id,  text = text, values = values)
             from_.delete(item_id)
 
-        self.update_plot(self.ax1, self.analysis_treeview)
+        self.update_plot(self.ax1, self.analysis_treeview_controller)
 
-    def update_plot(self, ax, tree):
+    def update_plot(self, ax, controller: TreeController):
         ax.clear()
-        nodes = get_treeview_nodes(tree, self.parent.manager, 'all')
-        for node in nodes:
-            plot_experiment(node, self.ax1, self.canvas, x_column = 'E vs RHE [V]', y_column = 'J_GEO [A/cm2]')
-        self.ax.update()
+        experiments = controller.get_experiments('all')
+        for experiment in experiments:
+            plot_experiment(experiment, self.ax1, self.canvas, x_column = 'E vs RHE [V]', y_column = 'J_GEO [A/cm2]')
+
 
 
 if __name__ == "__main__":

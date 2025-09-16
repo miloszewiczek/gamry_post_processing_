@@ -5,11 +5,9 @@ from matplotlib import pyplot as plt
 from .functions import plot_selected
 
 class PreviewImageFrame(tk.Frame):   
-    def __init__(self, parent):
+    def __init__(self, parent, controller):
         super().__init__(parent)
-        self.manager = parent.manager
-        self.loader = parent.loader
-        self.preview_tree = parent.filtered_tree
+        self.controller = controller
     
         #PREVIEW FIGURE
         self.preview_figure, self.preview_ax = plt.subplots()
@@ -21,6 +19,5 @@ class PreviewImageFrame(tk.Frame):
         toolbar.update()
         self.preview_canvas.get_tk_widget().pack(side=tk.TOP, fill=tk.BOTH, expand=1)
 
-        tk.Button(self, text = 'Plot selected', command = lambda: plot_selected(self.preview_tree, self.manager, self.preview_ax, self.preview_canvas )).pack()
+        tk.Button(self, text = 'Plot selected', command = lambda: plot_selected(self.controller, self.preview_ax, self.preview_canvas )).pack()
         #self.preview_tree.bind('<ButtonRelease-1>', lambda event: plot_selected(self.preview_tree, self.manager, self.preview_ax, self.preview_canvas ))
-        self.preview_tree.bind('<ButtonRelease-1>', lambda event: print(self.preview_tree.identify_row(event.y)))

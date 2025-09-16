@@ -1,18 +1,21 @@
 import pandas as pd
 import numpy as np
 import gamry_parser
-DTA_parser = gamry_parser.GamryParser()
 from matplotlib import pyplot as plt
 from collections import defaultdict
 from app_config import messages, settings
 from typing import Literal
 from unicode_mapping import uni_map
+import os
 
+DTA_parser = gamry_parser.GamryParser()
 
 class Experiment():
     def __init__(self, file_path, date_time, id, tag, cycle):
 
         self.file_path = file_path
+        self.folder = os.path.dirname(file_path)
+        self.file_name = os.path.basename(file_path)
         self.date_time = date_time
         self.id = id
         self.tag = tag

@@ -51,13 +51,13 @@ class ExperimentLoader():
 
     def populate_list_of_experiments(self,files):
 
-        list_of_experiments = []
+        dict_of_experiments = {}
         for file in files:
             experiment = self.create_experiment(file)
             if experiment is not None:
-                list_of_experiments.append(experiment)
+                dict_of_experiments[getattr(experiment, 'id')] = experiment
                 self.update_counter(+1)
-        return list_of_experiments
+        return dict_of_experiments
 
     def get_counter(self):
         return self.id_counter

@@ -3,7 +3,6 @@ from tkinter import ttk
 import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
-from utilities.other import *
 from functions.functions import calculate_slopes
 
 class tafel_window(tk.Toplevel):
