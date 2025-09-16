@@ -10,6 +10,9 @@ from tkinter.simpledialog import askstring
 from experiments.base import Experiment
 from .tree_controller import TreeController
 from .functions import plot_experiment, clear_plot
+import pandas as pd
+import seaborn as sns
+
 
 class InteractivePlotApp(tk.Toplevel):
     def __init__(self, parent, data):
@@ -108,6 +111,12 @@ class InteractivePlotApp(tk.Toplevel):
         self.save_btn = ttk.Button(self, command = self.save_analyses)
         self.save_btn.grid(column = 2, row = 0)
 
+        self.to_excel_btn = ttk.Button(self, command = lambda: self.save_treeview(self.saved_analyses))
+        self.to_excel_btn.grid(column = 3, row = 0)
+
+        self.calculate_map_btn = ttk.Button(self, text = 'MAP ME, BITCH', command = lambda: self.calculate_map())
+        self.calculate_map_btn.grid(column = 4, row = 0)
+
         self.initialize(data = data)
 
     def initialize(self, data: list[Experiment]):
@@ -173,6 +182,8 @@ class InteractivePlotApp(tk.Toplevel):
             two_currents = y_data[idx]
             difference = abs(two_currents[0] - two_currents[1])
             #print(f'difference: {difference}, scanrate: {scanrate}')
+            if scanrate in scanrates:
+                continue
             scanrates.append(scanrate)
             current_differences.append(difference)
 
@@ -181,6 +192,25 @@ class InteractivePlotApp(tk.Toplevel):
     def manual_update(self):
         self.on_slider_move()
         self.on_slider_release()
+
+    def calculate_map(self):
+        
+        result = []
+        
+        min_x = self.slider.cget('from')
+        max_x = self.slider.cget('to')
+        y = np.arange(min_x, max_x, 0.001)
+        y = np.round(y, 3)
+
+        for potential in y:
+            scanrates, current_differences = self.calculate_difference(potential = potential)
+            result.append(current_differences)
+        df = pd.DataFrame(result, columns = scanrates, index = y)
+        plt.figure(figsize = (8,6))
+        plt.imshow(df, cmap = 'viridis', interpolation = 'bicubic', origin = 'lower', aspect = 'auto')
+        plt.colorbar()
+        plt.title("2D Heatmap")
+        plt.show()
 
 
     def plot_cdl(self, x: list, y: list):
@@ -288,7 +318,15 @@ class InteractivePlotApp(tk.Toplevel):
         for experiment in experiments:
             plot_experiment(experiment, self.ax1, self.canvas, x_column = 'E vs RHE [V]', y_column = 'J_GEO [A/cm2]')
 
+    def save_treeview(self, tree: ttk.Treeview):
+        list_to_df = []
+        for row_id in tree.get_children():
+            row_item = tree.item(row_id, 'values')
+            list_to_df.append(row_item)
 
+        # Get column headings
+        col_headings = [tree.heading(col)["text"] for col in tree["columns"]]    
+        pd.DataFrame(list_to_df, columns = col_headings).to_excel('test.xlsx', engine = 'openpyxl')
 
 if __name__ == "__main__":
     app = InteractivePlotApp()
