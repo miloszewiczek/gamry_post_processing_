@@ -167,6 +167,9 @@ class Experiment():
 
     def get_meta_data(self) -> dict:
         return self.meta_data
+    
+    def get_parameter(self, param):
+        return self.meta_data[param] 
 
     def get_essentials(self):
 

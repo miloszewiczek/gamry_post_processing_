@@ -56,7 +56,7 @@ class ExperimentOrchestrator(ttk.Window):
         self.cdl_slider_button.grid(column = 2, row = 2)
 
         #TAFEL BTN
-        #tk.Button(self.button_frame, text = 'Calculate Tafel', command = self.tafel_plot).grid(row=2, column=0)
+        tk.Button(self, text = 'Calculate Tafel', command = self.tafel_plot).grid(row=3, column=3)
 
         #CHRONOP_BTN (TEMPRORARY)
         #tk.Button(self.button_frame, text = 'Process chronop', command = self.process_chronop).grid(row=3, column =0)
@@ -65,11 +65,10 @@ class ExperimentOrchestrator(ttk.Window):
 
 
 
-    # def tafel_plot(self):
-    #     experiment = self.manager.filter(object_type=LinearVoltammetry)
-    #     tafel_w = tafel_window(self)
-    #     set_tree_data(tafel_w.data_treeview, experiment)
-        
+    def tafel_plot(self):
+        from gui.tafel_window import tafel_window
+        d = self.manager.filter(object_type = LinearVoltammetry)
+        window = tafel_window(self, d)
     
     def cdl_slider(self):
         from gui.slider import InteractivePlotApp

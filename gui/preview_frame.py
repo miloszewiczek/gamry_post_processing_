@@ -2,7 +2,7 @@ import tkinter as tk
 from tkinter import ttk
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg, NavigationToolbar2Tk
 from matplotlib import pyplot as plt
-from .functions import plot_selected
+from .functions import plot_selected, merge_curves
 
 class PreviewImageFrame(tk.Frame):   
     def __init__(self, parent, controller):
@@ -21,3 +21,5 @@ class PreviewImageFrame(tk.Frame):
 
         tk.Button(self, text = 'Plot selected', command = lambda: plot_selected(self.controller, self.preview_ax, self.preview_canvas )).pack()
         #self.preview_tree.bind('<ButtonRelease-1>', lambda event: plot_selected(self.preview_tree, self.manager, self.preview_ax, self.preview_canvas ))
+
+        tk.Button(self, text = 'Merge', command = lambda: merge_curves(self.preview_ax.get_lines())).pack()

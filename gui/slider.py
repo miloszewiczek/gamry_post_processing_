@@ -69,19 +69,20 @@ class InteractivePlotApp(tk.Toplevel):
         self.canvas.draw_idle()
 
         # Label for info
-
         #Slider
         self.input_frame = ttk.Frame(self)
         self.input_frame.grid(column = 0, row = 2)
 
-        self.vline_pos = tk.DoubleVar()
-        self.slider = ttk.Scale(self.input_frame, from_=-1, to = 1, orient='horizontal', command=self.on_slider_move, value = 0, variable = self.vline_pos)
+        self.vline_pos = tk.DoubleVar(value = 0)
+        self.slider = ttk.Scale(self.input_frame, from_=-1, to = 1, orient='horizontal', command=self.on_slider_move, variable = self.vline_pos)
         self.slider.bind('<ButtonRelease-1>', self.on_slider_release)
+        self.slider.grid(column = 0, row = 0, sticky = 'we')
         
         #entry (combined with slider)
         self.potential_entry = ttk.Entry(self.input_frame, textvariable = self.vline_pos)
         self.potential_entry.bind('<FocusOut>', self.on_focus_out)
         self.potential_entry.bind('<Return>', self.on_focus_out)
+        self.potential_entry.grid(column = 0, row = 1, sticky = 'we')
 
         self.analysis_list = []
         self.add_analysis_btn = ttk.Button(self.input_frame, text = 'Add analysis', command = self.add_analysis)
@@ -104,9 +105,6 @@ class InteractivePlotApp(tk.Toplevel):
         self.saved_analyses.grid(row=0, column =0)
         self.analysis_counter = 1
 
-
-        for children in self.input_frame.winfo_children():
-            children.pack(side = 'left', padx = 5, expand = True)
 
         self.save_btn = ttk.Button(self, command = self.save_analyses)
         self.save_btn.grid(column = 2, row = 0)
@@ -151,7 +149,7 @@ class InteractivePlotApp(tk.Toplevel):
 
     def on_slider_move(self, event):
         val = self.vline_pos.get()
-        print(val)
+
         self.vline.set_xdata([val,val])
         self.canvas.draw_idle()
 
@@ -236,7 +234,6 @@ class InteractivePlotApp(tk.Toplevel):
         self.canvas.draw_idle()
         
         
-
     def calculate_regression_line(self, x: list, y: list) -> tuple:
         
         slope, free_coefficient = np.polyfit(x, y, deg = 1)
@@ -253,7 +250,10 @@ class InteractivePlotApp(tk.Toplevel):
         vline_min, vline_max = self.get_minmax_x(experiments)
         vline_position = vline_min + (vline_max - vline_min)/2
         self.slider.config(from_ = vline_min, to = vline_max)
-        self.vline = self.ax1.axvline(x=vline_position, color='red', linestyle='--', label="Slider Position")
+
+
+        if not hasattr(self, 'vline'):
+            self.vline = self.ax1.axvline(x=vline_position, color='red', linestyle='--', label="Slider Position")
         self.vline.set_xdata([vline_position, vline_position])
         self.canvas.draw_idle()
 
@@ -299,6 +299,11 @@ class InteractivePlotApp(tk.Toplevel):
             self.x = result
 
         return min_val, max_val
+    
+    def get_resolution(self, experiments: list[Experiment]):
+        #Helper function for getting data
+
+        return min({experiment.get_parameter('STEPSIZE') for experiment in experiments})
 
     def move(self, from_:ttk.Treeview, to:ttk.Treeview):
 

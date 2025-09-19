@@ -177,7 +177,7 @@ class TreeController:
         
     def apply_multiple(self, attributes:dict):
         
-        experiments = self.get_experiments('all')
+        experiments = self.get_experiments('selection')
         for experiment in experiments:
             if not hasattr(experiment, 'data_list'):
                 experiment.load_data()

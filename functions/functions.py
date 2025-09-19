@@ -43,12 +43,14 @@ def calculate_ECSA_from_slope(ECSA_experiments: list[ECSA], potential_list:list,
     return (slope1, slope2), x
 
 
-def calculate_slopes(data, start_potential, step, overlap, name='Sample'):
+def calculate_slopes(data, start_potential, step, overlap, name='Sample', fig = None, ax = None, canvas = None, normal_mode = True):
     """Calculate Tafel slopes over segments of the data."""
 
-    def interactive_selection(x_data, y_data, name='Sample'):
+    print(normal_mode)
+
+    def interactive_selection(x_data, y_data, name='Sample', fig = None, ax = None, canvas = None, normal_mode = True):
         """Fallback interactive plotting when automatic range fails."""
-        fig, ax = plt.subplots(figsize=(15, 10))
+
         ax.scatter(x_data, y_data)
         ax.set_xlabel('log10 j [A/cm2]')
         ax.set_ylabel('E_iR vs RHE [V]')
@@ -61,25 +63,37 @@ def calculate_slopes(data, start_potential, step, overlap, name='Sample'):
                 return
             clicked_points.append((event.xdata, event.ydata))
             ax.plot(event.xdata, event.ydata, 'ro')
-            fig.canvas.draw()
+            canvas.draw()
 
             if len(clicked_points) == 2:
                 x1, _ = clicked_points[0]
                 x2, _ = clicked_points[1]
-                idx1, idx2 = sorted([(np.abs(x_data - x1)).argmin(),
-                                    (np.abs(x_data - x2)).argmin()])
-                selected_y = y_data[idx1:idx2 + 1]
-                mean_val = np.mean(selected_y)
-                print(f"Selected x range: {x_data[idx1]:.3f} - {x_data[idx2]:.3f}")
-                print(f"Mean y: {mean_val:.5f}")
-                ax.axvspan(x_data[idx1], x_data[idx2], color='orange', alpha=0.3)
-                plt.title(f"Mean y = {mean_val:.5f}")
-                fig.canvas.draw()
-                fig.canvas.mpl_disconnect(cid)
-                
 
-        cid = fig.canvas.mpl_connect('button_press_event', on_click)
-        plt.show()
+                idx1, idx2 = sorted([
+                    np.nanargmin(np.abs(x_data - x1)),
+                    np.nanargmin(np.abs(x_data - x2))
+                ])
+
+                selected_y = y_data[idx1:idx2 + 1]
+                ax.axvspan(x_data[idx1], x_data[idx2], color='orange', alpha=0.3)
+
+                if normal_mode is True:
+                    selected_x = x_data[idx1:idx2+1]
+                    slope, _ = np.polyfit(selected_x, selected_y, 1)
+                    plt.title(f"Slope: {slope:.5f} V/dec")
+                    result = slope
+                
+                elif normal_mode is False:
+                    mean_val = np.mean(selected_y)
+                    plt.title(f"Mean y = {mean_val:.5f} V/dec")
+                    result = mean_val
+                
+                
+                canvas.draw()
+                canvas.mpl_disconnect(cid)
+                return result
+
+        cid = canvas.mpl_connect('button_press_event', on_click)
 
     try:
         x_data = np.array(data['E_iR vs RHE [V]'])
@@ -88,36 +102,45 @@ def calculate_slopes(data, start_potential, step, overlap, name='Sample'):
         x_data = np.array(data['E vs RHE [V]'])
         y_data = np.array(data['log10 J_GEO [A/cm2]'])
 
-    results = []
-    current_potential = start_potential
 
-    while True:
-        i_start = (np.abs(x_data - current_potential)).argmin()
-        new_potential = x_data[i_start] + step
-        idx = (np.abs(x_data - new_potential)).argmin()
+    if normal_mode is False:
+        results = []
+        current_potential = start_potential
 
-        if idx <= i_start or new_potential < min(x_data):
-            # Optionally call interactive fallback
-            df = pd.DataFrame(results)
-            print('Finished!')
-            
-            break
+        while True:
+            i_start = (np.abs(x_data - current_potential)).argmin()
+            new_potential = x_data[i_start] + step
+            idx = (np.abs(x_data - new_potential)).argmin()
 
-        # Fit slope
-        x_segment = y_data[i_start:idx]
-        y_segment = x_data[i_start:idx]
-        slope, intercept = np.polyfit(x_segment, -y_segment, 1)
-        avg_current = np.mean(x_segment)
+            if idx <= i_start or new_potential < min(x_data):
+                # Optionally call interactive fallback
+                df = pd.DataFrame(results)
+                print('Finished!')
+                
+                break
 
-        results.append((avg_current, slope))
+            # Fit slope
+            x_segment = y_data[i_start:idx]
+            y_segment = x_data[i_start:idx]
+            slope, intercept = np.polyfit(x_segment, -y_segment, 1)
+            avg_current = np.mean(x_segment)
 
-        # Move to next window
-        current_potential = new_potential - overlap
-        if current_potential <= min(x_data):
-            break
+            results.append((avg_current, slope))
 
-    df = pd.DataFrame(results)
-    print(df)
-    interactive_selection(df[0], df[1], name)
+            # Move to next window
+            current_potential = new_potential - overlap
+            if current_potential <= min(x_data):
+                break
 
-    return results
+        df = pd.DataFrame(results)
+        interactive_selection(df[0], df[1], name, fig, ax, canvas, normal_mode = normal_mode)
+        return results
+    
+    else:
+        interactive_selection(x_data = y_data, y_data = x_data, name = 'Sample', fig = fig, ax = ax, canvas = canvas)
+        return
+
+   
+
+
+

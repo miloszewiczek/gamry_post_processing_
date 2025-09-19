@@ -654,3 +654,25 @@ def load_settings(to_update: dict[str, tk.Variable]):
     for var_name, var_value in settings_file['settings'].items():
         if var_name in keys:
             to_update[var_name].set(var_value)
+
+
+def merge_curves(lines):
+    """A function to merge y-data to obtain an average value e.g. when yo have 3 samples of the same electrode.
+    Returns a dataframe containing the average value and standard value calculated row-wise.
+    Args:
+    lines: a collection of line from a matplotlib ax
+    Returns:
+    average_std_df (pd.DataFrame): DataFrame containining the average value and standard error"""
+
+    df = pd.DataFrame([line.get_ydata() for line in lines]).T
+    df['Average'] = df.mean(axis = 1)
+    df['Standard error'] = df.std(axis = 1)
+    x = pd.DataFrame([line.get_xdata() for line in lines]).T
+    
+    final = pd.concat([x, df[['Average','Standard error']]], axis = 1)
+    final.to_clipboard()
+    
+    return final
+    
+
+
