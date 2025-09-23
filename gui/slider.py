@@ -12,6 +12,7 @@ from .tree_controller import TreeController
 from .functions import plot_experiment, clear_plot
 import pandas as pd
 import seaborn as sns
+from .analysis_tree import AnalysisTree
 
 
 class InteractivePlotApp(tk.Toplevel):
@@ -87,22 +88,11 @@ class InteractivePlotApp(tk.Toplevel):
         self.analysis_list = []
         self.add_analysis_btn = ttk.Button(self.input_frame, text = 'Add analysis', command = self.add_analysis)
 
-        self.saved_analyses_frame = ttk.Frame(self)
-        self.saved_analyses_frame.grid(row = 0, column = 1)
-        self.saved_analyses = ttk.Treeview(self.saved_analyses_frame, columns = ('name', 'potential', 'Cdl', 'b'))
-        self.saved_analyses.heading("#0", text = 'ID')
-        self.saved_analyses.heading('name', text = 'Name')
-        self.saved_analyses.heading('Cdl', text = 'CDL [F]')
-        self.saved_analyses.heading('b', text = 'b [F/mV/s]')
-        self.saved_analyses.heading('potential', text = 'Potential [V]')
+        self.saved_analyses = AnalysisTree(self, columns = ('name', 'Cdl', 'b', 'potential'),
+                                           headers = ('Name', 'CDL [F]', 'b [F/mV/s]', 'Potential [V]'),
+                                           sizes = (200, 75, 75, 75))
 
-        self.saved_analyses.column('potential', width = 75, anchor = 'center')
-        self.saved_analyses.column('#0', width = 75)
-        self.saved_analyses.column('name', width = 200, anchor = 'w')
-        self.saved_analyses.column('Cdl', width = 75, anchor = 'center')
-        self.saved_analyses.column('b', width = 75, anchor = 'center')
-
-        self.saved_analyses.grid(row=0, column =0)
+        self.saved_analyses.grid(row=0, column = 3)
         self.analysis_counter = 1
 
 

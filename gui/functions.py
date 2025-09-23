@@ -367,42 +367,6 @@ def delete_empty_tag_nodes(tree:ttk.Treeview):
         if len(existing_rows) == 0:
             tag_nodes.pop(tag)
             tree.delete(tag_id)
-        
-
-
-
-
-def get_treeview_nodes(tree: ttk.Treeview, manager, mode:str = Literal['selected', 'all'], ) -> list[dict]:
-    '''Helper function to get treeview items and assign them to a universal dictionary with treeview_id, text and values of the item.
-    The dictionaries can then be passed to anothe function map_ids_to_experiment to get experiments.
-    Args:
-    tree: a treeview to get the items from,
-    mode: a literal to get either selected experiments or all items in the treeview
-    
-    Returns:
-    a list of dictionaries.'''
-
-    match mode:
-
-        case 'selected':
-            list_of_ids = tree.selection()
-
-        case 'all':
-            
-            #returns a generator from yield
-            list_of_ids = get_all_treeview_nodes(tree, '')
-            #change to list
-            list_of_ids = list(list_of_ids)
-
-    #error check
-    if len(list_of_ids) == 0:
-        return
-    
-    #create dicts from tkinter values
-    experiment_nodes = create_nodes_from_ids(tree, list_of_ids, manager)
-    
-    return experiment_nodes
-
 
 def check_nodes_if_selected(nodes):
     
@@ -629,7 +593,11 @@ def inspect_experiment(experiment: Experiment):
                 add_tooltip(label, str(value))
 
 def dump(to_dump: dict[str, tk.Variable]):
-    
+    """Function to store configuration data via dictionary to a .json file at user-defined location.
+    Args:
+    to_dump (dict): a dictionary consisting of a str:tkVariable key:value pairs.
+    Returns:
+    save_path (str): location of the config file."""
     name = asksaveasfilename(defaultextension='json', initialdir = 'app_config/')
     if name is None:
         return
@@ -643,6 +611,8 @@ def dump(to_dump: dict[str, tk.Variable]):
     }
     with open(f'{name}', 'w') as f:
         json.dump(data, f, indent = 4)
+
+    return name
 
 def load_settings(to_update: dict[str, tk.Variable]):
     """A function to load settings from a JSON file and update the values in a dictionary provided by the user.

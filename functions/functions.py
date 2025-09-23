@@ -43,57 +43,8 @@ def calculate_ECSA_from_slope(ECSA_experiments: list[ECSA], potential_list:list,
     return (slope1, slope2), x
 
 
-def calculate_slopes(data, start_potential, step, overlap, name='Sample', fig = None, ax = None, canvas = None, normal_mode = True):
+def calculate_slopes(data, start_potential, step, overlap, normal_mode = True):
     """Calculate Tafel slopes over segments of the data."""
-
-    print(normal_mode)
-
-    def interactive_selection(x_data, y_data, name='Sample', fig = None, ax = None, canvas = None, normal_mode = True):
-        """Fallback interactive plotting when automatic range fails."""
-
-        ax.scatter(x_data, y_data)
-        ax.set_xlabel('log10 j [A/cm2]')
-        ax.set_ylabel('E_iR vs RHE [V]')
-        ax.set_title(name)
-
-        clicked_points = []
-
-        def on_click(event):
-            if event.inaxes != ax:
-                return
-            clicked_points.append((event.xdata, event.ydata))
-            ax.plot(event.xdata, event.ydata, 'ro')
-            canvas.draw()
-
-            if len(clicked_points) == 2:
-                x1, _ = clicked_points[0]
-                x2, _ = clicked_points[1]
-
-                idx1, idx2 = sorted([
-                    np.nanargmin(np.abs(x_data - x1)),
-                    np.nanargmin(np.abs(x_data - x2))
-                ])
-
-                selected_y = y_data[idx1:idx2 + 1]
-                ax.axvspan(x_data[idx1], x_data[idx2], color='orange', alpha=0.3)
-
-                if normal_mode is True:
-                    selected_x = x_data[idx1:idx2+1]
-                    slope, _ = np.polyfit(selected_x, selected_y, 1)
-                    plt.title(f"Slope: {slope:.5f} V/dec")
-                    result = slope
-                
-                elif normal_mode is False:
-                    mean_val = np.mean(selected_y)
-                    plt.title(f"Mean y = {mean_val:.5f} V/dec")
-                    result = mean_val
-                
-                
-                canvas.draw()
-                canvas.mpl_disconnect(cid)
-                return result
-
-        cid = canvas.mpl_connect('button_press_event', on_click)
 
     try:
         x_data = np.array(data['E_iR vs RHE [V]'])
@@ -103,8 +54,16 @@ def calculate_slopes(data, start_potential, step, overlap, name='Sample', fig = 
         y_data = np.array(data['log10 J_GEO [A/cm2]'])
 
 
-    if normal_mode is False:
-        results = []
+    if normal_mode is True:
+        return y_data, x_data
+    
+    elif normal_mode is False:
+        if step == overlap:
+            print('Overlap is the same as step, aborting')
+            return
+        
+        x = []
+        y = []
         current_potential = start_potential
 
         while True:
@@ -114,9 +73,7 @@ def calculate_slopes(data, start_potential, step, overlap, name='Sample', fig = 
 
             if idx <= i_start or new_potential < min(x_data):
                 # Optionally call interactive fallback
-                df = pd.DataFrame(results)
                 print('Finished!')
-                
                 break
 
             # Fit slope
@@ -125,22 +82,57 @@ def calculate_slopes(data, start_potential, step, overlap, name='Sample', fig = 
             slope, intercept = np.polyfit(x_segment, -y_segment, 1)
             avg_current = np.mean(x_segment)
 
-            results.append((avg_current, slope))
+            x.append(avg_current)
+            y.append(slope)
 
             # Move to next window
             current_potential = new_potential - overlap
             if current_potential <= min(x_data):
                 break
-
-        df = pd.DataFrame(results)
-        interactive_selection(df[0], df[1], name, fig, ax, canvas, normal_mode = normal_mode)
-        return results
-    
-    else:
-        interactive_selection(x_data = y_data, y_data = x_data, name = 'Sample', fig = fig, ax = ax, canvas = canvas)
-        return
-
-   
+        
+        return x, y
 
 
+
+def interactive_selection(ax, canvas, x_data, y_data, normal_mode, callback = None):
+
+    clicked_points = []
+
+    def on_click(event):
+        if event.inaxes != ax:
+            return
+        clicked_points.append((event.xdata, event.ydata))
+        ax.plot(event.xdata, event.ydata, 'ro')
+        canvas.draw()
+
+        if len(clicked_points) == 2:
+            x1, _ = clicked_points[0]
+            x2, _ = clicked_points[1]
+
+            idx1, idx2 = sorted([
+                np.nanargmin(np.abs(x_data - x1)),
+                np.nanargmin(np.abs(x_data - x2))
+            ])
+
+            selected_y = y_data[idx1:idx2 + 1]
+            ax.axvspan(x_data[idx1], x_data[idx2], color='orange', alpha=0.3)
+
+            if normal_mode is True:
+                selected_x = x_data[idx1:idx2+1]
+                slope, intercept = np.polyfit(selected_x, selected_y, 1)
+                plt.title(f"Slope: {slope:.5f} V/dec")
+                result = slope
+            
+            elif normal_mode is False:
+                mean_val = np.mean(selected_y)
+                plt.title(f"Mean y = {mean_val:.5f} V/dec")
+                result = mean_val
+            
+            
+            canvas.draw()
+            canvas.mpl_disconnect(cid)
+            if callback:
+                callback(result)
+
+    cid = canvas.mpl_connect('button_press_event', on_click)
 
