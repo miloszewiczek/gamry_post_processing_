@@ -9,6 +9,7 @@ from unicode_mapping import uni_map
 import os
 
 DTA_parser = gamry_parser.GamryParser()
+print(DTA_parser)
 
 class Experiment():
     def __init__(self, file_path, date_time, id, tag, cycle):

@@ -3,6 +3,7 @@ from tkinter import ttk
 from tkinter.simpledialog import askstring
 from .treenode import TreeNode
 from pandas import DataFrame
+from .tree_controller import TreeController
 
 class AnalysisTree(ttk.Frame):
     
@@ -38,8 +39,11 @@ class AnalysisTree(ttk.Frame):
         self.save_analyses_btn = ttk.Button(self.options_frame, command = self.save_treeview, text = 'Save')
         self.save_analyses_btn.grid(row = 1, column = 0)
 
+        self.tree.bind('<Double-Button-1>', lambda x: self.inspect(x))
+        
 
-    def add_analysis(self, values:tuple):
+
+    def add_analysis(self, values:tuple, aux:dict = None):
 
         if values is str:
             values = (values,)
@@ -49,11 +53,13 @@ class AnalysisTree(ttk.Frame):
                                   analysis_name,
                                   'analysis',
                                   'None',
-                                  other_info = values)
-        self.analyses[self.counter] = tree_view_node
+                                  values = values,
+                                  other_info = aux)
+        self.analyses[str(self.counter)] = tree_view_node
 
         self.tree.insert('', 'end', iid = self.counter, text = analysis_name, values = values)
         self.counter += 1
+        return tree_view_node
 
     def save_treeview(self, tree: ttk.Treeview = None):
 
@@ -70,9 +76,19 @@ class AnalysisTree(ttk.Frame):
         DataFrame(list_to_df, columns = col_headings).to_excel('test.xlsx', engine = 'openpyxl')
 
 
-    def create_node(self):
-        """WIP"""
-        pass
-
     def delete_node(self):
         self.tree.delete(self.tree.selection())
+
+    def inspect(self, event):
+        node = self.analyses[self.tree.selection()[0]].other_info
+        x = tk.Toplevel(self)
+        for i, (key, val) in enumerate(node.items()):
+
+            tk.Label(x, text = key).grid(row = i, column = 0)
+            if isinstance(val, list):
+                tmp = tk.Listbox(x)
+                tmp.grid(row = i, column = 1)
+                for item in val:
+                    tmp.insert(tk.END, item)
+            else:
+                tk.Label(x, text = val).grid(row = i, column = 1)

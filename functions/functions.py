@@ -136,3 +136,45 @@ def interactive_selection(ax, canvas, x_data, y_data, normal_mode, callback = No
 
     cid = canvas.mpl_connect('button_press_event', on_click)
 
+
+def calc_closest(point, array, n = 1) -> int | list[int]:
+    """Get closest indexes of an array-like variable to a point. The number of indexes returned is determined by the n variable.
+
+    Args:
+        point(float): The point around which the indexing is made.
+        array(array-like): Array-like variable from which indexing is made.
+        n(int): The number of closest indexes.
+
+    Returns:
+        indices(int | list[int]): Index or list of indexes closest to the point in an array.
+    """
+    
+    array = np.asarray(array, dtype = float)
+    distances = np.abs(array - point)
+    indices = np.argsort(distances)
+    indices = indices[~np.isnan(distances[indices])]
+    
+    if n == 1:
+        return indices[:n][0]
+    elif n > 1:
+        return indices[:n]
+    
+def calc_overpotentials(currents:list[float | int], x, y) -> list[float]:
+    """Function that calculates the overpotentials to achieve current based on potential-current data.
+
+    Args:
+        currents(list): List of currents which are used to calculate the overpotenials.
+        x(array-like): Data describing the potential of the electrode.
+        y(array-like): Data describing the current response of the electrode.
+
+    Returns:
+        overpotentials(list): 
+    """
+    overpotentials = []
+    for current in currents:
+        current_index = calc_closest(current, y, n = 1)
+        overpotential = x[current_index]
+        overpotentials.append(overpotential)
+    return overpotentials
+        
+    

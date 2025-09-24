@@ -8,7 +8,8 @@ class TreeNode:
     text: str
     node_type: str
     experiments: Experiment | list[Experiment]
-    other_info: Any
+    values: Any
+    other_info: Any = None
     image: Any = None
 
 

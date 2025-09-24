@@ -13,6 +13,7 @@ from .functions import plot_experiment, clear_plot
 import pandas as pd
 import seaborn as sns
 from .analysis_tree import AnalysisTree
+from .selector import Selector
 
 
 class InteractivePlotApp(tk.Toplevel):
@@ -23,37 +24,14 @@ class InteractivePlotApp(tk.Toplevel):
         self.analyses: dict[str, TreeNode] = {}
         self.title('Double Layer Calculator')
 
-
-        self.config_frame = ttk.Frame(self)
-        self.config_frame.grid(column = 0, row = 0)
-
-        self.data_treeview_label = ttk.Label(self.config_frame, text = 'Available experiments')
-        self.data_treeview_label.grid(column = 0, row = 0)
-        self.data_treeview = ttk.Treeview(self.config_frame)
-        self.data_treeview.grid(column=0, row=1)
-        self.data_treeview.bind("<<TreeviewSelect>>", self.plot_previews)
-        self.data_treeview_controller = TreeController(parent.loader, self.data_treeview, parent.manager)
-
-        self.button_frame = ttk.Frame(self.config_frame)
-        self.move_to_data_button = tk.Button(self.button_frame, text = '>>', command = lambda: self.move(self.data_treeview, self.analysis_treeview))
-        self.move_to_data_button.grid(column = 0, row = 0, pady = 5)
-        self.move_to_analysis_button = tk.Button(self.button_frame, text = '<<', command = lambda: self.move(self.analysis_treeview, self.data_treeview))
-        self.move_to_analysis_button.grid(column=0, row= 1, pady = 5)
-        ttk.Button(self.button_frame, text='Begin', command = self.set_lines).grid(column = 0,row = 3, sticky = 's', pady = 10) 
-        self.button_frame.grid(column = 1, row = 1, padx = 10)
-
-
-        self.data_treeview_label = ttk.Label(self.config_frame, text = 'To analysis')
-        self.data_treeview_label.grid(column = 2, row = 0)
-        self.analysis_treeview = ttk.Treeview(self.config_frame)
-        self.analysis_treeview.grid(column=2, row = 1)
-        self.analysis_treeview_controller = TreeController(parent.loader, self.analysis_treeview, parent.manager)
-
         self.plot_frame = ttk.Frame(self)
         self.plot_frame.grid(column = 0, row = 1, sticky = 'nsew')
 
         # Create figure
         self.fig, (self.ax1, self.ax2) = plt.subplots(nrows = 1, ncols = 2, gridspec_kw= {'width_ratios':[2, 1]})
+        self.selector = Selector(self, parent.loader, parent.manager, on_move = self.update_plot)
+        self.tree1_cont, self.tree2_cont = self.selector.get_controllers()
+        self.selector.grid(column = 0, row = 0)
 
         self.ax1.set_xlabel(r"$E \ vs \ RHE\  [V]$")
         self.ax1.set_ylabel(r"$J_{GEO}\  [A/cm^2]$")
@@ -75,7 +53,7 @@ class InteractivePlotApp(tk.Toplevel):
         self.input_frame.grid(column = 0, row = 2)
 
         self.vline_pos = tk.DoubleVar(value = 0)
-        self.slider = ttk.Scale(self.input_frame, from_=-1, to = 1, orient='horizontal', command=self.on_slider_move, variable = self.vline_pos)
+        self.slider = ttk.Scale(self.input_frame, from_ = -1, to = 1, orient = 'horizontal', command = self.on_slider_move, variable = self.vline_pos)
         self.slider.bind('<ButtonRelease-1>', self.on_slider_release)
         self.slider.grid(column = 0, row = 0, sticky = 'we')
         
@@ -87,9 +65,13 @@ class InteractivePlotApp(tk.Toplevel):
 
         self.analysis_list = []
         self.add_analysis_btn = ttk.Button(self.input_frame, text = 'Add analysis', command = self.add_analysis)
+        self.add_analysis_btn.grid(row = 3, column = 3)
 
-        self.saved_analyses = AnalysisTree(self, columns = ('name', 'Cdl', 'b', 'potential'),
-                                           headers = ('Name', 'CDL [F]', 'b [F/mV/s]', 'Potential [V]'),
+        self.begin_analysis_btn = ttk.Button(self.input_frame, text = 'Begin analysis', command = self.set_lines)
+        self.begin_analysis_btn.grid(row = 3, column = 1)
+
+        self.saved_analyses = AnalysisTree(self, columns = ('potential', 'Cdl', 'b', ),
+                                           headers = ('Potential [V]', 'CDL [F]', 'b [F/mV/s]',),
                                            sizes = (200, 75, 75, 75))
 
         self.saved_analyses.grid(row=0, column = 3)
@@ -105,28 +87,22 @@ class InteractivePlotApp(tk.Toplevel):
         self.calculate_map_btn = ttk.Button(self, text = 'MAP ME, BITCH', command = lambda: self.calculate_map())
         self.calculate_map_btn.grid(column = 4, row = 0)
 
-        self.initialize(data = data)
+        self.initialize(tree = self.tree1_cont.tree, data = data)
+        self.tree1_cont.tree.bind('<<TreeviewSelect>>', self.plot_previews)
 
-    def initialize(self, data: list[Experiment]):
+    def initialize(self, tree, data: list[Experiment]):
         for experiment in data:
-            self.data_treeview.insert('', 'end', experiment.id, text = experiment.file_name)
+            tree.insert('', 'end', experiment.id, text = experiment.file_name)
 
     def add_analysis(self):
-        analysis_name = askstring('Analysis Name', 'Analysis Name:')
-        counter = 'A'+str(self.analysis_counter)
+
         CDL = f'{self.results[0]:.2e}'
         b = f'{self.results[1]:.2e}'
         potential = f'{self.vline_pos.get()}'
+        experiments_from_analysis = self.tree2_cont.get_experiments('all')
+        file_paths = [exp.file_path for exp in experiments_from_analysis]
 
-        tree_view_node = TreeNode(counter,
-                                  analysis_name,
-                                  'analysis',
-                                  len(self.ax1.get_lines()),
-                                  {'potential': self.vline_pos.get(), 'Cdl': self.results[0], 'b':self.results[1]})
-        self.analyses[counter] = tree_view_node
-
-        self.saved_analyses.insert('', 'end', iid = counter, text = counter, values = (analysis_name, potential, CDL, b))
-        self.analysis_counter += 1
+        self.saved_analyses.add_analysis(values = (potential, CDL, b), aux = {'Filepath' : file_paths, 'test': 'dooppa'})
 
     def save_analyses(self):
         self.parent.receive(self.analyses)
@@ -236,7 +212,7 @@ class InteractivePlotApp(tk.Toplevel):
 
     def set_lines(self):
         
-        experiments = self.analysis_treeview_controller.get_experiments('all')
+        experiments = self.tree2_cont.get_experiments('all')
         vline_min, vline_max = self.get_minmax_x(experiments)
         vline_position = vline_min + (vline_max - vline_min)/2
         self.slider.config(from_ = vline_min, to = vline_max)
@@ -252,7 +228,7 @@ class InteractivePlotApp(tk.Toplevel):
     def plot_data(self):
         
         clear_plot(self.ax1)
-        experiments = self.analysis_treeview_controller.get_experiments('all')
+        experiments = self.tree2_cont.get_experiments('all')
         for experiment in experiments:
             plot_experiment(experiment, self.ax1, self.canvas, x_column = 'E vs RHE [V]', y_column = 'J_GEO [A/cm2]', alpha = 0.2)
     
@@ -267,7 +243,7 @@ class InteractivePlotApp(tk.Toplevel):
                 line.remove()
         self.preview_lines.clear()
 
-        preview_datasets = self.data_treeview_controller.get_experiments('selection')
+        preview_datasets = self.tree1_cont.get_experiments('selection')
         # Plot new previews
         for preview_dataset in preview_datasets:
             lines = plot_experiment(preview_dataset, self.ax1, self.canvas, x_column = 'E vs RHE [V]', y_column= 'J_GEO [A/cm2]', alpha = 0.2)
@@ -295,21 +271,9 @@ class InteractivePlotApp(tk.Toplevel):
 
         return min({experiment.get_parameter('STEPSIZE') for experiment in experiments})
 
-    def move(self, from_:ttk.Treeview, to:ttk.Treeview):
-
-        for item_id in from_.selection():
-            print(item_id)
-            
-            text = from_.item(item_id, 'text')
-            values = from_.item(item_id, 'values')
-            to.insert('', 'end', iid = item_id,  text = text, values = values)
-            from_.delete(item_id)
-
-        self.update_plot(self.ax1, self.analysis_treeview_controller)
-
-    def update_plot(self, ax, controller: TreeController):
-        ax.clear()
-        experiments = controller.get_experiments('all')
+    def update_plot(self, event):
+        self.ax1.clear()
+        experiments = self.tree2_cont.get_experiments('all')
         for experiment in experiments:
             plot_experiment(experiment, self.ax1, self.canvas, x_column = 'E vs RHE [V]', y_column = 'J_GEO [A/cm2]')
 

@@ -288,7 +288,6 @@ class ExperimentManager():
         for id, exp in self.dict_of_experiments.items():
             if exp == exp_to_del:
                 self.dict_of_experiments.pop(id)
-        
 
     def get_unique_experiments(self):
         #MY FIRST USE OF A SET. THE NEAT THING ABOUT THIS COLLECTION IS THE FACT THAT IT DOESNT STORE DUPLICATES!
