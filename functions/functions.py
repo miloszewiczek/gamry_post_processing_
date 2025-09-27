@@ -159,22 +159,39 @@ def calc_closest(point, array, n = 1) -> int | list[int]:
     elif n > 1:
         return indices[:n]
     
-def calc_overpotentials(currents:list[float | int], x, y) -> list[float]:
+def calc_first(point, array, n = 1) -> int | list[int]:
+    
+    mask = array <= point
+    array_to_evaluate = array[mask]    
+    
+    if array.iloc[-1] < array.iloc[0]:
+        condition = 0
+    elif array.iloc[-1] > array.iloc[0]:
+        condition = -1
+    result = array_to_evaluate.index[condition]
+    return result
+
+
+def calc_closest_value(list_of_points:list[float | int], index_array, value_array, mode = 'closest') -> list[float]:
     """Function that calculates the overpotentials to achieve current based on potential-current data.
 
     Args:
         currents(list): List of currents which are used to calculate the overpotenials.
-        x(array-like): Data describing the potential of the electrode.
-        y(array-like): Data describing the current response of the electrode.
+        x(array-like): Array from which the indexes are calculated.
+        y(array-like): Array from which the values are returned.
 
     Returns:
         overpotentials(list): 
     """
-    overpotentials = []
-    for current in currents:
-        current_index = calc_closest(current, y, n = 1)
-        overpotential = x[current_index]
-        overpotentials.append(overpotential)
-    return overpotentials
-        
+    if mode == 'closest':
+        func = calc_closest
+    elif mode == 'first':
+        func = calc_first
+
+    values = []
+    for point in list_of_points:
+        index = func(point, index_array, n = 1)
+        value = value_array[index]
+        values.append(value)
+    return values
     

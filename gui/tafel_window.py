@@ -19,11 +19,12 @@ def toggle_widgets(var: tk.BooleanVar, widgets: list[tk.Widget]):
 
 class tafel_window(tk.Toplevel):
 
-    def __init__(self, parent, data):
+    def __init__(self, parent, data, callback):
         super().__init__()
         self.title("Tafel analysis")
         self.parent = parent
         self.xy_data = []
+        self.callback = callback
 
         self.data_treeview = ttk.Treeview(self)
         self.data_treeview.grid(column = 0, row = 0)
@@ -90,7 +91,7 @@ class tafel_window(tk.Toplevel):
 
         tk.Button(self.config_frame, command = self.generate_tafel_plot, text = 'Generate').grid(column = 0, row = 7, padx = 5, pady = 5)
 
-        self.analysis_tree = AnalysisTree(self, ('file_name', 'slope'), ('File', 'Tafel slope [V/dec]'), (100, 150))
+        self.analysis_tree = AnalysisTree(self, ('slope',), ('Tafel slope [V/dec]',), (150,))
         self.analysis_tree.grid(column = 3, row = 0)
 
         tk.Button(self.config_frame, text = 'Select', command = self.interactive_mode).grid(column = 1, row = 7, padx = 5, pady = 5)
@@ -121,7 +122,8 @@ class tafel_window(tk.Toplevel):
         #callback after user clicks twice
         def store_result(res):
             self.selection_result = res
-            self.analysis_tree.add_analysis((self.current_name, res))
+            d = self.analysis_tree.add_analysis(values = (res), ask = True, aux = {'Doopa': 'dopa'})
+            self.callback(d.other_info, d.__dict__, d.text)
 
         scatter_data = self.ax.collections[0].get_offsets()
         x, y = scatter_data[:, 0], scatter_data[:, 1]

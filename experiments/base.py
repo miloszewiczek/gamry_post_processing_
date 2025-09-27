@@ -149,7 +149,7 @@ class Experiment():
             index = int(index)
             return [data[index]]
         
-    def get_columns(self, axis: Literal['x','y','both'], columns:list = None):
+    def get_default_columns(self, axis: Literal['x','y','both'], columns:list = None):
         '''Helper function that returns the default column name stored in default_x or default_y'''
 
         match axis:
@@ -159,12 +159,14 @@ class Experiment():
                 return self.default_y
             case 'both':
                 return self.default_x, self.default_y
+
+    def get_columns(self, columns:list = None):
         
         if columns is not None:
             try:
                 return self.processed_data[0][columns]
             except:
-                print(f'No column {columns}')
+                print(f'No processed data {columns}')
 
     def get_meta_data(self) -> dict:
         return self.meta_data

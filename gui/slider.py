@@ -17,12 +17,14 @@ from .selector import Selector
 
 
 class InteractivePlotApp(tk.Toplevel):
-    def __init__(self, parent, data):
+    def __init__(self, parent, data, callback = None):
         super().__init__()
 
         self.parent = parent
         self.analyses: dict[str, TreeNode] = {}
         self.title('Double Layer Calculator')
+
+        self.callback = callback
 
         self.plot_frame = ttk.Frame(self)
         self.plot_frame.grid(column = 0, row = 1, sticky = 'nsew')
@@ -70,19 +72,13 @@ class InteractivePlotApp(tk.Toplevel):
         self.begin_analysis_btn = ttk.Button(self.input_frame, text = 'Begin analysis', command = self.set_lines)
         self.begin_analysis_btn.grid(row = 3, column = 1)
 
-        self.saved_analyses = AnalysisTree(self, columns = ('potential', 'Cdl', 'b', ),
-                                           headers = ('Potential [V]', 'CDL [F]', 'b [F/mV/s]',),
+
+        self.col_headers = {'potential': 'Potential [V]', 'Cdl': 'CDL [F]', 'b': 'b [F/mV/s]'}
+        self.saved_analyses = AnalysisTree(self, columns = self.col_headers,
                                            sizes = (200, 75, 75, 75))
 
         self.saved_analyses.grid(row=0, column = 3)
         self.analysis_counter = 1
-
-
-        self.save_btn = ttk.Button(self, command = self.save_analyses)
-        self.save_btn.grid(column = 2, row = 0)
-
-        self.to_excel_btn = ttk.Button(self, command = lambda: self.save_treeview(self.saved_analyses))
-        self.to_excel_btn.grid(column = 3, row = 0)
 
         self.calculate_map_btn = ttk.Button(self, text = 'MAP ME, BITCH', command = lambda: self.calculate_map())
         self.calculate_map_btn.grid(column = 4, row = 0)
@@ -101,11 +97,11 @@ class InteractivePlotApp(tk.Toplevel):
         potential = f'{self.vline_pos.get()}'
         experiments_from_analysis = self.tree2_cont.get_experiments('all')
         file_paths = [exp.file_path for exp in experiments_from_analysis]
+        node = self.saved_analyses.add_analysis(values = (potential, CDL, b), aux = {'Filepath' : 'x', 'test': 'dooppa'}, ask = True)
 
-        self.saved_analyses.add_analysis(values = (potential, CDL, b), aux = {'Filepath' : file_paths, 'test': 'dooppa'})
+        #adding the analysis to main window
+        self.callback('dupa', node.__dict__, node.text)
 
-    def save_analyses(self):
-        self.parent.receive(self.analyses)
         
 
     def on_focus_out(self, event):
@@ -259,7 +255,7 @@ class InteractivePlotApp(tk.Toplevel):
         max_val = -math.inf
 
         for experiment in experiments:
-            result = experiment.get_columns(axis = None, columns = ['E vs RHE [V]'])
+            result = experiment.get_columns(columns = ['E vs RHE [V]'])
             min_val = min(min_val, np.min(result))
             max_val = max(max_val, np.max(result))
             self.x = result

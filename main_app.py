@@ -7,12 +7,13 @@ from tkinter import ttk
 import matplotlib.pyplot as plt
 import os
 from tkinter import messagebox
+from gui.functions import variable_separation
 from functions.functions import calculate_slopes
 from tkinter.filedialog import asksaveasfilename
 #from gui.tafel_window import tafel_window
 import copy
 import ttkbootstrap as ttk
-from gui import ExperimentTree, FileManagementFrame, PreviewImageFrame, ConfigFrame, TreeController
+from gui import ExperimentTree, FileManagementFrame, PreviewImageFrame, ConfigFrame, TreeController, AnalysisTree
 
 
 class ExperimentOrchestrator(ttk.Window):
@@ -57,38 +58,84 @@ class ExperimentOrchestrator(ttk.Window):
 
         #TAFEL BTN
         tk.Button(self, text = 'Calculate Tafel', command = self.tafel_plot).grid(row=3, column=3)
+        self.current = tk.StringVar(self, 10)
+        tk.Entry(self, textvariable = self.current).grid(column = 3, row = 3)
+        tk.Button(self, text = 'Calc ov', command = self.overpot).grid(column = 4, row = 3)
 
         #CHRONOP_BTN (TEMPRORARY)
         #tk.Button(self.button_frame, text = 'Process chronop', command = self.process_chronop).grid(row=3, column =0)
         #tk.Button(self.button_frame, text = 'Join', command = self.join).grid(row=3, column = 1)
 
+        self.analysis = AnalysisTree(self, columns = ('analysis',), headers = ('Analysis',), sizes = (100,))
+        self.analysis.grid(row = 0, column = 3)
 
+
+        menubar = tk.Menu(self, tearoff = 0)
+
+        file_menu = tk.Menu(menubar, tearoff = 0)
+        file_menu.add_command(label = 'Open', command = lambda: self.filtered_tree_controller.load_from_files('replace'))
+        file_menu.add_command(label = 'Open folder', command = lambda: self.filtered_tree_controller.load_from_folder('replace'))
+        file_menu.add_separator()
+        file_menu.add_command(label = 'Append file', command = lambda: self.filtered_tree_controller.load_from_files('append'))
+        file_menu.add_command(label = 'Append folder', command = lambda: self.filtered_tree_controller.load_from_folder('append'))
+
+        experiment_menu = tk.Menu(menubar, tearoff = 0)
+        experiment_menu.add_command(label = 'Process', command = self.filtered_tree_controller.process)
+        experiment_menu.add_command(label = 'Define experiment', command = lambda: print('Define. WIP!'))
+        experiment_menu.add_separator()
+        experiment_menu.add_command(label = 'Load settings', command = self.config_frame.load_settings)
+        experiment_menu.add_command(label = 'Save settings', command = self.config_frame.dump)
+        experiment_menu.add_command(label = 'Apply', command = self.config_frame.apply)
+
+        analysis_menu = tk.Menu(menubar, tearoff = 0)
+        analysis_menu.add_command(label = 'Double layer', command = self.cdl_slider)
+        analysis_menu.add_command(label = 'Tafel', command = self.tafel_plot)
+        analysis_menu.add_command(label = 'Overpotential', command = self.overpot)
+        analysis_menu.add_command(label = 'Uncompensated resistance', command = lambda: print('Ru. WIP!'))
+
+        menubar.add_cascade(label = 'File', menu = file_menu)
+        menubar.add_cascade(label = 'Experiment', menu = experiment_menu)
+        menubar.add_cascade(label = 'Analysis', menu = analysis_menu)
+
+        self.config(menu = menubar)
+
+
+
+
+    def overpot(self):
+        from functions.functions import calc_closest_value
+        d = self.filtered_tree_controller.get_experiments('selection')
+        currents = variable_separation(self.current.get(), ',', float)
+        #divide to obtain A/cm2
+        currents = [current/1000 for current in currents]
+        columns = ['E_iR vs RHE [V]', 'J_GEO [A/cm2]']
+        x = []
+        for exp in d:
+            df = exp.get_columns(columns = columns)
+            pot = df[columns[0]]
+            cur = df[columns[1]]
+            c = pd.DataFrame([calc_closest_value(currents, cur, pot, mode = 'first')], index = [exp.file_name], columns = currents)
+            x.append(c)
+        x = pd.concat(x)
+        x_transf = x.T
+        x_transf['mean'] = x_transf.mean(axis = 1)
+        x_transf['std'] = x_transf.std(axis = 1)
+        self.analysis.add_analysis(x_transf, aux = {'Dopa': 'dopa'})
 
 
     def tafel_plot(self):
         from gui.tafel_window import tafel_window
         d = self.manager.filter(object_type = LinearVoltammetry)
-        window = tafel_window(self, d)
+        window = tafel_window(self, d, callback = self.receive)
     
     def cdl_slider(self):
         from gui.slider import InteractivePlotApp
         d = self.manager.filter(object_type = Voltammetry)
-        window = InteractivePlotApp(self, d)
+        window = InteractivePlotApp(self, d, callback = self.receive)
         
     
-
-    # def receive(self, analyses: dict[TreeNode]):
-    #     if not hasattr(self, 'analyses'):
-    #         self.analyses = analyses
-    #         self.tmp = ttk.Treeview(self)
-    #         self.tmp.grid(row=4, column = 5)
-    #     else:
-    #         self.analyses.update(analyses)
-    #         print(self.analyses)
-        
-    #     self.update_treeview(self.tmp, self.analyses)
-
-
+    def receive(self, values, aux, name,):
+        self.analysis.add_analysis(values, aux, name, False)
 
 
 

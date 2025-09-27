@@ -8,9 +8,15 @@ class TreeNode:
     text: str
     node_type: str
     experiments: Experiment | list[Experiment]
-    values: Any
-    other_info: Any = None
+    values: dict
+    other_info: dict = None
     image: Any = None
 
 
-
+    @property
+    def main_info(self) -> tuple[str, str, dict]:
+        return {'treeview_id': self.treeview_id,
+                'text': self.text,
+                #this unpacks the values into each category
+                **self.values}
+    

@@ -11,22 +11,30 @@ class AnalysisTree(ttk.Frame):
         super().__init__(parent)
         self.analyses = {}
         self.counter = 0
-        if headers is None:
-            headers = [column_name.capitalize() for column_name in columns]
+        self.columns = columns
+        self.headers = headers
+        self.sizes = sizes
+
+        if isinstance(columns, dict):
+            self.columns, self.headers = tuple(columns.keys()), tuple(columns.values())
+        
+        if self.headers is None:
+            self.headers = [column_name.capitalize() for column_name in columns]
+        
 
         if isinstance(columns, str):
-            columns = (columns,)
+            self.columns = (columns,)
         if isinstance(headers, str):
-            headers = (headers,)
+            self.headers = (headers,)
 
         #main tree
-        self.tree = ttk.Treeview(self, columns = columns)
+        self.tree = ttk.Treeview(self, columns = self.columns)
         self.tree.grid(row = 0, column = 0)
         self.tree.column('#0', width = 50)
         self.tree.heading('#0', text = 'Name')
 
         #changing column names to headings provided by the user
-        for col, header, size in zip(columns, headers, sizes):
+        for col, header, size in zip(self.columns, self.headers, sizes):
             self.tree.column(col, width = size)
             self.tree.heading(col, text = header)
 
@@ -43,21 +51,36 @@ class AnalysisTree(ttk.Frame):
         
 
 
-    def add_analysis(self, values:tuple, aux:dict = None):
-
-        if values is str:
-            values = (values,)
+    def add_analysis(self, values:tuple, aux:dict = None, name:str = None, ask = False, image = None):
         
-        analysis_name = askstring('Analysis', 'Give name of the analysis')
+        #if ask is True, user gets to pick the analysis name
+        if ask is True:
+            name = askstring('Analysis', 'Give name of the analysis')
+        
+        #default 
+        elif (ask is False) and (name is None): 
+            name = str(self.counter) + 'A'
+        #else, name is used
+
+        #makign sure its a tuple
+        print(type(values))
+        if not isinstance(values, tuple):
+            values = (values,)
+
+        print(values)
+        #creating a TreeNode
         tree_view_node = TreeNode(self.counter,
-                                  analysis_name,
+                                  name,
                                   'analysis',
                                   'None',
-                                  values = values,
-                                  other_info = aux)
+                                  values = {key: val for key, val in zip(self.headers, values)},
+                                  other_info = aux,
+                                  image = image)
+        #assigning to a dict
         self.analyses[str(self.counter)] = tree_view_node
 
-        self.tree.insert('', 'end', iid = self.counter, text = analysis_name, values = values)
+        #adding to treeview
+        self.tree.insert('', 'end', iid = self.counter, text = name, values = values)
         self.counter += 1
         return tree_view_node
 
@@ -80,15 +103,24 @@ class AnalysisTree(ttk.Frame):
         self.tree.delete(self.tree.selection())
 
     def inspect(self, event):
-        node = self.analyses[self.tree.selection()[0]].other_info
+        node = self.analyses[self.tree.selection()[0]]
         x = tk.Toplevel(self)
-        for i, (key, val) in enumerate(node.items()):
+        ntbk = ttk.Notebook(x)
+        ntbk.pack(fill="both", expand=True)
 
-            tk.Label(x, text = key).grid(row = i, column = 0)
-            if isinstance(val, list):
-                tmp = tk.Listbox(x)
-                tmp.grid(row = i, column = 1)
-                for item in val:
-                    tmp.insert(tk.END, item)
-            else:
-                tk.Label(x, text = val).grid(row = i, column = 1)
+        class info_tab(ttk.Frame):
+            def __init__(self, parent, **kwargs):
+                super().__init__(parent)
+                for i, (item, value) in enumerate(kwargs.items()):
+                    ttk.Label(self, text=item).grid(row=i, column=0, sticky="w")
+                    ttk.Label(self, text=value).grid(row=i, column=1, sticky="w")
+
+        #unpack node.main_info dict into kwargs
+        page1 = info_tab(ntbk, **node.main_info)
+        page1.pack(fill="both", expand=True)
+
+        page2 = info_tab(ntbk, **node.other_info)
+        page2.pack(fill = 'both', expand = True)
+
+        ntbk.add(page1, text = 'Main Info')
+        ntbk.add(page2, text = 'Other Info')

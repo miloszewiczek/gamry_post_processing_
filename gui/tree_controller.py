@@ -167,17 +167,17 @@ class TreeController:
 
         return {k: self.group_by(v, keys[1:]) for k, v in grouped.items()}
                 
-    def apply_attr_to_selected(self, tk_var: tk.Variable, var_name: str):
+    def apply_attr_to_selected(self, tk_var: tk.Variable, var_name: str, mode = 'selection'):
             
-        experiments = self.get_experiments('selection')
+        experiments = self.get_experiments(mode)
         attr_to_apply = tk_var.get()
         for experiment in experiments:
             setattr(experiment, var_name, attr_to_apply)
             experiment.process_data()
         
-    def apply_multiple(self, attributes:dict):
+    def apply_multiple(self, attributes:dict, mode = 'selection'):
         
-        experiments = self.get_experiments('selection')
+        experiments = self.get_experiments(mode)
         for experiment in experiments:
             if not hasattr(experiment, 'data_list'):
                 experiment.load_data()

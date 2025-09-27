@@ -645,4 +645,15 @@ def merge_curves(lines):
     return final
     
 
+def variable_separation(variable: str, separator: str, final_type = None):
+    
+    list_of_variables = variable.split(separator)
+    list_of_variables = [var.strip() for var in list_of_variables]
+    
+    if final_type:
+        list_of_variables = [final_type(var) for var in list_of_variables]
+
+    return list_of_variables
+
+    
 

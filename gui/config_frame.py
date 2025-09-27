@@ -47,8 +47,8 @@ class ConfigFrame(ttk.Labelframe):
         self.get_raport = ttk.Button(self, text = 'Save settings', command = lambda: dump(self.settings))
         self.get_raport.grid(column = 3, row = 2, padx = 10, sticky = 'we')
 
-        self.load_settings = ttk.Button(self, text = 'Load settings', command = lambda: load_settings(self.settings))
-        self.load_settings.grid(column = 3, row = 0, padx = 10, sticky = 'we')
+        self.load_settings_btn = ttk.Button(self, text = 'Load settings', command = lambda: load_settings(self.settings))
+        self.load_settings_btn.grid(column = 3, row = 0, padx = 10, sticky = 'we')
 
         self.geometrical_area_label.grid(column= 0, row = 0, sticky = 'w', padx = 10)
         self.reference_potential_label.grid(column= 0, row = 1, sticky = 'w', padx = 10)
@@ -62,5 +62,29 @@ class ConfigFrame(ttk.Labelframe):
         self.reference_potential_btn.grid(column = 2, row = 1, ipadx = 2, ipady= 2)
         self.apply_Ru_btn.grid(column = 2, row = 2, ipadx = 2, ipady= 2)
 
+    def load_settings(self):
+        load_settings(self.settings)
+    
+    def dump(self):
+        dump(self.settings)
 
+    def apply(self):
+        def on_ok():
+            val = self.settings[x.get()]
+            self.controller.apply_attr_to_selected(val, x.get(), selection_var.get())
+        
+        tmp = tk.Toplevel(self)
 
+        x = tk.StringVar(tmp, value='Ru')
+        d = ttk.Combobox(tmp, values=('Ru', 'geometrical_area', 'reference_potential'), textvariable=x)
+        d.pack(padx=10, pady=10)
+
+        ttk.Button(tmp, text = 'OK', command = on_ok).pack()
+        ttk.Button(tmp, text = 'Cancel', command = tmp.destroy).pack()
+        
+        selection_var = tk.StringVar(tmp, value = 'selection')
+        ttk.Radiobutton(tmp, variable= selection_var, text = 'Selection', value = 'selection').pack()
+        ttk.Radiobutton(tmp, variable = selection_var, text = 'All', value = 'all').pack()
+        
+
+        
