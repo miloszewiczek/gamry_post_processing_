@@ -14,6 +14,7 @@ from tkinter.filedialog import asksaveasfilename
 import copy
 import ttkbootstrap as ttk
 from gui import ExperimentTree, FileManagementFrame, PreviewImageFrame, ConfigFrame, TreeController, AnalysisTree
+from utilities.utilities import convert_to_zview
 
 
 class ExperimentOrchestrator(ttk.Window):
@@ -50,24 +51,15 @@ class ExperimentOrchestrator(ttk.Window):
        
         #PREVIEW IMAGE FRAME
         self.preview_image_frame = PreviewImageFrame(self, self.filtered_tree_controller)
-        self.preview_image_frame.grid(row = 1, column = 1, sticky = 'nsew')
+        self.preview_image_frame.grid(row = 1, column = 1, sticky = 'ns')
 
-
-        self.cdl_slider_button = tk.Button(self, text='CDL Slider', command = self.cdl_slider)
-        self.cdl_slider_button.grid(column = 2, row = 2)
-
-        #TAFEL BTN
-        tk.Button(self, text = 'Calculate Tafel', command = self.tafel_plot).grid(row=3, column=3)
-        self.current = tk.StringVar(self, 10)
-        tk.Entry(self, textvariable = self.current).grid(column = 3, row = 3)
-        tk.Button(self, text = 'Calc ov', command = self.overpot).grid(column = 4, row = 3)
 
         #CHRONOP_BTN (TEMPRORARY)
         #tk.Button(self.button_frame, text = 'Process chronop', command = self.process_chronop).grid(row=3, column =0)
         #tk.Button(self.button_frame, text = 'Join', command = self.join).grid(row=3, column = 1)
 
         self.analysis = AnalysisTree(self, columns = ('analysis',), headers = ('Analysis',), sizes = (100,))
-        self.analysis.grid(row = 0, column = 3)
+        self.analysis.grid(row = 0, column = 2, sticky = 'nsew', rowspan = 2)
 
 
         menubar = tk.Menu(self, tearoff = 0)
@@ -91,16 +83,17 @@ class ExperimentOrchestrator(ttk.Window):
         analysis_menu.add_command(label = 'Double layer', command = self.cdl_slider)
         analysis_menu.add_command(label = 'Tafel', command = self.tafel_plot)
         analysis_menu.add_command(label = 'Overpotential', command = self.overpot)
-        analysis_menu.add_command(label = 'Uncompensated resistance', command = lambda: print('Ru. WIP!'))
+        analysis_menu.add_command(label = 'Uncompensated resistance', command = self.Ru_estimation)
+
+        utilities_menu = tk.Menu(menubar, tearoff = 0)
+        utilities_menu.add_command(label = 'Convert Gamry to ZView', command = convert_to_zview)
 
         menubar.add_cascade(label = 'File', menu = file_menu)
         menubar.add_cascade(label = 'Experiment', menu = experiment_menu)
         menubar.add_cascade(label = 'Analysis', menu = analysis_menu)
+        menubar.add_cascade(label = 'Utilities', menu = utilities_menu)
 
         self.config(menu = menubar)
-
-
-
 
     def overpot(self):
         from functions.functions import calc_closest_value
@@ -121,6 +114,11 @@ class ExperimentOrchestrator(ttk.Window):
         x_transf['mean'] = x_transf.mean(axis = 1)
         x_transf['std'] = x_transf.std(axis = 1)
         self.analysis.add_analysis(x_transf, aux = {'Dopa': 'dopa'})
+
+    def Ru_estimation(self):
+        from gui.Ru_estimator import RuEstimate
+        d = self.manager.filter(object_type = [LinearVoltammetry, Voltammetry, ECSA])
+        window = RuEstimate(self, self.manager, self.loader, lambda x: self.config_frame.Ru_var.set(x), nodes = d)
 
 
     def tafel_plot(self):

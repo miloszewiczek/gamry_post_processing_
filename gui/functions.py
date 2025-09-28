@@ -457,7 +457,7 @@ def validate_selection_compatibility(experiments, first_x, first_y):
     return True
     
 
-def plot_experiment(experiment, ax, canvas, x_column, y_column, **kwargs):
+def plot_experiment(experiment: Experiment, ax, canvas, x_column, y_column, label = 'file_name', **kwargs):
 
     def set_equal_axis_limits(ax: plt.Axes):
         """Adjust plot so X and Y have the same limits and scale."""
@@ -471,8 +471,12 @@ def plot_experiment(experiment, ax, canvas, x_column, y_column, **kwargs):
 
 
     plots = []
-    name = getattr(experiment, 'file_path')
 
+    try:
+        label = getattr(experiment, f'{label}')
+    except:
+        label = 'Plot'
+    
     data = experiment.get_data(index = None, data_type = 'processed_data')
 
     for curve in data:
@@ -482,16 +486,15 @@ def plot_experiment(experiment, ax, canvas, x_column, y_column, **kwargs):
             plt.ticklabel_format(axis='y', style = 'sci', scilimits=(-2,3))
 
             if type(experiment).__name__  == 'EIS':
-                line_plot = ax.scatter(x,y, label = f'{os.path.basename(name)}', alpha = kwargs.get('alpha', 1.0))
+                line_plot = ax.scatter(x,y, label = label, alpha = kwargs.get('alpha', 1.0))
                 set_equal_axis_limits(ax)
             else:
-                line_plot, = ax.plot(x,y, label = f'{os.path.basename(name)}', alpha = kwargs.get('alpha', 1.0))
+                line_plot, = ax.plot(x,y, label = label, alpha = kwargs.get('alpha', 1.0))
             
             setattr(line_plot, 'experiment', experiment)
             plots.append(line_plot)
 
-    #ax.legend()
-    canvas.draw()
+    canvas.draw_idle()
     return plots
 
 

@@ -15,6 +15,8 @@ class AnalysisTree(ttk.Frame):
         self.headers = headers
         self.sizes = sizes
 
+        self.rowconfigure(0, weight = 1)
+
         if isinstance(columns, dict):
             self.columns, self.headers = tuple(columns.keys()), tuple(columns.values())
         
@@ -29,7 +31,7 @@ class AnalysisTree(ttk.Frame):
 
         #main tree
         self.tree = ttk.Treeview(self, columns = self.columns)
-        self.tree.grid(row = 0, column = 0)
+        self.tree.grid(row = 0, column = 0, sticky = 'nsew')
         self.tree.column('#0', width = 50)
         self.tree.heading('#0', text = 'Name')
 
@@ -49,7 +51,6 @@ class AnalysisTree(ttk.Frame):
 
         self.tree.bind('<Double-Button-1>', lambda x: self.inspect(x))
         
-
 
     def add_analysis(self, values:tuple, aux:dict = None, name:str = None, ask = False, image = None):
         

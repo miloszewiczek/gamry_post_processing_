@@ -17,6 +17,12 @@ class TreeController:
         self.manager = manager
         self.nodes: dict[str, TreeNode] = nodes  # iid -> TreeNode
         self.selected_all_var = tk.BooleanVar(value = False)
+        self.initialize_tree(nodes)
+
+    def initialize_tree(self, nodes: list[Experiment]):
+        if nodes:
+            for node in nodes:
+                self.tree.insert('', 'end', node.id, text = node.file_name)
 
     def add_node(self, exp_id: str, text: str, experiment, node_type: str, other_info=(None)):
         

@@ -2,16 +2,12 @@ import pandas as pd
 import gamry_parser
 from os import path
 from tkinter.filedialog  import askopenfilenames
-from glob import glob
-from os import walk
-from matplotlib import pyplot as plt
 
-gp = gamry_parser.GamryParser()
-
-
-
-#files = askopenfilenames()
-header_lines = [
+def convert_to_zview(EIS_files = None):
+    if EIS_files is None:
+        EIS_files = askopenfilenames()
+    gp = gamry_parser.GamryParser()
+    header_lines = [
     "ZView Calculated Data File: Version 1.1",
     "Raw Data",
     "Sweep Frequency: Control Voltage",
@@ -22,14 +18,14 @@ header_lines = [
     r'""'
 ]
 
-def process(EIS_files):
     for file in EIS_files:
         normalized_path = path.abspath(file)
         print('Converting: ', normalized_path)
         gp.load(normalized_path)
         print('Loaded: ', normalized_path)
         df = gp.curves[0]
-        new_df = pd.DataFrame({
+        try:
+            new_df = pd.DataFrame({
             'Freq(Hz)': df['Freq'],
             'DCcurr(A)': 0,
             'DCpot(V)': 0,
@@ -40,6 +36,10 @@ def process(EIS_files):
             'X': 0,
             'Y': 0
         })
+        except:
+            print(f'Wrong file type {file}. Skipping')
+            continue
+
         print('Successfully created z60 DataFrame')
         print('Attempting to write header lines')
         
@@ -48,9 +48,3 @@ def process(EIS_files):
                 f.write(line + "\n")
             print('Writing DataFrame to csv')
             new_df.to_csv(f, index = False, sep = ',', lineterminator='\n')
-
-for root,dirs,files in walk(input('Gib ścieżka: ')):
-    print(root)
-    print(files)
-    files_to_process = [path.join(root,file) for file in files if 'EIS_POTENTIAL' in file]
-    process(EIS_files = files_to_process)
