@@ -84,6 +84,7 @@ class ExperimentOrchestrator(ttk.Window):
         analysis_menu.add_command(label = 'Tafel', command = self.tafel_plot)
         analysis_menu.add_command(label = 'Overpotential', command = self.overpot)
         analysis_menu.add_command(label = 'Uncompensated resistance', command = self.Ru_estimation)
+        analysis_menu.add_command(label = 'Chronopoints', command = self.chronop)
 
         utilities_menu = tk.Menu(menubar, tearoff = 0)
         utilities_menu.add_command(label = 'Convert Gamry to ZView', command = convert_to_zview)
@@ -130,6 +131,14 @@ class ExperimentOrchestrator(ttk.Window):
         from gui.slider import InteractivePlotApp
         d = self.manager.filter(object_type = Voltammetry)
         window = InteractivePlotApp(self, d, callback = self.receive)
+
+    def chronop(self):
+        from gui.chronopoints import ChronoPicker
+        d = self.manager.filter(object_type = Chronoamperometry)
+        data = d[0].get_columns(['T [s]', 'J_GEO [A/cm2]'])
+        x, y = data
+        window = ChronoPicker(self, nodes = None, callback = None, x = data['T [s]'], y = data['J_GEO [A/cm2]'])
+
         
     
     def receive(self, values, aux, name,):

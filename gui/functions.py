@@ -7,7 +7,8 @@ import tkinter as tk
 from tkinter import ttk
 from .treenode import TreeNode
 from datetime import datetime
-import getpass
+from os import startfile
+
 
 
 def filter_experiments(manager, parent=None):
@@ -594,6 +595,10 @@ def inspect_experiment(experiment: Experiment):
 
             if display_text != value:
                 add_tooltip(label, str(value))
+    
+    #placeholder for opening file in text editor
+    filepath = dict_to_show['Filepath'][0]
+    tk.Button(top, text = 'Open', command = lambda: startfile(filepath)).grid(row = i + 1, column = 1, sticky = 'e', padx = 5, pady = 2)
 
 def dump(to_dump: dict[str, tk.Variable]):
     """Function to store configuration data via dictionary to a .json file at user-defined location.
