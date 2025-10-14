@@ -52,7 +52,7 @@ class ExperimentTree(ttk.Frame):
             btn.pack(side = 'left', padx = 2, pady = 2)
 
         self.grouping_checkbox = ttk.Checkbutton(self.filtering_actions_frame,
-                                                text = 'Group by cycle',
+                                                text = 'Group by Folder',
                                                 onvalue = True,
                                                 offvalue = False,
                                                 variable = self.groupvar,
@@ -60,7 +60,7 @@ class ExperimentTree(ttk.Frame):
         self.grouping_checkbox.pack()
 
         self.grouping_checkbox2 = ttk.Checkbutton(self.filtering_actions_frame,
-                                                text = 'Group by Folder',
+                                                text = 'Group by Cycle',
                                                 onvalue = True,
                                                 offvalue = False,
                                                 variable = self.groupvar2,
