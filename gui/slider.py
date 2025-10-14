@@ -92,8 +92,8 @@ class InteractivePlotApp(tk.Toplevel):
 
     def add_analysis(self):
 
-        CDL = f'{self.results[0]:.2e}'
-        b = f'{self.results[1]:.2e}'
+        CDL = f'{self.results[0]}'
+        b = f'{self.results[1]}'
         potential = f'{self.vline_pos.get()}'
         experiments_from_analysis = self.tree2_cont.get_experiments('all')
         file_paths = [exp.file_path for exp in experiments_from_analysis]
