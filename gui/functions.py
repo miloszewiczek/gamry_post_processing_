@@ -1,5 +1,5 @@
 from experiments import *
-from tkinter.filedialog import asksaveasfile, asksaveasfilename, askopenfile
+from tkinter.filedialog import asksaveasfilename, askopenfile
 import copy
 from core import ExperimentLoader, ExperimentManager
 import json
@@ -286,7 +286,8 @@ def plot_selected(controller, ax, canvas):
     #validating the column names, returns an error window if they are different
     validate_selection_compatibility(experiments, first_x= first_x, first_y = first_y)
     for experiment in experiments:
-        plot_experiment(experiment, ax, canvas, first_x, first_y)
+        plot_experiment(experiment, ax, canvas, first_x, first_y, label = 'file_name')
+
 
 
 
@@ -473,6 +474,8 @@ def plot_experiment(experiment: Experiment, ax, canvas, x_column, y_column, labe
 
     plots = []
 
+    print(type(experiment))
+    print(label)
     try:
         label = getattr(experiment, f'{label}')
     except:
@@ -495,6 +498,7 @@ def plot_experiment(experiment: Experiment, ax, canvas, x_column, y_column, labe
             setattr(line_plot, 'experiment', experiment)
             plots.append(line_plot)
 
+    ax.legend(fontsize = 'x-small')
     canvas.draw_idle()
     return plots
 

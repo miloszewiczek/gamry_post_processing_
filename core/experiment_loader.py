@@ -4,6 +4,7 @@ from datetime import datetime
 import re
 from itertools import chain
 from glob import glob
+from tkinterdnd2 import TkinterDnD
 from tkinter.filedialog import askopenfilenames, askdirectory
 
 class ExperimentLoader():
@@ -83,8 +84,12 @@ class ExperimentLoader():
         
         Returns:
             list_of_experiments (list) - a list of Experiment objects. The list is also set as the attribute of the same name for the loader"""
+        
+        root = TkinterDnD.Tk()
+        root.withdraw()
         dir = askdirectory()
         files = glob(os.path.join(dir, '*.DTA'))
+
         return self.populate_list_of_experiments(files)
 
         
@@ -103,6 +108,10 @@ class ExperimentLoader():
                     experiment_tag = line.split()[1]
                 if 'TITLE' in line:
                     match = re.search(r'LABEL\s+(.*?)\s+Test Identifier', line)
+                    
+                    #when experiment is not from GamryWizard the line changes to Test &Identifier for some reason
+                    if match is None:
+                        match = re.search(r'LABEL\s+(.*?)\s+Test &Identifier ', line)
                     experiment_identifier = match.group(1)
                 if 'DATE' in line:
                     experiment_date = line.split()[2]

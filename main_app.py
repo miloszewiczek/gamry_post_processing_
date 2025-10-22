@@ -1,17 +1,14 @@
 from core import ExperimentLoader, ExperimentManager, VisualizerWindow
-import json
 from app_config import messages, settings
 from experiments import *
+from tkinterdnd2 import TkinterDnD, Tk
 import tkinter as tk
 from tkinter import ttk
 import matplotlib.pyplot as plt
-import os
 from tkinter import messagebox
 from gui.functions import variable_separation
 from functions.functions import calculate_slopes
 from tkinter.filedialog import asksaveasfilename
-#from gui.tafel_window import tafel_window
-import copy
 import ttkbootstrap as ttk
 from gui import ExperimentTree, FileManagementFrame, PreviewImageFrame, ConfigFrame, TreeController, AnalysisTree
 from utilities.utilities import convert_to_zview
