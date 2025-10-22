@@ -132,9 +132,7 @@ class ExperimentOrchestrator(ttk.Window):
     def chronop(self):
         from gui.chronopoints import ChronoPicker
         d = self.manager.filter(object_type = Chronoamperometry)
-        data = d[0].get_columns(['T [s]', 'J_GEO [A/cm2]'])
-        x, y = data
-        window = ChronoPicker(self, nodes = None, callback = None, x = data['T [s]'], y = data['J_GEO [A/cm2]'])
+        window = ChronoPicker(self, nodes = d, callback = None)
 
         
     

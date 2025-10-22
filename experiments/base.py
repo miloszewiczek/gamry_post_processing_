@@ -160,11 +160,11 @@ class Experiment():
             case 'both':
                 return self.default_x, self.default_y
 
-    def get_columns(self, columns:list = None):
+    def get_columns(self, curve: int = 0, columns:list = None) -> tuple:
         
         if columns is not None:
             try:
-                return self.processed_data[0][columns]
+                return self.processed_data[curve][columns]
             except:
                 print(f'No processed data {columns}')
 

@@ -111,7 +111,8 @@ class ExperimentLoader():
                     
                     #when experiment is not from GamryWizard the line changes to Test &Identifier for some reason
                     if match is None:
-                        match = re.search(r'LABEL\s+(.*?)\s+Test &Identifier ', line)
+                        match = re.search(r'LABEL\s+(.*?)\s+Test &Identifier', line)                        
+
                     experiment_identifier = match.group(1)
                 if 'DATE' in line:
                     experiment_date = line.split()[2]
