@@ -39,8 +39,16 @@ class ConfigFrame(ttk.Labelframe):
         self.reference_potential_btn = tk.Button(self, 
                                 text = '+', 
                                 command = lambda: self.controller.apply_attr_to_selected(self.reference_potential_var, 'reference_potential'))  
+        
+        #BENCHMARK CURRENT DENSITIES
+        #self.benchmark_currents_label = tk.Label(self, text = f'Current densities [mA/cm2]', justify = 'left')
+        #self.benchmark_currents_var = tk.StringVar(value = -10)
+        #self.benchmark_currents_entry = ttk.Entry(self, textvariable = self.benchmark_currents_var)
 
-        self.settings = {'Ru': self.Ru_var, 'geometrical_area' : self.geometrical_area_var, 'reference_potential': self.reference_potential_var}
+        self.settings = {'Ru': self.Ru_var,
+                        'geometrical_area': self.geometrical_area_var,
+                        'reference_potential': self.reference_potential_var,
+                        }
         self.apply_all_btn = ttk.Button(self, text = 'Apply all', command = lambda: self.controller.apply_multiple(self.settings))
         self.apply_all_btn.grid(column = 3, row = 1, padx = 10, sticky = 'we')
         
@@ -50,14 +58,20 @@ class ConfigFrame(ttk.Labelframe):
         self.load_settings_btn = ttk.Button(self, text = 'Load settings', command = lambda: load_settings(self.settings))
         self.load_settings_btn.grid(column = 3, row = 0, padx = 10, sticky = 'we')
 
+        #LABELS
         self.geometrical_area_label.grid(column= 0, row = 0, sticky = 'w', padx = 10)
         self.reference_potential_label.grid(column= 0, row = 1, sticky = 'w', padx = 10)
         self.Ru_label.grid(column = 0, row = 2, sticky = 'w', padx = 10)
+        #self.benchmark_currents_label.grid(column = 0, row = 3, sticky = 'w', padx = 10)
 
+
+        #ENTRIES
         self.geometrical_area_entry.grid(column = 1, row = 0)
         self.reference_potential_entry.grid(column = 1, row = 1)
         self.Ru_cbox.grid(column = 1, row = 2)
-        
+        #self.benchmark_currents_entry.grid(column = 1, row = 3)
+
+        #BUTTONS
         self.geometrical_area_btn.grid(column = 2, row = 0, sticky ='w', ipadx = 2, ipady= 2)
         self.reference_potential_btn.grid(column = 2, row = 1, ipadx = 2, ipady= 2)
         self.apply_Ru_btn.grid(column = 2, row = 2, ipadx = 2, ipady= 2)

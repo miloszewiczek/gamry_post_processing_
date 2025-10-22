@@ -10,7 +10,7 @@ from gui.functions import variable_separation
 from functions.functions import calculate_slopes
 from tkinter.filedialog import asksaveasfilename
 import ttkbootstrap as ttk
-from gui import ExperimentTree, FileManagementFrame, PreviewImageFrame, ConfigFrame, TreeController, AnalysisTree
+from gui import ExperimentTree, FileManagementFrame, PreviewImageFrame, ConfigFrame, TreeController, AnalysisTree, OverpotWindow
 from utilities.utilities import convert_to_zview
 
 
@@ -94,24 +94,9 @@ class ExperimentOrchestrator(ttk.Window):
         self.config(menu = menubar)
 
     def overpot(self):
-        from functions.functions import calc_closest_value
+        
         d = self.filtered_tree_controller.get_experiments('selection')
-        currents = variable_separation(self.current.get(), ',', float)
-        #divide to obtain A/cm2
-        currents = [current/1000 for current in currents]
-        columns = ['E_iR vs RHE [V]', 'J_GEO [A/cm2]']
-        x = []
-        for exp in d:
-            df = exp.get_columns(columns = columns)
-            pot = df[columns[0]]
-            cur = df[columns[1]]
-            c = pd.DataFrame([calc_closest_value(currents, cur, pot, mode = 'first')], index = [exp.file_name], columns = currents)
-            x.append(c)
-        x = pd.concat(x)
-        x_transf = x.T
-        x_transf['mean'] = x_transf.mean(axis = 1)
-        x_transf['std'] = x_transf.std(axis = 1)
-        self.analysis.add_analysis(x_transf, aux = {'Dopa': 'dopa'})
+        window = OverpotWindow(self, d)
 
     def Ru_estimation(self):
         from gui.Ru_estimator import RuEstimate
@@ -134,7 +119,6 @@ class ExperimentOrchestrator(ttk.Window):
         d = self.manager.filter(object_type = Chronoamperometry)
         window = ChronoPicker(self, nodes = d, callback = None)
 
-        
     
     def receive(self, values, aux, name,):
         self.analysis.add_analysis(values, aux, name, False)

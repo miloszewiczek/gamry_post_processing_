@@ -6,3 +6,4 @@ from .config_frame import ConfigFrame
 from .tree_controller import TreeController
 from .treenode import TreeNode
 from .analysis_tree import AnalysisTree
+from .overpot import OverpotWindow
