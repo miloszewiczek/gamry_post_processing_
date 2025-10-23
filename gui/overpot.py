@@ -49,6 +49,9 @@ class OverpotWindow(tk.Toplevel):
         self.main_frame = tk.Frame(self)
         self.main_frame.grid(row = 0, column = 0)
 
+        self.bottom_frame = tk.Frame(self)
+        self.bottom_frame.grid(row = 2, column = 0)
+
         self.current_densities_var = tk.StringVar(value = -10)
         self.overpots_entry = tk.Entry(self.main_frame, textvariable = self.current_densities_var)
         tk.Label(self.main_frame, text = 'Calculate the overpotentials at given current densities.\n' \
@@ -56,8 +59,9 @@ class OverpotWindow(tk.Toplevel):
         'by separating the valeus with a comma.', justify = 'left').grid(row = 0, column = 0, padx = 10, pady = 5)
         tk.Label(self.main_frame, text = 'Current densities [mA/cm2]', justify = 'left').grid(row = 1, column = 0, sticky = 'w', padx = 10)
         self.overpots_entry.grid(row = 1, column = 1, sticky = 'we')
-        tk.Button(self.main_frame, text = 'Calculate', command = self.on_ok).grid(row = 2, column = 1)
-        tk.Button(self.main_frame, text = 'Cancel', command = lambda: self.destroy()).grid(row = 2, column = 0)
+        
+        tk.Button(self.bottom_frame, text = 'Cancel', command = lambda: self.destroy()).grid(row = 0, column = 0)
+        tk.Button(self.bottom_frame, text = 'Calculate', command = self.on_ok).grid(row = 0, column = 1)
 
         
         
