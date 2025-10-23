@@ -162,11 +162,35 @@ class Experiment():
 
     def get_columns(self, curve: int = 0, columns:list = None) -> tuple:
         
+        #get curve'th in the processed data
+        df = self.processed_data[curve]
+        tmp = []
+        cols_to_collect = []
         if columns is not None:
-            try:
-                return self.processed_data[curve][columns]
-            except:
-                print(f'No processed data {columns}')
+            for column in columns:
+                if column == 'E_iR vs RHE [V]' and 'E_iR vs RHE [V]' not in df.columns:
+                    column_to_use = 'E vs RHE [V]'
+                else:
+                    column_to_use = column
+                if column_to_use in df.columns:
+                    cols_to_collect.append(df[column_to_use])
+                else:
+                    print(f'No processed data {column_to_use}. Skipping.')
+            
+            if cols_to_collect:
+                tmp = pd.concat(cols_to_collect, axis=1)
+                tmp.columns = [s.name for s in cols_to_collect]  # ensure correct column names
+                return tmp
+
+        else:
+            print('Please input the columns')
+            return 0
+
+
+
+        
+
+
 
     def get_meta_data(self) -> dict:
         return self.meta_data

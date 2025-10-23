@@ -168,7 +168,10 @@ def calc_first(point, array, n = 1) -> int | list[int]:
         condition = 0
     elif array.iloc[-1] > array.iloc[0]:
         condition = -1
-    result = array_to_evaluate.index[condition]
+    try:
+        result = array_to_evaluate.index[condition]
+    except:
+        result = np.nan
     return result
 
 
@@ -190,8 +193,13 @@ def calc_closest_value(list_of_points:list[float | int], index_array, value_arra
 
     values = []
     for point in list_of_points:
+
         index = func(point, index_array, n = 1)
-        value = value_array[index]
+        #if out of bounds
+        if not isinstance(index, type(np.nan)):
+            value = value_array[index]
+        else:
+            value = index
         values.append(value)
     return values
     
