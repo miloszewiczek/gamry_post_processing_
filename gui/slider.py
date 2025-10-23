@@ -14,7 +14,7 @@ import pandas as pd
 import seaborn as sns
 from .analysis_tree import AnalysisTree
 from .selector import Selector
-
+from functions.functions import calculate_ECSA_from_slope
 
 class InteractivePlotApp(tk.Toplevel):
     def __init__(self, parent, data, callback = None):
@@ -83,6 +83,9 @@ class InteractivePlotApp(tk.Toplevel):
         self.calculate_map_btn = ttk.Button(self, text = 'MAP ME, BITCH', command = lambda: self.calculate_map())
         self.calculate_map_btn.grid(column = 4, row = 0)
 
+        self.calculate_manual = ttk.Button(self, text = 'Manual at 0.05 V', command = self.alternate_method)
+        self.calculate_manual.grid(column = 4, row = 1)
+
         self.initialize(tree = self.tree1_cont.tree, data = data)
         self.tree1_cont.tree.bind('<<TreeviewSelect>>', self.plot_previews)
 
@@ -102,52 +105,42 @@ class InteractivePlotApp(tk.Toplevel):
         #adding the analysis to main window
         self.callback('dupa', node.__dict__, node.text)
 
-        
-
     def on_focus_out(self, event):
+        
         self.on_slider_move(event)
         self.on_slider_release(event)
 
-
     def on_slider_move(self, event):
+        
         val = self.vline_pos.get()
-
         self.vline.set_xdata([val,val])
         self.canvas.draw_idle()
 
-
     def on_slider_release(self, *args):
-        scanrates, current_differences = self.calculate_difference(self.vline_pos.get())
-        self.plot_cdl(scanrates, current_differences)
-        a, b = self.calculate_regression_line(scanrates, current_differences)
-        self.plot_line(a, b, scanrates)
         
-        self.results = (a, b)
+        self.ax2.clear()
+        self.calculate_difference(self.vline_pos.get())
+        #scanrates, current_differences = self.calculate_difference(self.vline_pos.get())
+        #self.plot_cdl(scanrates, current_differences)
+        #a, b = self.calculate_regression_line(scanrates, current_differences)
+        #self.plot_line(a, b, scanrates)
+        
+        #self.results = (a, b)
+        pass
 
-    def calculate_difference(self, potential):
+    def calculate_difference(self):
 
-        #this also returns the vertical line, have to filter it out! (WIP)
-        scanrates = []
-        current_differences = []
+        #set collection for unique experiments, can store it beforehand to avoid doing this everytime!
+        experiments = {line.experiment for line in self.ax1.get_lines() if line is not self.vline}
 
-        for i, line in enumerate(self.ax1.get_lines()):
-            if line is self.vline:
-                continue
-            x_data = np.array(line.get_xdata())
-            y_data = np.array(line.get_ydata())
+        #important, this function now uses 'Vf' and 'Im' - unprocessed data. NEed to fix it later on
+        line, integral, dataframe = calculate_ECSA_from_slope(experiments, [self.vline_pos.get()])
+        self.ax2.scatter(dataframe[0], dataframe[1])
+        self.ax2.scatter(dataframe[0], dataframe[2])
+        self.plot_line(line[0], line[1], dataframe[0])
+        self.plot_line(integral[0], integral[1], dataframe[0])
 
-            scanrate = line.experiment.meta_data['SCANRATE']
-            #grab the first two indices, one for each sweep
-            idx = np.argsort(np.abs(x_data - potential))[:2]
-            two_currents = y_data[idx]
-            difference = abs(two_currents[0] - two_currents[1])
-            #print(f'difference: {difference}, scanrate: {scanrate}')
-            if scanrate in scanrates:
-                continue
-            scanrates.append(scanrate)
-            current_differences.append(difference)
-
-        return scanrates, current_differences
+        return 
 
     def manual_update(self):
         self.on_slider_move()
@@ -156,7 +149,6 @@ class InteractivePlotApp(tk.Toplevel):
     def calculate_map(self):
         
         result = []
-        
         min_x = self.slider.cget('from')
         max_x = self.slider.cget('to')
         y = np.arange(min_x, max_x, 0.001)
@@ -282,6 +274,12 @@ class InteractivePlotApp(tk.Toplevel):
         # Get column headings
         col_headings = [tree.heading(col)["text"] for col in tree["columns"]]    
         pd.DataFrame(list_to_df, columns = col_headings).to_excel('test.xlsx', engine = 'openpyxl')
+
+    def alternate_method(self):
+        experiments = self.tree2_cont.get_experiments('all')
+        slopes, df = calculate_ECSA_from_slope(experiments, [self.vline_pos.get()])
+        print(slopes[0])
+
 
 if __name__ == "__main__":
     app = InteractivePlotApp()

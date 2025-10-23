@@ -1,7 +1,6 @@
 import tkinter as tk
 from tkinter import ttk
-from functions.functions import calc_closest_value, calcualte_overpotentials
-from gui.functions import variable_separation
+from functions.functions import calcualte_overpotentials
 import pandas as pd
 from core import Experiment
 from pandastable import Table, config
@@ -13,7 +12,6 @@ class OverpotWindow(tk.Toplevel):
         self.experiments = experiments
         self.parent = parent
         self.gui()
-
 
     def on_ok(self):
         
