@@ -63,28 +63,30 @@ class InteractivePlotApp(tk.Toplevel):
         self.potential_entry = ttk.Entry(self.input_frame, textvariable = self.vline_pos)
         self.potential_entry.bind('<FocusOut>', self.on_focus_out)
         self.potential_entry.bind('<Return>', self.on_focus_out)
-        self.potential_entry.grid(column = 0, row = 1, sticky = 'we')
+        self.potential_entry.grid(column = 0, row = 1, sticky = 'we', padx = 5, pady = 5)
 
         self.analysis_list = []
         self.add_analysis_btn = ttk.Button(self.input_frame, text = 'Add analysis', command = self.add_analysis)
-        self.add_analysis_btn.grid(row = 3, column = 3)
+        self.add_analysis_btn.grid(row = 3, column = 3, padx = 5, pady = 5)
 
         self.begin_analysis_btn = ttk.Button(self.input_frame, text = 'Begin analysis', command = self.set_lines)
-        self.begin_analysis_btn.grid(row = 3, column = 1)
+        self.begin_analysis_btn.grid(row = 3, column = 1, padx = 5, pady = 5)
 
+        self.copy_dataframe = ttk.Button(self.input_frame, text = 'Copy CDL plot', command = self.get_dataframe_from_plot)
+        self.copy_dataframe.grid(row = 3, column = 4, padx = 5, pady = 5)
 
-        self.col_headers = {'potential': 'Potential [V]', 'Cdl': 'CDL [F]', 'b': 'b [F/mV/s]'}
+        self.col_headers = {'potential': 'Potential [V]',
+                            'Cdl': 'CDL [F]', 'b': 'b [F/V/s]',
+                            'Cdl_int': 'CDL integrate [F]', 'b_int': 'b integrate [F/V/s]'}
         self.saved_analyses = AnalysisTree(self, columns = self.col_headers,
-                                           sizes = (200, 75, 75, 75))
+                                           sizes = (90, 90, 90, 90, 150, 150))
 
         self.saved_analyses.grid(row=0, column = 3)
         self.analysis_counter = 1
 
-        self.calculate_map_btn = ttk.Button(self, text = 'MAP ME, BITCH', command = lambda: self.calculate_map())
-        self.calculate_map_btn.grid(column = 4, row = 0)
 
-        self.calculate_manual = ttk.Button(self, text = 'Manual at 0.05 V', command = self.alternate_method)
-        self.calculate_manual.grid(column = 4, row = 1)
+        self.calculate_map_btn = ttk.Button(self, text = 'Create map', command = self.calculate_map)
+        self.calculate_map_btn.grid(column = 4, row = 0)
 
         self.initialize(tree = self.tree1_cont.tree, data = data)
         self.tree1_cont.tree.bind('<<TreeviewSelect>>', self.plot_previews)
@@ -95,12 +97,11 @@ class InteractivePlotApp(tk.Toplevel):
 
     def add_analysis(self):
 
-        CDL = f'{self.results[0]}'
-        b = f'{self.results[1]}'
+        CDL1, b1 = self.results[0]
+        CDL2, b2 = self.results[1]
         potential = f'{self.vline_pos.get()}'
         experiments_from_analysis = self.tree2_cont.get_experiments('all')
-        file_paths = [exp.file_path for exp in experiments_from_analysis]
-        node = self.saved_analyses.add_analysis(values = (potential, CDL, b), aux = {'Filepath' : 'x', 'test': 'dooppa'}, ask = True)
+        node = self.saved_analyses.add_analysis(values = (potential, CDL1, b1, CDL2, b2), aux = {'Filepath' : 'x', 'test': 'dooppa'}, ask = True)
 
         #adding the analysis to main window
         self.callback('dupa', node.__dict__, node.text)
@@ -119,14 +120,7 @@ class InteractivePlotApp(tk.Toplevel):
     def on_slider_release(self, *args):
         
         self.ax2.clear()
-        self.calculate_difference(self.vline_pos.get())
-        #scanrates, current_differences = self.calculate_difference(self.vline_pos.get())
-        #self.plot_cdl(scanrates, current_differences)
-        #a, b = self.calculate_regression_line(scanrates, current_differences)
-        #self.plot_line(a, b, scanrates)
-        
-        #self.results = (a, b)
-        pass
+        self.results, self.dataframe = self.calculate_difference()
 
     def calculate_difference(self):
 
@@ -135,12 +129,12 @@ class InteractivePlotApp(tk.Toplevel):
 
         #important, this function now uses 'Vf' and 'Im' - unprocessed data. NEed to fix it later on
         line, integral, dataframe = calculate_ECSA_from_slope(experiments, [self.vline_pos.get()])
-        self.ax2.scatter(dataframe[0], dataframe[1])
-        self.ax2.scatter(dataframe[0], dataframe[2])
-        self.plot_line(line[0], line[1], dataframe[0])
-        self.plot_line(integral[0], integral[1], dataframe[0])
+        self.ax2.scatter(dataframe.iloc[:,0], dataframe.iloc[:,1])
+        self.ax2.scatter(dataframe.iloc[:,0], dataframe.iloc[:,2])
+        self.plot_line(line[0], line[1], dataframe.iloc[:,0])
+        self.plot_line(integral[0], integral[1], dataframe.iloc[:,0])
 
-        return 
+        return (line, integral), dataframe
 
     def manual_update(self):
         self.on_slider_move()
@@ -278,7 +272,10 @@ class InteractivePlotApp(tk.Toplevel):
     def alternate_method(self):
         experiments = self.tree2_cont.get_experiments('all')
         slopes, df = calculate_ECSA_from_slope(experiments, [self.vline_pos.get()])
-        print(slopes[0])
+
+    def get_dataframe_from_plot(self):
+        
+        self.dataframe.to_clipboard()
 
 
 if __name__ == "__main__":

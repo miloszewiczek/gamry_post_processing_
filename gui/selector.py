@@ -34,7 +34,6 @@ class Selector(ttk.Frame):
     def move(self, from_:ttk.Treeview, to:ttk.Treeview):
 
         for item_id in from_.selection():
-            print(item_id)
             
             text = from_.item(item_id, 'text')
             values = from_.item(item_id, 'values')

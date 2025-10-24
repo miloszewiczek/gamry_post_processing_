@@ -474,8 +474,6 @@ def plot_experiment(experiment: Experiment, ax, canvas, x_column, y_column, labe
 
     plots = []
 
-    print(type(experiment))
-    print(label)
     try:
         label = getattr(experiment, f'{label}')
     except:

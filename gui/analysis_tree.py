@@ -1,6 +1,7 @@
 import tkinter as tk
 from tkinter import ttk
 from tkinter.simpledialog import askstring
+from tkinter.filedialog import asksaveasfile
 from .treenode import TreeNode
 from pandas import DataFrame
 from .tree_controller import TreeController
@@ -46,8 +47,12 @@ class AnalysisTree(ttk.Frame):
         self.delete_btn = ttk.Button(self.options_frame, command = self.delete_node, text = '-')
         self.delete_btn.grid(row = 0, column = 0)
 
-        self.save_analyses_btn = ttk.Button(self.options_frame, command = self.save_treeview, text = 'Save')
+        self.save_analyses_btn = ttk.Button(self.options_frame, command = self.save_dataframe, text = 'Save')
         self.save_analyses_btn.grid(row = 1, column = 0)
+
+        self.copy_analyses_btn = ttk.Button(self.options_frame, command = self.copy_df_to_clipboard, text = 'Copy')
+        self.copy_analyses_btn.grid(row = 2, column = 0)
+
 
         self.tree.bind('<Double-Button-1>', lambda x: self.inspect(x))
         
@@ -64,11 +69,9 @@ class AnalysisTree(ttk.Frame):
         #else, name is used
 
         #makign sure its a tuple
-        print(type(values))
         if not isinstance(values, tuple):
             values = (values,)
 
-        print(values)
         #creating a TreeNode
         tree_view_node = TreeNode(self.counter,
                                   name,
@@ -85,7 +88,7 @@ class AnalysisTree(ttk.Frame):
         self.counter += 1
         return tree_view_node
 
-    def save_treeview(self, tree: ttk.Treeview = None):
+    def create_dataframe(self, tree: ttk.Treeview = None):
 
         if tree is None:
             tree = self.tree
@@ -95,10 +98,30 @@ class AnalysisTree(ttk.Frame):
             row_item = tree.item(row_id, 'values')
             list_to_df.append(row_item)
 
+        if len(list_to_df) == 0:
+            print('No dataframe created')
+            return None
+        
         # Get column headings
         col_headings = [tree.heading(col)["text"] for col in tree["columns"]]    
-        DataFrame(list_to_df, columns = col_headings).to_excel('test.xlsx', engine = 'openpyxl')
+        self.dataframe = DataFrame(list_to_df, columns = col_headings)
+        return self.dataframe
 
+    def copy_df_to_clipboard(self):
+        
+        dataframe = self.create_dataframe(self.tree)
+        if dataframe is None:
+            print('No dataframe created')
+            return
+        dataframe.to_clipboard()
+    
+    def save_dataframe(self):
+
+        dataframe = self.create_dataframe(self.tree)
+        if dataframe is None:
+            print('No dataframe created')
+            return
+        dataframe.to_excel(asksaveasfile(), engine = 'openpyxl')
 
     def delete_node(self):
         self.tree.delete(self.tree.selection())
