@@ -10,10 +10,13 @@ class Chronoamperometry(Experiment):
     def process_data(self, interactive = False):
 
         result = super().process_data()
+        
+        '''
         if interactive == False:
             self.get_current_at_time(settings.options['time'])
         elif interactive == True:
             self.pick_current()
+        '''
 
         return result
     

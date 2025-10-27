@@ -8,6 +8,15 @@ from tkinter import ttk
 from .treenode import TreeNode
 from datetime import datetime
 from os import startfile
+from openpyxl import Workbook
+import os
+import tkinter as tk
+from tkinter import messagebox
+from matplotlib import pyplot as plt
+from typing import Literal, Any
+from dataclasses import dataclass
+from experiments import Experiment
+
 
 
 
@@ -281,26 +290,11 @@ def plot_selected(controller, ax, canvas):
     #get first_x and first_y attributes of the first experiment for further validation
     first_experiment = experiments[0]
     first_x, first_y = getattr(first_experiment, 'default_x'), getattr(first_experiment, 'default_y')
-    print(first_x)
 
     #validating the column names, returns an error window if they are different
     validate_selection_compatibility(experiments, first_x= first_x, first_y = first_y)
     for experiment in experiments:
         plot_experiment(experiment, ax, canvas, first_x, first_y, label = 'file_name')
-
-
-
-
-
-from openpyxl import Workbook
-import os
-import tkinter as tk
-from tkinter import ttk
-from tkinter import messagebox
-from matplotlib import pyplot as plt
-from typing import Literal, Any
-from dataclasses import dataclass
-from experiments import Experiment
 
 
 def create_empty_excel(file_name: str):
@@ -459,7 +453,7 @@ def validate_selection_compatibility(experiments, first_x, first_y):
     return True
     
 
-def plot_experiment(experiment: Experiment, ax, canvas, x_column, y_column, label = 'file_name', **kwargs):
+def plot_experiment(experiment: Experiment, ax, canvas, x_column, y_column, label = 'file_name', index = None, **kwargs):
 
     def set_equal_axis_limits(ax: plt.Axes):
         """Adjust plot so X and Y have the same limits and scale."""
@@ -471,7 +465,6 @@ def plot_experiment(experiment: Experiment, ax, canvas, x_column, y_column, labe
         ax.set_ylim(lim_min, lim_max)
         return
 
-
     plots = []
 
     try:
@@ -479,7 +472,8 @@ def plot_experiment(experiment: Experiment, ax, canvas, x_column, y_column, labe
     except:
         label = 'Plot'
     
-    data = experiment.get_data(index = None, data_type = 'processed_data')
+    print(index)
+    data = experiment.get_data(index = index, data_type = 'processed_data')
 
     for curve in data:
             x = curve[x_column]
@@ -496,7 +490,8 @@ def plot_experiment(experiment: Experiment, ax, canvas, x_column, y_column, labe
             setattr(line_plot, 'experiment', experiment)
             plots.append(line_plot)
 
-    ax.legend(fontsize = 'x-small')
+
+    #ax.legend(fontsize = 'x-small')
     canvas.draw_idle()
     return plots
 

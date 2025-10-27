@@ -21,7 +21,6 @@ class Experiment():
         self.id = id
         self.tag = tag
         self.parameters = {}
-        self.processed_data = []
         self.cycle = cycle
         self.default_x = 'E vs RHE [V]'
         self.default_y = 'J_GEO [A/cm2]'
@@ -145,9 +144,10 @@ class Experiment():
         
         if index == "None" or index == None:
             return data 
-        else:
-            index = int(index)
+        elif isinstance(index, int):
             return [data[index]]
+        else:
+            return [self.processed_data[i] for i in index]
         
     def get_default_columns(self, axis: Literal['x','y','both'], columns:list = None):
         '''Helper function that returns the default column name stored in default_x or default_y'''
@@ -185,12 +185,6 @@ class Experiment():
         else:
             print('Please input the columns')
             return 0
-
-
-
-        
-
-
 
     def get_meta_data(self) -> dict:
         return self.meta_data

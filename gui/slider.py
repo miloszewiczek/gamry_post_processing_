@@ -84,16 +84,18 @@ class InteractivePlotApp(tk.Toplevel):
         self.saved_analyses.grid(row=0, column = 3)
         self.analysis_counter = 1
 
+        self.curve_selection_var = tk.StringVar(self, value = -1)
+        self.curve_selector = ttk.Combobox(self, values = (0, 1, 2, 'all', 'custom (WIP)'), textvariable = self.curve_selection_var)
+        self.curve_selector.grid(row = 4, column = 4)
+        self.curve_selector.bind('<<ComboboxSelected>>', self.update_plot)
+
 
         self.calculate_map_btn = ttk.Button(self, text = 'Create map', command = self.calculate_map)
         self.calculate_map_btn.grid(column = 4, row = 0)
 
-        self.initialize(tree = self.tree1_cont.tree, data = data)
+        self.tree1_cont.initialize_tree(data = data)
         self.tree1_cont.tree.bind('<<TreeviewSelect>>', self.plot_previews)
 
-    def initialize(self, tree, data: list[Experiment]):
-        for experiment in data:
-            tree.insert('', 'end', experiment.id, text = experiment.file_name)
 
     def add_analysis(self):
 
@@ -118,21 +120,31 @@ class InteractivePlotApp(tk.Toplevel):
         self.canvas.draw_idle()
 
     def on_slider_release(self, *args):
-        
-        self.ax2.clear()
+        if hasattr(self, "scatter_plot"):
+            self.scatter_plot.remove()
+            del self.scatter_plot
+
+        if hasattr(self, "regression_line"):
+            self.regression_line.remove()
+            del self.regression_line
+
         self.results, self.dataframe = self.calculate_difference()
 
-    def calculate_difference(self):
-
+    def calculate_difference(self, potential = None):
+        print('Calculated!')
         #set collection for unique experiments, can store it beforehand to avoid doing this everytime!
         experiments = {line.experiment for line in self.ax1.get_lines() if line is not self.vline}
 
+        if potential is None:
+            potential = self.vline_pos.get()
+
         #important, this function now uses 'Vf' and 'Im' - unprocessed data. NEed to fix it later on
-        line, integral, dataframe = calculate_ECSA_from_slope(experiments, [self.vline_pos.get()])
-        self.ax2.scatter(dataframe.iloc[:,0], dataframe.iloc[:,1])
-        self.ax2.scatter(dataframe.iloc[:,0], dataframe.iloc[:,2])
+        line, integral, dataframe = calculate_ECSA_from_slope(experiments, potential, index = self.get_curve_variable())
+        #self.ax2.scatter(dataframe.iloc[:,0], dataframe.iloc[:,1])
+        self.plot_cdl(dataframe.iloc[:,0], dataframe.iloc[:,1])
+        #self.ax2.scatter(dataframe.iloc[:,0], dataframe.iloc[:,2])
         self.plot_line(line[0], line[1], dataframe.iloc[:,0])
-        self.plot_line(integral[0], integral[1], dataframe.iloc[:,0])
+        #self.plot_line(integral[0], integral[1], dataframe.iloc[:,0])
 
         return (line, integral), dataframe
 
@@ -149,9 +161,13 @@ class InteractivePlotApp(tk.Toplevel):
         y = np.round(y, 3)
 
         for potential in y:
-            scanrates, current_differences = self.calculate_difference(potential = potential)
+            _, df = self.calculate_difference(potential = potential)
+            current_differences = df.iloc[:,1]
+            print(current_differences)
             result.append(current_differences)
+        scanrates = df.iloc[:,0]
         df = pd.DataFrame(result, columns = scanrates, index = y)
+        print(df)
         plt.figure(figsize = (8,6))
         plt.imshow(df, cmap = 'viridis', interpolation = 'bicubic', origin = 'lower', aspect = 'auto')
         plt.colorbar()
@@ -164,6 +180,7 @@ class InteractivePlotApp(tk.Toplevel):
             self.scatter_plot = self.ax2.scatter(x, y)
         else:
             self.scatter_plot.set_offsets(np.c_[x, y])
+        self.canvas.draw_idle()
 
     def plot_line(self, a, b, x):
         x_array = np.array(x)
@@ -207,13 +224,17 @@ class InteractivePlotApp(tk.Toplevel):
 
         return 
     
-    def plot_data(self):
-        
-        clear_plot(self.ax1)
-        experiments = self.tree2_cont.get_experiments('all')
-        for experiment in experiments:
-            plot_experiment(experiment, self.ax1, self.canvas, x_column = 'E vs RHE [V]', y_column = 'J_GEO [A/cm2]', alpha = 0.2)
-    
+    def get_curve_variable(self):
+
+        try:
+            index = [int(self.curve_selection_var.get())]
+        except:
+            if self.curve_selection_var.get() == 'all':
+                index = [0, 1, 2]
+                print('Getting only 3 curves!!!!')
+            
+        return index
+
     def plot_previews(self, event):
         # Make sure we have a list to track preview lines
         if not hasattr(self, "preview_lines"):
@@ -225,10 +246,21 @@ class InteractivePlotApp(tk.Toplevel):
                 line.remove()
         self.preview_lines.clear()
 
-        preview_datasets = self.tree1_cont.get_experiments('selection')
+        try:
+            preview_datasets = self.tree1_cont.get_experiments('selection')
+        except:
+            print(print(self.tree1_cont.tree.item(self.tree1_cont.tree.selection(),'text')))
+            return
+        
         # Plot new previews
         for preview_dataset in preview_datasets:
-            lines = plot_experiment(preview_dataset, self.ax1, self.canvas, x_column = 'E vs RHE [V]', y_column= 'J_GEO [A/cm2]', alpha = 0.2)
+            lines = plot_experiment(preview_dataset,
+                                    self.ax1,
+                                    self.canvas,
+                                    x_column = 'E vs RHE [V]',
+                                    y_column= 'J_GEO [A/cm2]',
+                                    index = self.get_curve_variable(),
+                                    alpha = 0.2)
             self.preview_lines.extend(lines)
             
         self.canvas.draw_idle()
@@ -254,10 +286,16 @@ class InteractivePlotApp(tk.Toplevel):
         return min({experiment.get_parameter('STEPSIZE') for experiment in experiments})
 
     def update_plot(self, event):
-        self.ax1.clear()
+        clear_plot(self.ax1)
         experiments = self.tree2_cont.get_experiments('all')
         for experiment in experiments:
-            plot_experiment(experiment, self.ax1, self.canvas, x_column = 'E vs RHE [V]', y_column = 'J_GEO [A/cm2]')
+            plot_experiment(experiment,
+                            self.ax1,
+                            self.canvas,
+                            x_column = 'E vs RHE [V]',
+                            y_column = 'J_GEO [A/cm2]',
+                            index = self.get_curve_variable(),
+                            alpha = 1)
 
     def save_treeview(self, tree: ttk.Treeview):
         list_to_df = []

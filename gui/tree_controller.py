@@ -19,10 +19,28 @@ class TreeController:
         self.selected_all_var = tk.BooleanVar(value = False)
         self.initialize_tree(nodes)
 
-    def initialize_tree(self, nodes: list[Experiment]):
-        if nodes:
-            for node in nodes:
-                self.tree.insert('', 'end', node.id, text = node.file_name)
+    def initialize_tree(self, tree = None, data: list[Experiment] = None):
+        
+        self.experiment_ids = set()
+        if tree is None:
+            tree = self.tree
+
+        #if no folder nodes are present
+        if not hasattr(self, 'folder_nodes'):
+            self.folder_nodes = {}
+
+        if data is None:
+            return
+        
+        for experiment in data:
+            folder_name = getattr(experiment, 'folder')
+            if not folder_name in self.folder_nodes:
+                id = tree.insert('', 'end', text = folder_name)
+                self.folder_nodes[folder_name] = id
+            exp_id = tree.insert(self.folder_nodes[folder_name], 'end', experiment.id, text = experiment.file_name)
+            self.experiment_ids.add(exp_id)
+
+        
 
     def add_node(self, exp_id: str, text: str, experiment, node_type: str, other_info=(None)):
         

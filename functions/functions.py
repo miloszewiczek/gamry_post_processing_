@@ -4,7 +4,7 @@ import numpy as np
 from gui.functions import variable_separation
 from matplotlib import pyplot as plt
 
-def calculate_ECSA_from_slope(ECSA_experiments: list[ECSA], potential_list:list, *args) -> list:
+def calculate_ECSA_from_slope(ECSA_experiments: list[ECSA], potential_list:list, index, *args, **kwargs) -> list:
     """Function to perform the calculate_difference_at_potential on
     provided ECSA experiments in different potentials and fit the 
     data to a linear regression model.
@@ -33,8 +33,8 @@ def calculate_ECSA_from_slope(ECSA_experiments: list[ECSA], potential_list:list,
                 experiment.load_data()
             
             #difference and integral are mean values of all curves in an experiment. Need to let user know!
-            difference = experiment.calculate_difference_at_potential(potential)
-            integral = experiment.calculate_CDL_integral()
+            difference = experiment.calculate_difference_at_potential(potential, index = index)
+            integral = experiment.calculate_CDL_integral(index = index)
             scanrate = experiment.meta_data['SCANRATE'] / 1000
             
             difference_list.append((scanrate, difference, integral))
@@ -44,7 +44,7 @@ def calculate_ECSA_from_slope(ECSA_experiments: list[ECSA], potential_list:list,
         x = x.sort_values(by = ['Scanrate [V/s]'])
         
         slope1, intercept1 = np.polyfit(x.iloc[:,0], x.iloc[:,1], 1)
-        slope2, intercept2 = np.polyfit(x.iloc[:,0], x.iloc[:,2],1)
+        slope2, intercept2 = np.polyfit(x.iloc[:,0], x.iloc[:,2], 1)
         results.append(x)
         
     return (slope1, intercept1), (slope2, intercept2), x

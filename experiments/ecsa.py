@@ -6,7 +6,7 @@ class ECSA(Voltammetry):
     def __init__(self, file_path, date_time, id, tag, cycle):
         super().__init__(file_path, date_time, id, tag, cycle)
 
-    def calculate_difference_at_potential(self, potential) -> float:
+    def calculate_difference_at_potential(self, potential, index = None) -> float:
         '''A method to calculate the difference of current at a specific potential. The potential must lie
         between the potential limits from the experiment. This function needs to be combined with linear_regression
         method to calculate the double-layer capacitance.
@@ -19,24 +19,44 @@ class ECSA(Voltammetry):
         average_difference: an average of all measurements within an experiment'''
 
         current_diff_list  = []
-        #CHECKS WHETHER THE POTENTIAL LIES WITHIN THE EXPERIMENTAL LIMITS
-        if self.meta_data['VLIMIT1'] > self.meta_data['VLIMIT2']:
-            if potential > self.meta_data['VLIMIT1'] or potential < self.meta_data['VLIMIT2']:
+
+        #CHECKS WHETHER THE POTENTIAL LIES WITHIN THE EXPERIMENTAL LIMITS, ADJUSTED BY 
+        #REFERENCE POTENTIAL OFFSET
+        adjusted_limit1 = self.meta_data['VLIMIT1'] + self.reference_potential
+        adjusted_limit2 = self.meta_data['VLIMIT2'] + self.reference_potential
+
+        if adjusted_limit1 > adjusted_limit2:
+            if (potential > adjusted_limit1) or (potential < adjusted_limit2):
                 print('Potential out of range')
                 return
         
-        for curve in self.data_list:
+        if self.processed_data:
+            data = self.processed_data
+            current_column = 'J_GEO [A/cm2]'
+            if self.Ru > 0:
+                potential_column = 'E_iR vs RHE [V]'
+            else:
+                potential_column = 'E vs RHE [V]'
+        else:
+            data = self.data_list
+            potential_column = 'Vf'
+            current_column = 'Im'
+            print('No processed data. Using default Vf and Im columns to calculate the difference!')
 
-            distances = (curve['Vf'] - potential).abs()
+        if index is not None:
+            data = [data[i] for i in index]
+
+        for curve in data:
+            distances = (curve[potential_column] - potential).abs()
             minimal_distance_index = distances.argsort()[:2]
-            current_values = curve.iloc[minimal_distance_index]['Im']
+            current_values = curve.iloc[minimal_distance_index][current_column]
             result = abs(current_values.iloc[0] - current_values.iloc[1])
             
             current_diff_list.append(result)
 
         return np.mean(current_diff_list)
     
-    def calculate_CDL_integral(self):
+    def calculate_CDL_integral(self, index = None):
         '''A method to calculate the double-layer capacitance using the integral method:
         C_DL = integral(idv)/(2 * scanrate * potential window)
         
@@ -49,10 +69,24 @@ class ECSA(Voltammetry):
 
         capacitance_list = []
 
-        for curve in self.data_list:
+        if self.processed_data:
+            data = self.processed_data
+            current_column = 'J_GEO [A/cm2]'
+            if self.Ru > 0:
+                potential_column = 'E_iR vs RHE [V]'
+            else:
+                potential_column = 'E vs RHE [V]'
+        else:
+            data = self.data_list
 
-            potential_data = curve['Vf']
-            current_data = curve['Im']
+        if index is not None:
+            print('calculating for index')
+            data = [data[i] for i in index]
+
+        for curve in data:
+
+            potential_data = curve[potential_column]
+            current_data = curve[current_column]
             max_potential = potential_data.idxmax()
             
             integral_scan_forward = np.trapz(abs(current_data.loc[:max_potential + 1]), potential_data.loc[:max_potential + 1])

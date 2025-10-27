@@ -44,7 +44,11 @@ class ChronoPicker(tk.Toplevel):
 
         def plot():
             self.ax.clear()
-            self.current_id = int(self.data_treeview.selection()[0])
+            try:
+                self.current_id = int(self.data_treeview.selection()[0])
+            except:
+                return #making sure that the folder node is skipped
+            
             experiments = self.data_treeview_controller.get_experiments('selection')
             #grab first experiment
             exp = experiments[0]
@@ -53,10 +57,11 @@ class ChronoPicker(tk.Toplevel):
             x = data['T [s]']
             y = data['J_GEO [A/cm2]']
             potential = exp.get_columns(0 , columns = ['E_iR vs RHE [V]'])
-            iRdrop = True
-            if potential is None:
-                potential = exp.get_columns(0 , columns = ['E vs RHE [V]'])
+            if exp.Ru > 0:
+                iRdrop = exp.Ru
+            else:
                 iRdrop = False
+
             potential = np.asarray(potential).flatten()
             
         
@@ -67,18 +72,12 @@ class ChronoPicker(tk.Toplevel):
         
         def next():
             next_id = self.current_id + 1
-            maximum = max([int(child) for child in self.data_treeview.get_children()])
-            if self.current_id >= maximum:
-                return
             self.data_treeview.selection_set(next_id)
             plot()
             return next_id
         
         def previous():
             previous_id = self.current_id - 1
-            minimum = min([int(child) for child in self.data_treeview.get_children()])
-            if self.current_id <= minimum:
-                return 
             self.data_treeview.selection_set(previous_id)
             plot()
             return previous_id
@@ -94,29 +93,34 @@ class ChronoPicker(tk.Toplevel):
 
         self.data_treeview = ttk.Treeview(self)
         self.data_treeview.tag_configure('analyzed', background='#d1ffd1', foreground='black')   # light green
-        self.data_treeview.pack()
+        self.data_treeview.grid(row = 0, column = 0)
         self.data_treeview_controller = TreeController(parent.loader, self.data_treeview, parent.manager)
-        self.data_treeview_controller.initialize_tree(nodes = nodes)
+        self.data_treeview_controller.initialize_tree(data = nodes)
 
         self.analysis_treeview = AnalysisTree(self, 
                                               columns = ('E', 'T', 'J', 'Ru'),
                                               headers = ('E vs RHE [V]', 'T [s]', 'J GEO [A/cm2]', 'Ru?'),
                                               sizes = (75, 75, 75, 75, 75))
-        self.analysis_treeview.pack()
+        self.analysis_treeview.grid(row = 0, column = 1)
 
+
+        
+        self.figure_frame = ttk.Frame(self)
+        self.figure_frame.grid(row = 1, column = 0)
         self.fig, self.ax = plt.subplots()
-        self.canvas = FigureCanvasTkAgg(self.fig, self)
-        self.canvas.get_tk_widget().pack(fill='both', expand=True)
+        self.canvas = FigureCanvasTkAgg(self.fig, self.figure_frame)
+        self.canvas.get_tk_widget().grid(row = 0, column = 0, rowspan = 3)
         if (x is not None) and (y is not None):
             self.first_plot = self.ax.plot(x, y)
             self.canvas.mpl_connect('button_press_event', on_click)
         self.canvas.draw_idle()
 
 
-        
-        self.plot_btn = ttk.Button(self, command = plot, text = 'plot')
-        self.plot_btn.pack()
+        self.button_frame = ttk.Frame(self.figure_frame)
+        self.button_frame.grid(row = 0, column = 1)
+        self.plot_btn = ttk.Button(self.button_frame, command = plot, text = 'Plot')
+        self.plot_btn.grid(row = 0, column = 1, sticky = 'n', padx = 5, pady = 5)
 
-        ttk.Button(self, command = lambda: print(self.analysis_dict), text = 'Show dict').pack()
-        ttk.Button(self, command = next, text = '>').pack()    
-        ttk.Button(self, command = previous, text = '<').pack()    
+        ttk.Button(self.button_frame, command = next, text = '>').grid(row= 1, column = 1, sticky = 'n', padx = 5, pady = 5)
+        ttk.Button(self.button_frame, command = previous, text = '<').grid(row = 2, column = 1, sticky = 'n', padx = 5, pady = 5)    
+        

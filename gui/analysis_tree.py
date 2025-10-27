@@ -45,13 +45,13 @@ class AnalysisTree(ttk.Frame):
         self.options_frame = ttk.Frame(self)
         self.options_frame.grid(row = 0, column = 1, sticky = 'ns')
         self.delete_btn = ttk.Button(self.options_frame, command = self.delete_node, text = '-')
-        self.delete_btn.grid(row = 0, column = 0)
+        self.delete_btn.grid(row = 0, column = 0, padx = 5, pady = 5)
 
         self.save_analyses_btn = ttk.Button(self.options_frame, command = self.save_dataframe, text = 'Save')
-        self.save_analyses_btn.grid(row = 1, column = 0)
+        self.save_analyses_btn.grid(row = 1, column = 0, padx = 5, pady = 5)
 
         self.copy_analyses_btn = ttk.Button(self.options_frame, command = self.copy_df_to_clipboard, text = 'Copy')
-        self.copy_analyses_btn.grid(row = 2, column = 0)
+        self.copy_analyses_btn.grid(row = 2, column = 0, padx = 5, pady = 5)
 
 
         self.tree.bind('<Double-Button-1>', lambda x: self.inspect(x))
@@ -92,10 +92,14 @@ class AnalysisTree(ttk.Frame):
 
         if tree is None:
             tree = self.tree
-            
+        
+        indexes = []
         list_to_df = []
         for row_id in tree.get_children():
+            index = tree.item(row_id, 'text')
             row_item = tree.item(row_id, 'values')
+
+            indexes.append(index)
             list_to_df.append(row_item)
 
         if len(list_to_df) == 0:
@@ -104,7 +108,7 @@ class AnalysisTree(ttk.Frame):
         
         # Get column headings
         col_headings = [tree.heading(col)["text"] for col in tree["columns"]]    
-        self.dataframe = DataFrame(list_to_df, columns = col_headings)
+        self.dataframe = DataFrame(list_to_df, columns = col_headings, index = indexes)
         return self.dataframe
 
     def copy_df_to_clipboard(self):
