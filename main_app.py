@@ -103,7 +103,6 @@ class ExperimentOrchestrator(ttk.Window):
         d = self.manager.filter(object_type = [LinearVoltammetry, Voltammetry, ECSA])
         window = RuEstimate(self, self.manager, self.loader, lambda x: self.config_frame.Ru_var.set(x), nodes = d)
 
-
     def tafel_plot(self):
         from gui.tafel_window import tafel_window
         d = self.manager.filter(object_type = LinearVoltammetry)

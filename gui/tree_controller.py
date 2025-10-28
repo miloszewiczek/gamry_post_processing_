@@ -226,8 +226,8 @@ class TreeController:
         else:
             self.refresh_tree('all')
 
-    def inspect(self):
-        inspect_experiment(self.get_experiments('selection')[0])
+    def inspect(self, **kwargs):
+        inspect_experiment(self.get_experiments('selection')[0], **kwargs)
 
     def save(self, **kwargs):
         experiments = self.get_experiments('all')

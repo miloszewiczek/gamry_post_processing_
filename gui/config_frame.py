@@ -8,7 +8,7 @@ class ConfigFrame(ttk.Labelframe):
     def __init__(self, parent, controller: TreeController):
         super().__init__(parent, text = 'Configuration')
         self.controller = controller
-        
+        self.parent = parent
 
         #UNCOMPENSATED RESISTANCE
         self.Ru_label = tk.Label(self, text = f'Uncompensated resistance [{uni_map['Ohm']}]')
@@ -100,5 +100,6 @@ class ConfigFrame(ttk.Labelframe):
         ttk.Radiobutton(tmp, variable= selection_var, text = 'Selection', value = 'selection').pack()
         ttk.Radiobutton(tmp, variable = selection_var, text = 'All', value = 'all').pack()
         
-
+    def set_Ru_in_window(self, value):
+        self.Ru_var.set(value)
         

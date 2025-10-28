@@ -559,8 +559,10 @@ def inspect_node(node, **kwargs):
     ttk.Button(top, text = 'Cancel', command = top.destroy).grid(row = 4, column = 1, padx = 5, pady =2)
 
 
-def inspect_experiment(experiment: Experiment):
-    dict_to_show = experiment.get_essentials()
+def inspect_experiment(experiment: Experiment, **kwargs):
+
+
+    dict_to_show = experiment.get_essentials()         
 
     top = tk.Toplevel()
     top.title("Experiment Metadata")
@@ -596,6 +598,18 @@ def inspect_experiment(experiment: Experiment):
     #placeholder for opening file in text editor
     filepath = dict_to_show['Filepath'][0]
     tk.Button(top, text = 'Open', command = lambda: startfile(filepath)).grid(row = i + 1, column = 1, sticky = 'e', padx = 5, pady = 2)
+    
+    if 'EIS' in dict_to_show['Experiment TAG'][0]:
+        def get_quick_Ru():
+            zimag_max = experiment.data_list[0]['Zimag'][0:25].idxmax()
+            Ru_value = experiment.data_list[0]['Zreal'][zimag_max]
+            #setting Ru in main window
+            if 'callback' in kwargs:
+                kwargs['callback'](Ru_value)
+                messagebox.showinfo('Ru set', f'Ru set to {Ru_value}')
+
+        tk.Button(top, text = 'Get Ru', command = get_quick_Ru).grid(row = i + 1, column = 0, sticky = 'e', padx = 5, pady = 2)
+
 
 def dump(to_dump: dict[str, tk.Variable]):
     """Function to store configuration data via dictionary to a .json file at user-defined location.

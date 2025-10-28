@@ -5,6 +5,7 @@ from .tree_controller import TreeController
 class ExperimentTree(ttk.Frame):
     def __init__(self,parent, manager, loader):
         super().__init__(parent)
+        self.parent = parent
         self.manager = manager
         self.loader = loader
         self.groupvar = tk.BooleanVar(value = False)
@@ -29,7 +30,7 @@ class ExperimentTree(ttk.Frame):
         vsb = ttk.Scrollbar(self.tree_frame, orient="vertical", command=self.tree.yview)
         vsb.pack(side='right', fill='both')
         self.tree.configure(yscrollcommand= vsb.set)
-        self.tree.bind('<Double-Button-1>', lambda event: self.controller.inspect())
+        self.tree.bind('<Double-Button-1>', lambda event: self.controller.inspect(callback = self.parent.config_frame.Ru_var.set))
 
             #tag configuration
         self.tree.tag_configure('processed', background = 'lightgreen')
