@@ -67,31 +67,34 @@ class InteractivePlotApp(tk.Toplevel):
 
         self.analysis_list = []
         self.add_analysis_btn = ttk.Button(self.input_frame, text = 'Add analysis', command = self.add_analysis)
-        self.add_analysis_btn.grid(row = 3, column = 3, padx = 5, pady = 5)
+        self.add_analysis_btn.grid(row = 1, column = 3, padx = 5, pady = 5)
 
         self.begin_analysis_btn = ttk.Button(self.input_frame, text = 'Begin analysis', command = self.set_lines)
-        self.begin_analysis_btn.grid(row = 3, column = 1, padx = 5, pady = 5)
+        self.begin_analysis_btn.grid(row = 0, column = 3, padx = 5, pady = 5)
 
         self.copy_dataframe = ttk.Button(self.input_frame, text = 'Copy CDL plot', command = self.get_dataframe_from_plot)
-        self.copy_dataframe.grid(row = 3, column = 4, padx = 5, pady = 5)
+        self.copy_dataframe.grid(row = 0, column = 4, padx = 5, pady = 5)
 
         self.col_headers = {'potential': 'Potential [V]',
                             'Cdl': 'CDL [F]', 'b': 'b [F/V/s]',
-                            'Cdl_int': 'CDL integrate [F]', 'b_int': 'b integrate [F/V/s]'}
+                            'Cdl_int': 'CDL integrate [F]', 'b_int': 'b integrate [F/V/s]',
+                            'r^2': 'r^2 [-]',
+                            'r^2_int': 'r^2 integrate [-]'}
         self.saved_analyses = AnalysisTree(self, columns = self.col_headers,
-                                           sizes = (90, 90, 90, 90, 150, 150))
+                                           sizes = (90, 90, 90, 90, 150, 50, 50))
 
-        self.saved_analyses.grid(row=0, column = 3)
+        self.saved_analyses.grid(row = 0, column = 3)
         self.analysis_counter = 1
 
-        self.curve_selection_var = tk.StringVar(self, value = -1)
-        self.curve_selector = ttk.Combobox(self, values = (0, 1, 2, 'all', 'custom (WIP)'), textvariable = self.curve_selection_var)
-        self.curve_selector.grid(row = 4, column = 4)
+        self.curve_selection_var = tk.StringVar(self.input_frame, value = -1)
+        self.curve_selector = ttk.Combobox(self.input_frame, values = (0, 1, 2, 'all', 'custom (WIP)'), textvariable = self.curve_selection_var)
+        ttk.Label(self.input_frame, text = 'Curve').grid(row = 0, column = 1)
+        self.curve_selector.grid(row = 1, column = 1, padx = 5, pady = 5)
         self.curve_selector.bind('<<ComboboxSelected>>', self.update_plot)
 
 
-        self.calculate_map_btn = ttk.Button(self, text = 'Create map', command = self.calculate_map)
-        self.calculate_map_btn.grid(column = 4, row = 0)
+        self.calculate_map_btn = ttk.Button(self.input_frame, text = 'Create map', command = self.calculate_map)
+        self.calculate_map_btn.grid(column = 4, row = 1, padx = 5, pady = 5)
 
         self.tree1_cont.initialize_tree(data = data)
         self.tree1_cont.tree.bind('<<TreeviewSelect>>', self.plot_previews)
@@ -99,14 +102,18 @@ class InteractivePlotApp(tk.Toplevel):
 
     def add_analysis(self):
 
-        CDL1, b1, r1 = self.results[0]
-        CDL2, b2, r2 = self.results[1]
-        potential = f'{self.vline_pos.get()}'
-        experiments_from_analysis = self.tree2_cont.get_experiments('all')
-        node = self.saved_analyses.add_analysis(values = (potential, CDL1, b1, CDL2, b2), aux = {'Filepath' : 'x', 'test': 'dooppa'}, ask = True)
-
+        CDL1, b1, r1 = self.results[0] #results is (line_calculations, integral calculations, dataframe)
+        CDL2, b2, r2 = self.results[1] #in line and integral calculations: (slope, intercept, r_coefficient)
+        r1_sqrt = r1**2 #making rcoefficient squared
+        r2_sqrt = r2**2
+        potential = f'{self.vline_pos.get()}' #potential at which the CDL was calculated
+        node = self.saved_analyses.add_analysis(values = (potential, CDL1, b1, CDL2, b2, round(r1_sqrt,3), round(r2_sqrt, 3)),
+                                                aux = {'Number of exps for analysis': len(self.tree2_cont.tree.get_children())},
+                                                ask = True)
+       
         #adding the analysis to main window
-        self.callback('dupa', node.__dict__, node.text)
+        self.callback(f'CDL Analysis {self.analysis_counter}', node.__dict__, node.text)
+        self.analysis_counter += 1
 
     def on_focus_out(self, event):
         
@@ -143,7 +150,7 @@ class InteractivePlotApp(tk.Toplevel):
         #self.ax2.scatter(dataframe.iloc[:,0], dataframe.iloc[:,1])
         self.plot_cdl(dataframe.iloc[:,0], dataframe.iloc[:,1])
         #self.ax2.scatter(dataframe.iloc[:,0], dataframe.iloc[:,2])
-        self.plot_line(line[0], line[1], dataframe.iloc[:,0], label = f'r_sqrt = {round(r_coefficient_squared, 3)}')
+        self.plot_line(line[0], line[1], dataframe.iloc[:,0], label = f'r^2 = {round(r_coefficient_squared, 3)}')
         #self.plot_line(integral[0], integral[1], dataframe.iloc[:,0])
 
         return (line, integral), dataframe
@@ -288,12 +295,10 @@ class InteractivePlotApp(tk.Toplevel):
 
     def update_plot(self, event):
 
-        for line in self.ax1.get_lines():
-            try:
-                if line is self.vline:
-                    continue
-            except:
-                del line
+        vline = getattr(self, 'vline', None)
+        lines_to_remove = [line for line in self.ax1.get_lines() if line is not vline]
+        for line in lines_to_remove:
+            line.remove()
    
         experiments = self.tree2_cont.get_experiments('all')
         for experiment in experiments:

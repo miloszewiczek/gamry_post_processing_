@@ -80,7 +80,6 @@ class ECSA(Voltammetry):
             data = self.data_list
 
         if index is not None:
-            print('calculating for index')
             data = [data[i] for i in index]
 
         for curve in data:
