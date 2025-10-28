@@ -99,8 +99,8 @@ class InteractivePlotApp(tk.Toplevel):
 
     def add_analysis(self):
 
-        CDL1, b1 = self.results[0]
-        CDL2, b2 = self.results[1]
+        CDL1, b1, r1 = self.results[0]
+        CDL2, b2, r2 = self.results[1]
         potential = f'{self.vline_pos.get()}'
         experiments_from_analysis = self.tree2_cont.get_experiments('all')
         node = self.saved_analyses.add_analysis(values = (potential, CDL1, b1, CDL2, b2), aux = {'Filepath' : 'x', 'test': 'dooppa'}, ask = True)
@@ -131,7 +131,6 @@ class InteractivePlotApp(tk.Toplevel):
         self.results, self.dataframe = self.calculate_difference()
 
     def calculate_difference(self, potential = None):
-        print('Calculated!')
         #set collection for unique experiments, can store it beforehand to avoid doing this everytime!
         experiments = {line.experiment for line in self.ax1.get_lines() if line is not self.vline}
 
@@ -140,10 +139,11 @@ class InteractivePlotApp(tk.Toplevel):
 
         #important, this function now uses 'Vf' and 'Im' - unprocessed data. NEed to fix it later on
         line, integral, dataframe = calculate_ECSA_from_slope(experiments, potential, index = self.get_curve_variable())
+        r_coefficient_squared = line[2]**2
         #self.ax2.scatter(dataframe.iloc[:,0], dataframe.iloc[:,1])
         self.plot_cdl(dataframe.iloc[:,0], dataframe.iloc[:,1])
         #self.ax2.scatter(dataframe.iloc[:,0], dataframe.iloc[:,2])
-        self.plot_line(line[0], line[1], dataframe.iloc[:,0])
+        self.plot_line(line[0], line[1], dataframe.iloc[:,0], label = f'r_sqrt = {round(r_coefficient_squared, 3)}')
         #self.plot_line(integral[0], integral[1], dataframe.iloc[:,0])
 
         return (line, integral), dataframe
@@ -182,22 +182,22 @@ class InteractivePlotApp(tk.Toplevel):
             self.scatter_plot.set_offsets(np.c_[x, y])
         self.canvas.draw_idle()
 
-    def plot_line(self, a, b, x):
+    def plot_line(self, a, b, x, label):
         x_array = np.array(x)
         y_array = a * x_array + b
 
         if not hasattr(self, 'regression_line'):
             # Create the line ONCE, store the Line2D object
-            (self.regression_line,) = self.ax2.plot(x_array, y_array, color="red")
+            (self.regression_line,) = self.ax2.plot(x_array, y_array, color="red", label = label)
         else:
             # Update existing line
             self.regression_line.set_xdata(x_array)
             self.regression_line.set_ydata(y_array)
         
+        self.ax2.legend()
         self.ax2.relim()
         self.ax2.autoscale_view()
         self.canvas.draw_idle()
-        
         
     def calculate_regression_line(self, x: list, y: list) -> tuple:
         
@@ -236,6 +236,7 @@ class InteractivePlotApp(tk.Toplevel):
         return index
 
     def plot_previews(self, event):
+
         # Make sure we have a list to track preview lines
         if not hasattr(self, "preview_lines"):
             self.preview_lines = []
@@ -286,7 +287,14 @@ class InteractivePlotApp(tk.Toplevel):
         return min({experiment.get_parameter('STEPSIZE') for experiment in experiments})
 
     def update_plot(self, event):
-        clear_plot(self.ax1)
+
+        for line in self.ax1.get_lines():
+            try:
+                if line is self.vline:
+                    continue
+            except:
+                del line
+   
         experiments = self.tree2_cont.get_experiments('all')
         for experiment in experiments:
             plot_experiment(experiment,

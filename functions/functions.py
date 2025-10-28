@@ -1,6 +1,7 @@
 from experiments import ECSA
 import pandas as pd
 import numpy as np
+from scipy.stats import linregress
 from gui.functions import variable_separation
 from matplotlib import pyplot as plt
 
@@ -43,11 +44,12 @@ def calculate_ECSA_from_slope(ECSA_experiments: list[ECSA], potential_list:list,
         x = pd.DataFrame(difference_list, columns = ['Scanrate [V/s]', 'Difference [A]', 'Difference Integrate [A]'])
         x = x.sort_values(by = ['Scanrate [V/s]'])
         
-        slope1, intercept1 = np.polyfit(x.iloc[:,0], x.iloc[:,1], 1)
-        slope2, intercept2 = np.polyfit(x.iloc[:,0], x.iloc[:,2], 1)
+        slope1, intercept1, r_value1, p_value1, std_err1 = linregress(x.iloc[:,0], x.iloc[:,1])
+        slope2, intercept2, r_value2, p_value2, std_err2 = linregress(x.iloc[:,0], x.iloc[:,2])
+        
         results.append(x)
         
-    return (slope1, intercept1), (slope2, intercept2), x
+    return (slope1, intercept1, r_value1), (slope2, intercept2, r_value2), x
 
 
 def calculate_slopes(data, start_potential, step, overlap, normal_mode = True):
