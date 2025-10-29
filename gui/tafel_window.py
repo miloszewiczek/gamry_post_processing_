@@ -7,6 +7,7 @@ from functions.functions import calculate_slopes, interactive_selection
 from experiments.base import Experiment
 from .tree_controller import TreeController
 from .analysis_tree import AnalysisTree
+import pandas as pd
 
 
 def toggle_widgets(var: tk.BooleanVar, widgets: list[tk.Widget]):
@@ -96,6 +97,11 @@ class tafel_window(tk.Toplevel):
 
         tk.Button(self.config_frame, text = 'Select', command = self.interactive_mode).grid(column = 1, row = 7, padx = 5, pady = 5)
 
+        self.canvas.get_tk_widget().bind('<Control-c>', self.copy_figure)
+
+        self.tafel_generation_variables = {'Start [V]': self.start_var,
+                                            'Interval [V]': self.interval_var,
+                                           'Overlap [V]': self.overlap_var}
 
     def initialize(self, data: list[Experiment]):
         for experiment in data:
@@ -111,8 +117,8 @@ class tafel_window(tk.Toplevel):
         experiments = self.data_treeview_controller.get_experiments('selection')
         for exp in experiments:
             for tafel_curve in getattr(exp, 'tafel_curves'):
-                x, y = calculate_slopes(tafel_curve, start_pot, interval, overlap, normal_mode = self.tafel_mode_var.get())
-                self.ax.scatter(x, y)
+                self.x, self.y = calculate_slopes(tafel_curve, start_pot, interval, overlap, normal_mode = self.tafel_mode_var.get())
+                self.ax.scatter(self.x, self.y)
                 self.current_name = exp.file_name
                 self.canvas.draw_idle()
                 
@@ -121,8 +127,12 @@ class tafel_window(tk.Toplevel):
         
         #callback after user clicks twice
         def store_result(res):
-            self.selection_result = res
-            d = self.analysis_tree.add_analysis(values = (res), ask = True, aux = {'Doopa': 'dopa'})
+            self.selection_result, self.details = res
+            if self.tafel_mode_var.get() is False:
+                aux = {key: val.get() for key, val in self.tafel_generation_variables.items()}
+            else:
+                aux = {'Dopa': 'Dopa'}
+            d = self.analysis_tree.add_analysis(values = (self.selection_result), ask = True, aux = aux)
             self.callback(d.other_info, d.__dict__, d.text)
 
         scatter_data = self.ax.collections[0].get_offsets()
@@ -132,3 +142,7 @@ class tafel_window(tk.Toplevel):
     
     def on_slider_release(self, event):
         self.generate_tafel_plot()
+
+    def copy_figure(self, event):
+        if hasattr(self, 'details'):
+            self.details.to_clipboard()

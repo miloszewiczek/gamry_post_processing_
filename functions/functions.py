@@ -4,6 +4,7 @@ import numpy as np
 from scipy.stats import linregress
 from gui.functions import variable_separation
 from matplotlib import pyplot as plt
+import xarray as xr
 
 def calculate_ECSA_from_slope(ECSA_experiments: list[ECSA], potential_list:list, index, *args, **kwargs) -> list:
     """Function to perform the calculate_difference_at_potential on
@@ -122,22 +123,38 @@ def interactive_selection(ax, canvas, x_data, y_data, normal_mode, callback = No
                 np.nanargmin(np.abs(x_data - x1)),
                 np.nanargmin(np.abs(x_data - x2))
             ])
-
+            selected_x = x_data[idx1:idx2+1]
             selected_y = y_data[idx1:idx2 + 1]
             ax.axvspan(x_data[idx1], x_data[idx2], color='orange', alpha=0.3)
 
+            d1 = pd.DataFrame({'x_data': x_data, 
+                           'y_data': y_data})
+            d2 = pd.DataFrame({'selected_x': selected_x,
+                           'selected_y': selected_y})
+            d1.reset_index(drop=True, inplace = True)
+            d2.reset_index(drop = True, inplace = True)
+
             if normal_mode is True:
-                selected_x = x_data[idx1:idx2+1]
+
                 slope, intercept = np.polyfit(selected_x, selected_y, 1)
                 plt.title(f"Slope: {slope:.5f} V/dec")
-                result = slope
+                
+                line_y = np.array(selected_x) * slope + intercept
+                line_y = [line_y[0], line_y[-1]]
+                d3 = pd.DataFrame({'line_x': [selected_x[0], selected_x[-1]],
+                                   'line_y': line_y})
+
             
             elif normal_mode is False:
-                mean_val = np.mean(selected_y)
-                plt.title(f"Mean y = {mean_val:.5f} V/dec")
-                result = mean_val
-            
-            
+                slope = np.mean(selected_y)
+                plt.title(f"Mean y = {slope:.5f} V/dec")
+                d3 = pd.DataFrame({'line_x': [selected_x[0], selected_x[-1]],
+                                    'line_y': [slope, slope]})
+
+            d3.reset_index(drop=  True, inplace = True)                
+            tmp_df = pd.concat([d1,d2,d3],axis = 1)
+            result = slope, tmp_df
+
             canvas.draw()
             canvas.mpl_disconnect(cid)
             if callback:
