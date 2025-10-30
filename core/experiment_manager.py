@@ -236,7 +236,8 @@ class ExperimentManager():
         Args:
             self (ExperimentManager)
             data (list)"""
-        self.dict_of_experiments = data
+        self.dict_of_experiments.clear()
+        self.dict_of_experiments.update(data)
         self.counter = len(data)
         return self.dict_of_experiments
 
@@ -282,8 +283,12 @@ class ExperimentManager():
             del self.dict_of_experiments[exp_id]
             
     def delete_id(self, key_id):
-        print(len(self.dict_of_experiments))
-        self.dict_of_experiments.pop(key_id, None)
+        try:
+            id = int(key_id)
+        except:
+            return
+        
+        self.dict_of_experiments.pop(id, None)
         print(len(self.dict_of_experiments))
 
     def delete_experiment(self, exp_to_del):
