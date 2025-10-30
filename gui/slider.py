@@ -76,8 +76,8 @@ class InteractivePlotApp(tk.Toplevel):
         self.copy_dataframe.grid(row = 0, column = 4, padx = 5, pady = 5)
 
         self.col_headers = {'potential': 'Potential [V]',
-                            'Cdl': 'CDL [F]', 'b': 'b [F/V/s]',
-                            'Cdl_int': 'CDL integrate [F]', 'b_int': 'b integrate [F/V/s]',
+                            'Cdl': 'CDL [F/cm2]', 'b': 'b [F/V/s]',
+                            'Cdl_int': 'CDL integrate [F/cm2]', 'b_int': 'b integrate [F/V/s]',
                             'r^2': 'r^2 [-]',
                             'r^2_int': 'r^2 integrate [-]'}
         self.saved_analyses = AnalysisTree(self, columns = self.col_headers,

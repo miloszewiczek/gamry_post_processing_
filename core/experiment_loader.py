@@ -140,9 +140,7 @@ class ExperimentLoader():
                         id = experiment_id,
                         tag = experiment_identifier,
                         cycle = experiment_keys[1])
-        
-        #self.add_experiment(experiment)
-        
+                
         return experiment
                     
     def get_experiment_class(self, experiment_identifier, experiment_tag):

@@ -127,6 +127,7 @@ def interactive_selection(ax, canvas, x_data, y_data, normal_mode, callback = No
             selected_y = y_data[idx1:idx2 + 1]
             ax.axvspan(x_data[idx1], x_data[idx2], color='orange', alpha=0.3)
 
+            #d1, d2 and d3 are used for copying later on in tafel.py
             d1 = pd.DataFrame({'x_data': x_data, 
                            'y_data': y_data})
             d2 = pd.DataFrame({'selected_x': selected_x,
@@ -151,7 +152,7 @@ def interactive_selection(ax, canvas, x_data, y_data, normal_mode, callback = No
                 d3 = pd.DataFrame({'line_x': [selected_x[0], selected_x[-1]],
                                     'line_y': [slope, slope]})
 
-            d3.reset_index(drop=  True, inplace = True)                
+            d3.reset_index(drop = True, inplace = True)                
             tmp_df = pd.concat([d1,d2,d3],axis = 1)
             result = slope, tmp_df
 

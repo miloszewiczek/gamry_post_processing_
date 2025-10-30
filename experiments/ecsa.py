@@ -38,6 +38,7 @@ class ECSA(Voltammetry):
             else:
                 potential_column = 'E vs RHE [V]'
         else:
+            print('Taking Current and Voltage in [A] and [V]. Careful with CDL!!!')
             data = self.data_list
             potential_column = 'Vf'
             current_column = 'Im'

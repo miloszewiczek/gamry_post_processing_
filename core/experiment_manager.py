@@ -282,7 +282,9 @@ class ExperimentManager():
             del self.dict_of_experiments[exp_id]
             
     def delete_id(self, key_id):
+        print(len(self.dict_of_experiments))
         self.dict_of_experiments.pop(key_id, None)
+        print(len(self.dict_of_experiments))
 
     def delete_experiment(self, exp_to_del):
         for id, exp in self.dict_of_experiments.items():
