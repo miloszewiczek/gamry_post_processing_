@@ -472,7 +472,6 @@ def plot_experiment(experiment: Experiment, ax, canvas, x_column, y_column, labe
     except:
         label = 'Plot'
     
-    print(index)
     data = experiment.get_data(index = index, data_type = 'processed_data')
 
     for curve in data:
@@ -489,9 +488,11 @@ def plot_experiment(experiment: Experiment, ax, canvas, x_column, y_column, labe
             
             setattr(line_plot, 'experiment', experiment)
             plots.append(line_plot)
+    
+    ax.set_xlabel(f'{x_column}')
+    ax.set_ylabel(f'{y_column}')
 
-
-    #ax.legend(fontsize = 'x-small')
+    ax.legend(fontsize = 'xx-small')
     canvas.draw_idle()
     return plots
 

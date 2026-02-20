@@ -1,5 +1,7 @@
 __pycache__/*
 core/__pycache__/
 *.py[cod]
+*.pyc
+*.pyo
 venv/
 .env

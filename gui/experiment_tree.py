@@ -46,9 +46,10 @@ class ExperimentTree(ttk.Frame):
         self.process_all_btn = ttk.Button(self.filtering_actions_frame, text = 'Process', command = self.controller.process)
         self.copy_btn = tk.Button(self.filtering_actions_frame, text = 'Copy', command = self.controller.copy_nodes)
         self.delete_btn = tk.Button(self.filtering_actions_frame, text = 'Delete', command = self.controller.delete_nodes)
-        self.save_btn = tk.Button(self.filtering_actions_frame, text = 'Save selected', command = self.controller.save)
+        self.save_all_btn = tk.Button(self.filtering_actions_frame, text = 'Save all', command = self.controller.save_all)
+        self.save_selected_btn = tk.Button(self.filtering_actions_frame, text = 'Save selected', command = self.controller.save_selected)
 
-        btns = [self.filtering_btn, self.select_all_btn, self.process_all_btn, self.copy_btn, self.delete_btn, self.save_btn]
+        btns = [self.filtering_btn, self.select_all_btn, self.process_all_btn, self.copy_btn, self.delete_btn, self.save_all_btn, self.save_selected_btn]
         for btn in btns:
             btn.pack(side = 'left', padx = 2, pady = 2)
 

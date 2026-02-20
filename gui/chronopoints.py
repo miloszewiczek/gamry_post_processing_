@@ -121,6 +121,9 @@ class ChronoPicker(tk.Toplevel):
         self.plot_btn = ttk.Button(self.button_frame, command = plot, text = 'Plot')
         self.plot_btn.grid(row = 0, column = 1, sticky = 'n', padx = 5, pady = 5)
 
+        self.bind('<Left>', previous)
+        self.bind('<Right>', next)
+
         ttk.Button(self.button_frame, command = next, text = '>').grid(row= 1, column = 1, sticky = 'n', padx = 5, pady = 5)
         ttk.Button(self.button_frame, command = previous, text = '<').grid(row = 2, column = 1, sticky = 'n', padx = 5, pady = 5)    
         

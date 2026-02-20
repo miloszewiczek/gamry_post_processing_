@@ -34,23 +34,36 @@ def calculate_ECSA_from_slope(ECSA_experiments: list[ECSA], potential_list:list,
             if not hasattr(experiment,'data_list'):
                 experiment.load_data()
             
-            #difference and integral are mean values of all curves in an experiment. Need to let user know!
+            # difference and integral are mean values of all curves in an experiment. Need to let user know!
             difference = experiment.calculate_difference_at_potential(potential, index = index)
             integral = experiment.calculate_CDL_integral(index = index)
             scanrate = experiment.meta_data['SCANRATE'] / 1000
             
             difference_list.append((scanrate, difference, integral))
         
-        #this needs to be changed into results with concat
-        x = pd.DataFrame(difference_list, columns = ['Scanrate [V/s]', 'Difference [A]', 'Difference Integrate [A]'])
-        x = x.sort_values(by = ['Scanrate [V/s]'])
+        # this needs to be changed into results with concat
+        tmp_df1 = pd.DataFrame(difference_list, columns = ['Scanrate [V/s]', 'Difference [A/cm2]', 'Difference Integrate [A/cm2]'])
+        tmp_df1 = tmp_df1.sort_values(by = ['Scanrate [V/s]'])
+        tmp_df1.reset_index(drop = True, inplace = True)
         
-        slope1, intercept1, r_value1, p_value1, std_err1 = linregress(x.iloc[:,0], x.iloc[:,1])
-        slope2, intercept2, r_value2, p_value2, std_err2 = linregress(x.iloc[:,0], x.iloc[:,2])
+
+        slope1, intercept1, r_value1, p_value1, std_err1 = linregress(tmp_df1.iloc[:,0], tmp_df1.iloc[:,1])
+        slope2, intercept2, r_value2, p_value2, std_err2 = linregress(tmp_df1.iloc[:,0], tmp_df1.iloc[:,2])
+        line_x = tmp_df1.iloc[[0, -1]]['Scanrate [V/s]']
+
+        # for plotting/copying the line used for linear regression
+        line_y = line_x * slope1 + intercept1
+        line_y_int = line_x * slope2 + intercept2
+        tmp_df2 = pd.DataFrame({'Line x [V/s]': line_x, 'Line y [A/cm2]': line_y, 'Line y Integrate [A/cm2]': line_y_int})
+        tmp_df2.reset_index(drop = True, inplace = True)
+
+        # joining the dataframes so that it first 3 columns are scanrate/difference/difference_integrate
+        # and the other 3 are for plotting the line        
+        final_df = pd.concat([tmp_df1, tmp_df2], axis = 1)
         
-        results.append(x)
+        results.append(final_df)
         
-    return (slope1, intercept1, r_value1), (slope2, intercept2, r_value2), x
+    return (slope1, intercept1, r_value1), (slope2, intercept2, r_value2), final_df
 
 
 def calculate_slopes(data, start_potential, step, overlap, normal_mode = True):
@@ -63,12 +76,11 @@ def calculate_slopes(data, start_potential, step, overlap, normal_mode = True):
         x_data = np.array(data['E vs RHE [V]'])
         y_data = np.array(data['log10 J_GEO [A/cm2]'])
 
-
     if normal_mode is True:
         return y_data, x_data
     
     elif normal_mode is False:
-        if step == overlap:
+        if abs(step) <= abs(overlap):
             print('Overlap is the same as step, aborting')
             return
         
@@ -76,6 +88,7 @@ def calculate_slopes(data, start_potential, step, overlap, normal_mode = True):
         y = []
         current_potential = start_potential
 
+        maximum_steps = 2000
         while True:
             i_start = (np.abs(x_data - current_potential)).argmin()
             new_potential = x_data[i_start] + step
@@ -90,16 +103,23 @@ def calculate_slopes(data, start_potential, step, overlap, normal_mode = True):
             x_segment = y_data[i_start:idx]
             y_segment = x_data[i_start:idx]
             slope, intercept = np.polyfit(x_segment, -y_segment, 1)
-            avg_current = np.mean(x_segment)
+            avg_current = np.mean(x_segment) #this is a logarithm
 
-            x.append(avg_current)
+            #unlogarithming this
+            new_avg_current = 10**(avg_current)
+
+
+            x.append(new_avg_current)
             y.append(slope)
 
             # Move to next window
             current_potential = new_potential - overlap
             if current_potential <= min(x_data):
                 break
-        
+            maximum_steps -= 1
+            if maximum_steps == 0:
+                print('Broken. Attempting to break out of while loop')
+                break
         return x, y
 
 

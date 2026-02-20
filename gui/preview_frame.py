@@ -23,3 +23,10 @@ class PreviewImageFrame(tk.Frame):
         #self.preview_tree.bind('<ButtonRelease-1>', lambda event: plot_selected(self.preview_tree, self.manager, self.preview_ax, self.preview_canvas ))
 
         tk.Button(self, text = 'Merge', command = lambda: merge_curves(self.preview_ax.get_lines())).pack()
+
+        self.show_legend_var = tk.BooleanVar(value = True)
+        tk.Checkbutton(self, variable = self.show_legend_var, command = self.toggle_legend).pack()
+
+    def toggle_legend(self):
+        self.preview_ax.legend().set_visible(self.show_legend_var.get())
+        self.preview_canvas.draw()

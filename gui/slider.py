@@ -48,6 +48,7 @@ class InteractivePlotApp(tk.Toplevel):
         self.canvas = FigureCanvasTkAgg(self.fig, master=self.plot_frame)
         self.canvas.get_tk_widget().pack(fill=tk.BOTH, expand=True)
         self.canvas.draw_idle()
+        self.canvas.get_tk_widget().bind('<Control-c>', self.get_dataframe_from_plot)
 
         # Label for info
         #Slider
@@ -257,7 +258,7 @@ class InteractivePlotApp(tk.Toplevel):
         try:
             preview_datasets = self.tree1_cont.get_experiments('selection')
         except:
-            print(print(self.tree1_cont.tree.item(self.tree1_cont.tree.selection(),'text')))
+            #print(print(self.tree1_cont.tree.item(self.tree1_cont.tree.selection(),'text')))
             return
         
         # Plot new previews
@@ -324,8 +325,7 @@ class InteractivePlotApp(tk.Toplevel):
         experiments = self.tree2_cont.get_experiments('all')
         slopes, df = calculate_ECSA_from_slope(experiments, [self.vline_pos.get()])
 
-    def get_dataframe_from_plot(self):
-        
+    def get_dataframe_from_plot(self, *args):
         self.dataframe.to_clipboard()
 
 

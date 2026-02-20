@@ -93,7 +93,7 @@ class TreeController:
         if ids is None:
             ids = self.get_nodes('selection')
         for id in ids:
-            self.manager.delete_id(id)
+            #self.manager.delete_id(id)
             self.tree.delete(id)
 
 
@@ -162,7 +162,6 @@ class TreeController:
         nodes = self.get_nodes('all')
         experiments = self.get_experiments(nodes)
         self.delete_nodes(nodes)
-
         grouped = self.group_by(experiments, by)
 
         def insert(parent, data):
@@ -229,7 +228,10 @@ class TreeController:
     def inspect(self, **kwargs):
         inspect_experiment(self.get_experiments('selection')[0], **kwargs)
 
-    def save(self, **kwargs):
+    def save_all(self, **kwargs):
         experiments = self.get_experiments('all')
         process_and_save(self.manager, experiments)
         
+    def save_selected(self, **kwargs):
+        experiments = self.get_experiments('selection')
+        process_and_save(self.manager, experiments)
