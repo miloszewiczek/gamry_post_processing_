@@ -161,10 +161,14 @@ class ExperimentManager():
     def delete_by_path(self, path):
         ids_of_experiments = self.get_experiments_by_path(path)
         for id in ids_of_experiments:
-            self.delete_id(id)
+            self.delete_experiment_by_id(id)
     
-    def copy_experiment(self, id):
+    def copy_experiment(self, id, new_id):
         exp_to_copy = self.get(id)
+        exp_copy = deepcopy(exp_to_copy)
+        setattr(exp_copy, 'id', new_id)
+        self.add_experiment(exp_copy)
+        return exp_copy
 
     def combine_experiment(self, experiment_list):
             return pd.concat(experiment_list, axis=1)

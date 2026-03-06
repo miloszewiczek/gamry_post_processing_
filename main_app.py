@@ -19,6 +19,9 @@ class MainWindow(QMainWindow):
 
         self.tree = ExperimentPanel(self.loader, self.manager)
         self.setCentralWidget(self.tree)
+        
+        for exp in self.manager.get_all():
+            self.tree.add_experiment_to_model(exp)
 
 if __name__ == '__main__':
 
