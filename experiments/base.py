@@ -61,15 +61,16 @@ class Experiment():
     def _add_computed_column(self, curve:pd.DataFrame) -> pd.DataFrame:
 
         curve['J_GEO [A/cm2]'] = curve['Im']/self.geometrical_area
+        curve['I [A]'] = curve['Im']
         curve['E vs RHE [V]'] = curve['Vf'] + self.reference_potential
         curve = curve.reset_index(drop=True)
 
         if self.Ru != 0:
             self.default_x = 'E_iR vs RHE [V]'
             curve['E_iR vs RHE [V]'] = curve['Vf'] + self.reference_potential - self.Ru * curve['Im']
-            return curve[['E vs RHE [V]', 'E_iR vs RHE [V]', 'J_GEO [A/cm2]']]
+            return curve[['E vs RHE [V]', 'I [A]', 'E_iR vs RHE [V]', 'J_GEO [A/cm2]']]
 
-        return curve[['E vs RHE [V]', 'J_GEO [A/cm2]']]
+        return curve[['E vs RHE [V]', 'I [A]', 'J_GEO [A/cm2]']]
 
     def process_data(self, **kwargs) -> list[pd.DataFrame]:
         

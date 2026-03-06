@@ -31,8 +31,11 @@ class ECSA(Voltammetry):
                 return
         
         if self.processed_data:
+            
             data = self.processed_data
-            current_column = 'J_GEO [A/cm2]'
+            current_column = 'I [A]'
+
+            print(current_column)
             if self.Ru > 0:
                 potential_column = 'E_iR vs RHE [V]'
             else:
@@ -72,7 +75,7 @@ class ECSA(Voltammetry):
 
         if self.processed_data:
             data = self.processed_data
-            current_column = 'J_GEO [A/cm2]'
+            current_column = 'I [A]'
             if self.Ru > 0:
                 potential_column = 'E_iR vs RHE [V]'
             else:

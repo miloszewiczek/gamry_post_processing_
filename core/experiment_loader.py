@@ -6,6 +6,7 @@ from itertools import chain
 from glob import glob
 from tkinterdnd2 import TkinterDnD
 from tkinter.filedialog import askopenfilenames, askdirectory
+from random import sample
 
 class ExperimentLoader():
     '''An interface class to aggregate and manage the experiments. '''
@@ -40,15 +41,27 @@ class ExperimentLoader():
         self.id_counter += delta
         return self.id_counter
 
-    def load_testing(self):
-        """Helper function for testing of the program. 
-        Loads all the files in the input folder."""
+    def load_testing(self, sample_size):
+
+        current_dir = os.path.dirname(os.path.abspath(__file__))
+        input_path = os.path.join(current_dir, '..', 'input')
+        input_path = os.path.normpath(input_path)
+
+        if not os.path.exists(input_path):
+            print(f"BŁĄD: Folder nie istnieje pod ścieżką: {input_path}")
+            return self.list_of_experiments
+
+        files = [os.path.join(input_path, f) for f in os.listdir(input_path) 
+                if os.path.isfile(os.path.join(input_path, f))]
         
-        files = [os.path.join('input/', file) for file in os.listdir('input/') if os.path.isfile(os.path.join('input/', file))]
-        for file in files:
-            self.create_experiment(file)
-        print('Added testing files (input/*)')
-        return self.list_of_experiments
+        random_files = sample(files, sample_size)
+        list_of_experiments = [self.create_experiment(file) for file in random_files]
+
+        dict_of_experiments = {}
+        for experiment in list_of_experiments:
+            if experiment is not None:
+                dict_of_experiments[getattr(experiment, 'id')] = experiment
+        return dict_of_experiments
 
     def populate_list_of_experiments(self,files):
 
@@ -57,7 +70,6 @@ class ExperimentLoader():
             experiment = self.create_experiment(file)
             if experiment is not None:
                 dict_of_experiments[getattr(experiment, 'id')] = experiment
-                self.update_counter(+1)
         return dict_of_experiments
 
     def get_counter(self):
@@ -93,7 +105,7 @@ class ExperimentLoader():
         return self.populate_list_of_experiments(files)
 
         
-    def create_experiment(self, file_path):
+    def create_experiment(self, file_path, manager = None):
         '''Factory function to create the experiment and store it in a manager.
         Depending on the TAG of the .DTA file, it creates a different experiment object characterized by different data processing methods.'''
 
@@ -125,6 +137,7 @@ class ExperimentLoader():
                     break
 
         experiment_id = self.id_counter
+        self.update_counter(+1)
 
         #RETURNS DIFFERENT CLASS DEPDENDING ON THE IDENTIFIER AND TAG
         experiment_class = self.get_experiment_class(experiment_identifier = experiment_identifier,
@@ -140,7 +153,11 @@ class ExperimentLoader():
                         id = experiment_id,
                         tag = experiment_identifier,
                         cycle = experiment_keys[1])
-                
+
+        if manager is not None:
+            manager.update(experiment)
+            print(self.id_counter, manager.counter)
+
         return experiment
                     
     def get_experiment_class(self, experiment_identifier, experiment_tag):

@@ -36,14 +36,14 @@ class InteractivePlotApp(tk.Toplevel):
         self.selector.grid(column = 0, row = 0)
 
         self.ax1.set_xlabel(r"$E \ vs \ RHE\  [V]$")
-        self.ax1.set_ylabel(r"$J_{GEO}\  [A/cm^2]$")
+        self.ax1.set_ylabel(r"$I\  [A]$")
         self.ax1.set_title("Cyclic Voltammetry Scans")
 
         self.ax2.set_title(r"Charging currents - $C_{DL}$")
         self.ax2.set_xlabel(r"$Scanrate\  [mV/s]$")
 
         #need to change the units on this thing!
-        self.ax2.set_ylabel(r"$\Delta \ J_{GEO}$ $[A/cm^2]$")
+        self.ax2.set_ylabel(r"$\Delta \ I$ $[A]$")
 
         self.canvas = FigureCanvasTkAgg(self.fig, master=self.plot_frame)
         self.canvas.get_tk_widget().pack(fill=tk.BOTH, expand=True)
@@ -77,8 +77,8 @@ class InteractivePlotApp(tk.Toplevel):
         self.copy_dataframe.grid(row = 0, column = 4, padx = 5, pady = 5)
 
         self.col_headers = {'potential': 'Potential [V]',
-                            'Cdl': 'CDL [F/cm2]', 'b': 'b [F/V/s]',
-                            'Cdl_int': 'CDL integrate [F/cm2]', 'b_int': 'b integrate [F/V/s]',
+                            'Cdl': 'CDL [F]', 'b': 'b [F/V/s]',
+                            'Cdl_int': 'CDL integrate [F]', 'b_int': 'b integrate [F/V/s]',
                             'r^2': 'r^2 [-]',
                             'r^2_int': 'r^2 integrate [-]'}
         self.saved_analyses = AnalysisTree(self, columns = self.col_headers,
@@ -151,6 +151,7 @@ class InteractivePlotApp(tk.Toplevel):
         #self.ax2.scatter(dataframe.iloc[:,0], dataframe.iloc[:,1])
         self.plot_cdl(dataframe.iloc[:,0], dataframe.iloc[:,1])
         #self.ax2.scatter(dataframe.iloc[:,0], dataframe.iloc[:,2])
+        print(line)
         self.plot_line(line[0], line[1], dataframe.iloc[:,0], label = f'r^2 = {round(r_coefficient_squared, 3)}')
         #self.plot_line(integral[0], integral[1], dataframe.iloc[:,0])
 
@@ -267,7 +268,7 @@ class InteractivePlotApp(tk.Toplevel):
                                     self.ax1,
                                     self.canvas,
                                     x_column = 'E vs RHE [V]',
-                                    y_column= 'J_GEO [A/cm2]',
+                                    y_column= 'I [A]',
                                     index = self.get_curve_variable(),
                                     alpha = 0.2)
             self.preview_lines.extend(lines)
@@ -307,7 +308,7 @@ class InteractivePlotApp(tk.Toplevel):
                             self.ax1,
                             self.canvas,
                             x_column = 'E vs RHE [V]',
-                            y_column = 'J_GEO [A/cm2]',
+                            y_column = 'I [A]',
                             index = self.get_curve_variable(),
                             alpha = 1)
 

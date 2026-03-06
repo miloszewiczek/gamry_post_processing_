@@ -477,6 +477,7 @@ def plot_experiment(experiment: Experiment, ax, canvas, x_column, y_column, labe
     for curve in data:
             x = curve[x_column]
             y = curve[y_column]
+            print("Plotting ", y_column)
             
             plt.ticklabel_format(axis='y', style = 'sci', scilimits=(-2,3))
 

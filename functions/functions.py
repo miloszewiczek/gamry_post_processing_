@@ -42,7 +42,7 @@ def calculate_ECSA_from_slope(ECSA_experiments: list[ECSA], potential_list:list,
             difference_list.append((scanrate, difference, integral))
         
         # this needs to be changed into results with concat
-        tmp_df1 = pd.DataFrame(difference_list, columns = ['Scanrate [V/s]', 'Difference [A/cm2]', 'Difference Integrate [A/cm2]'])
+        tmp_df1 = pd.DataFrame(difference_list, columns = ['Scanrate [V/s]', 'Difference [A]', 'Difference Integrate [A]'])
         tmp_df1 = tmp_df1.sort_values(by = ['Scanrate [V/s]'])
         tmp_df1.reset_index(drop = True, inplace = True)
         
@@ -54,7 +54,7 @@ def calculate_ECSA_from_slope(ECSA_experiments: list[ECSA], potential_list:list,
         # for plotting/copying the line used for linear regression
         line_y = line_x * slope1 + intercept1
         line_y_int = line_x * slope2 + intercept2
-        tmp_df2 = pd.DataFrame({'Line x [V/s]': line_x, 'Line y [A/cm2]': line_y, 'Line y Integrate [A/cm2]': line_y_int})
+        tmp_df2 = pd.DataFrame({'Line x [V/s]': line_x, 'Line y [A]': line_y, 'Line y Integrate [A]': line_y_int})
         tmp_df2.reset_index(drop = True, inplace = True)
 
         # joining the dataframes so that it first 3 columns are scanrate/difference/difference_integrate
