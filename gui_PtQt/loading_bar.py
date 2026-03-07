@@ -1,31 +1,149 @@
-from PyQt5.QtWidgets import QTreeWidget, QWidget, QLayout, QPushButton, QHBoxLayout, QVBoxLayout, QTreeView, QFileDialog, QMessageBox, QAbstractItemView, QDialog, QLabel, QFormLayout, QDialogButtonBox
+from PyQt5.QtWidgets import (QTreeWidget, QWidget, QLayout, QPushButton, QHBoxLayout, 
+                             QVBoxLayout, QTreeView, QFileDialog, QMessageBox, 
+                             QAbstractItemView, QDialog, QLabel, 
+                             QFormLayout, QDialogButtonBox, QTableView,
+                             QComboBox, QMenu)
 from PyQt5.QtGui import QStandardItemModel, QStandardItem
-from PyQt5.QtCore import Qt 
-from core import ExperimentLoader, ExperimentManager
-
+from PyQt5.QtCore import Qt, QAbstractTableModel
+from core import ExperimentLoader, ExperimentManager, Experiment
 from pathlib import Path
+from gui.functions import open_file_in_system_editor
+
+
+class PandasModel(QAbstractTableModel):
+    def __init__(self, data):
+        super().__init__()
+        self._data = data
+
+    def rowCount(self, parent=None):
+        return self._data.shape[0]
+
+    def columnCount(self, parent=None):
+        return self._data.shape[1]
+
+    def data(self, index, role=Qt.ItemDataRole.DisplayRole):
+        if index.isValid():
+            if role == Qt.ItemDataRole.DisplayRole:
+                # Pobieramy wartość z DataFrame
+                value = self._data.iloc[index.row(), index.column()]
+                return str(value)
+        return None
+
+    def headerData(self, section, orientation, role):
+        # Ustawienie nazw kolumn i numerów wierszy
+        if role == Qt.ItemDataRole.DisplayRole:
+            if orientation == Qt.Orientation.Horizontal:
+                return str(self._data.columns[section])
+            if orientation == Qt.Orientation.Vertical:
+                return str(self._data.index[section])
+        return None
+
+
+class DataPreviewDialog(QDialog):
+    def __init__(self, experiment, parent=None):
+        super().__init__(parent)
+        self.setWindowTitle("Podgląd Danych Eksperymentu")
+        self.resize(800, 600)
+        
+        self.experiment = experiment
+        layout = QVBoxLayout(self)
+        
+        # 1. UI Elements
+        self.data_type_combobox = QComboBox()
+        self.combobox = QComboBox()
+        self.view = QTableView()
+        
+        layout.addWidget(QLabel("Typ danych:"))
+        layout.addWidget(self.data_type_combobox)
+        layout.addWidget(QLabel("Wybierz krzywą:"))
+        layout.addWidget(self.combobox)
+        layout.addWidget(self.view)
+
+        # 2. Logika połączeń (Kaskada)
+        # Kiedy zmienia się TYP -> aktualizuj LISTĘ KRZYWYCH
+        self.data_type_combobox.currentIndexChanged.connect(self.update_curves_list)
+        
+        # Kiedy zmienia się KRZYWA -> aktualizuj TABELĘ
+        self.combobox.currentIndexChanged.connect(self.update_table_data)
+
+        # 3. Inicjalizacja danych
+        data_dict = experiment.get_all_data()
+        self.populate_types(data_dict)
+
+    def populate_types(self, data_dict):
+        # Blokujemy sygnały, żeby nie wywoływać update_table_data wielokrotnie przy czyszczeniu
+        self.data_type_combobox.blockSignals(True)
+        self.data_type_combobox.clear()
+        
+        for type_name, curves_list in data_dict.items():
+            self.data_type_combobox.addItem(type_name, curves_list)
+        
+        self.data_type_combobox.blockSignals(False)
+        
+        # Ręcznie wywołujemy pierwszą aktualizację
+        self.update_curves_list()
+
+    def update_curves_list(self):
+        self.combobox.blockSignals(True)
+        self.combobox.clear()
+        
+        curves_list = self.data_type_combobox.currentData()
+        if curves_list:
+            for i, df in enumerate(curves_list):
+                self.combobox.addItem(f"Krzywa {i+1}", df)
+        
+        self.combobox.blockSignals(False)
+        # Po zmianie listy krzywych, odśwież tabelę pierwszą dostępną krzywą
+        self.update_table_data()
+            
+    def update_table_data(self):
+        selected_df = self.combobox.currentData()
+        
+        # Sprawdzamy, czy to na pewno DataFrame (currentData może być None przy pustym combo)
+        if selected_df is not None:
+            self.model = PandasModel(selected_df)
+            self.view.setModel(self.model)
 
 class ExperimentInfoDialog(QDialog):
-    def __init__(self, experiment, parent=None):
+    def __init__(self, experiment:Experiment, parent=None):
         super().__init__(parent)
         self.setWindowTitle(f"Info: {experiment.file_name}")
         self.setMinimumWidth(350)
-        
+        self.experiment = experiment
+
         layout = QVBoxLayout(self)
         
         # FormLayout idealnie nadaje się do par "Etykieta: Wartość"
         form = QFormLayout()
-        form.addRow("<b>Nazwa:</b>", QLabel(experiment.file_name))
-        form.addRow("<b>ID:</b>", QLabel(str(experiment.id)))
-        form.addRow("<b>Folder:</b>", QLabel(experiment.folder))
-        form.addRow("<b>Klasa:</b>", QLabel(experiment.__class__.__name__))
+        
+        self.experiment.load_data()
+        self.experiment.process_data()
+        for key, val_tuple in experiment.get_essentials().items():
+            val = val_tuple[0]
+            form.addRow(f"<b>{key}</b>", QLabel(f"{val}"))
+        # form.addRow("<b>Nazwa:</b>", QLabel(experiment.file_name))
+        # form.addRow("<b>ID:</b>", QLabel(str(experiment.id)))
+        # form.addRow("<b>Folder:</b>", QLabel(experiment.folder))
+        # form.addRow("<b>Klasa:</b>", QLabel(experiment.__class__.__name__))
         
         layout.addLayout(form)
         
         # Standardowy przycisk OK
+
+        self.btn_change_class = QPushButton("Show Data")
+        self.btn_change_class.clicked.connect(self.show_data)
         buttons = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok)
+        buttons.addButton(self.btn_change_class, QDialogButtonBox.ButtonRole.ActionRole)
+
         buttons.accepted.connect(self.accept)
         layout.addWidget(buttons)
+
+    def show_data(self):
+        data = DataPreviewDialog(self.experiment)
+        data.exec()
+    
+    def open_with(self):
+        open_file_in_system_editor(self.experiment.file_path)
 
 class ExperimentPanel(QWidget):
     def __init__(self, loader:ExperimentLoader, manager:ExperimentManager, parent=None):
@@ -37,11 +155,14 @@ class ExperimentPanel(QWidget):
         # 1. Inicjalizacja Modelu i Widoku
         self.tree_view = QTreeView()
         self.model = QStandardItemModel()
-        self.model.setHorizontalHeaderLabels(['Experiment', 'Class'])
+        self.model.setHorizontalHeaderLabels(['Experiment', 'Class', 'ID'])
         self.tree_view.setModel(self.model)
-        self.tree_view.setColumnWidth(0, 250)
-        self.tree_view.setColumnWidth(1, 100)
+        self.tree_view.setColumnWidth(0, 300)
+        self.tree_view.setColumnWidth(1, 150)
+        self.tree_view.setColumnWidth(2, 10)
         self.tree_view.setSelectionMode(QAbstractItemView.SelectionMode.ExtendedSelection)
+        self.tree_view.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
+        self.tree_view.customContextMenuRequested.connect(self.open_menu)
 
         
         # 2. UI - Przyciski
@@ -77,7 +198,7 @@ class ExperimentPanel(QWidget):
 
         identity = self.identify_selection(index)
         if identity == "CHILD":
-            exp = self.manager.get(index.data(Qt.UserRole))
+            exp = index.data(Qt.UserRole)
             dialog = ExperimentInfoDialog(exp, self)
             dialog.exec()
 
@@ -145,9 +266,9 @@ class ExperimentPanel(QWidget):
         child_class = QStandardItem(exp.__class__.__name__)
         
         # Pamiętaj o UserRole dla ID, żeby usuwanie działało!
-        child_name.setData(exp.id, Qt.UserRole)
+        child_name.setData(exp, Qt.UserRole)
         
-        parent_item.appendRow([child_name, child_id, child_class])
+        parent_item.appendRow([child_name, child_class, child_id])
 
 
     def identify_selection(self, index):
@@ -164,16 +285,19 @@ class ExperimentPanel(QWidget):
         selected_indices = self.tree_view.selectionModel().selectedRows(0)
         
         for index in selected_indices:
-            index_data = index.data(Qt.UserRole)
-            new_experiment = self.manager.copy_experiment(index_data, new_id = self.loader.get_counter())
+            experiment = index.data(Qt.UserRole)
+            new_experiment = self.manager.copy_experiment(experiment, new_id = self.loader.get_counter())
             self.loader.update_counter(1)
             self.add_experiment_to_model(new_experiment, text = new_experiment.file_name + "_C")
        
 
-    def delete_item(self):
+    def delete_item(self, index = None):
         # 1. Pobieramy unikalne wiersze (tylko z pierwszej kolumny)
-        selected_indices = self.tree_view.selectionModel().selectedRows(0)
-        
+        if index is None:
+            selected_indices = self.tree_view.selectionModel().selectedRows(0)
+        else:
+            selected_indices = [index,]
+
         if not selected_indices:
             QMessageBox.information(self, 'Select node', 'No node selected...')
             return
@@ -185,10 +309,10 @@ class ExperimentPanel(QWidget):
             tipo = self.identify_selection(index)
 
             if tipo == "CHILD":
-                exp_id = index.data(Qt.UserRole)
+                exp = index.data(Qt.UserRole)
                 parent_index = index.parent()
                 # Usuwamy z logiki (manager/baza)
-                self.manager.delete_experiment_by_id(exp_id)
+                self.manager.delete_experiment_by_id(exp.id)
                 # Usuwamy bezpośrednio z modelu (bez odświeżania całego drzewa)
                 self.model.removeRow(index.row(), index.parent())
                 
@@ -205,3 +329,27 @@ class ExperimentPanel(QWidget):
                     self.manager.delete_by_path(path_name)
                     # Usuwamy cały folder z widoku
                     self.model.removeRow(index.row(), index.parent())
+
+    def open_menu(self, position):
+        index = self.tree_view.indexAt(position)
+        if not index.isValid():
+            return
+        
+        selected_exp = index.data(Qt.UserRole)
+        
+        menu = QMenu(self)
+
+        action_info = menu.addAction("Show details")
+        action_notepad = menu.addAction("Open in text editor")
+        menu.addSeparator()
+        action_delete = menu.addAction("Delete")
+        action = menu.exec(self.tree_view.viewport().mapToGlobal(position))
+
+        if action == action_info:
+            self.on_double_clicked(index)
+        elif action == action_notepad:
+            open_file_in_system_editor(selected_exp.file_path)
+        elif action == action_delete:
+            self.delete_item(index = index)
+
+

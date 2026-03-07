@@ -163,8 +163,8 @@ class ExperimentManager():
         for id in ids_of_experiments:
             self.delete_experiment_by_id(id)
     
-    def copy_experiment(self, id, new_id):
-        exp_to_copy = self.get(id)
+    def copy_experiment(self, exp_to_copy, new_id):
+        
         exp_copy = deepcopy(exp_to_copy)
         setattr(exp_copy, 'id', new_id)
         self.add_experiment(exp_copy)

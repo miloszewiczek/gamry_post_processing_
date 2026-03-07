@@ -16,6 +16,8 @@ from matplotlib import pyplot as plt
 from typing import Literal, Any
 from dataclasses import dataclass
 from experiments import Experiment
+import platform
+import subprocess
 
 
 
@@ -677,4 +679,10 @@ def variable_separation(variable: str, separator: str, final_type = None):
     return list_of_variables
 
     
-
+def open_file_in_system_editor(file_path):
+    if platform.system() == 'Windows':
+        os.startfile(file_path)
+    elif platform.system() == 'Darwin':  # macOS
+        subprocess.call(['open', file_path])
+    else:  # Linux
+        subprocess.call(['xdg-open', file_path])

@@ -149,6 +149,10 @@ class Experiment():
             return [data[index]]
         else:
             return [self.processed_data[i] for i in index]
+    
+    def get_all_data(self):
+        return {'data_list': self.data_list,
+                'processed_data': self.processed_data}
         
     def get_default_columns(self, axis: Literal['x','y','both'], columns:list = None):
         '''Helper function that returns the default column name stored in default_x or default_y'''

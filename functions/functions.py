@@ -5,6 +5,11 @@ from scipy.stats import linregress
 from gui.functions import variable_separation
 from matplotlib import pyplot as plt
 import xarray as xr
+import os
+import platform
+import subprocess
+
+
 
 def calculate_ECSA_from_slope(ECSA_experiments: list[ECSA], potential_list:list, index, *args, **kwargs) -> list:
     """Function to perform the calculate_difference_at_potential on
