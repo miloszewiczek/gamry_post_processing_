@@ -172,6 +172,17 @@ class ExperimentManager():
 
     def combine_experiment(self, experiment_list):
             return pd.concat(experiment_list, axis=1)
+    
+    def change_class(self, experiment:Experiment, new_class:Experiment):
+        try:
+            new_exp = new_class(experiment.file_path,
+                                experiment.date_time,
+                                experiment.id,
+                                'test',
+                                experiment.cycle
+            )
+        except:
+            print("Can't do")
 
     def list_items(self, experiment_collectible = None):
         """Function to print all experiments in the form of a table 

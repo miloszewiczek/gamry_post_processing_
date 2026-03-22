@@ -2,8 +2,8 @@ from PyQt5.QtWidgets import (QTreeWidget, QWidget, QLayout, QPushButton, QHBoxLa
                              QVBoxLayout, QTreeView, QFileDialog, QMessageBox, 
                              QAbstractItemView, QDialog, QLabel, 
                              QFormLayout, QDialogButtonBox, QTableView,
-                             QComboBox, QMenu)
-from PyQt5.QtGui import QStandardItemModel, QStandardItem
+                             QComboBox, QMenu, QTextBrowser)
+from PyQt5.QtGui import QStandardItemModel, QStandardItem, QColor, QIcon
 from PyQt5.QtCore import Qt, QAbstractTableModel
 from core import ExperimentLoader, ExperimentManager, Experiment
 from pathlib import Path
@@ -42,10 +42,15 @@ class PandasModel(QAbstractTableModel):
 class DataPreviewDialog(QDialog):
     def __init__(self, experiment, parent=None):
         super().__init__(parent)
+
+        
         self.setWindowTitle("Podgląd Danych Eksperymentu")
         self.resize(800, 600)
         
         self.experiment = experiment
+        self.experiment.load_curves()
+        self.experiment.process_data()
+
         layout = QVBoxLayout(self)
         
         # 1. UI Elements
@@ -68,6 +73,7 @@ class DataPreviewDialog(QDialog):
 
         # 3. Inicjalizacja danych
         data_dict = experiment.get_all_data()
+
         self.populate_types(data_dict)
 
     def populate_types(self, data_dict):
@@ -116,8 +122,7 @@ class ExperimentInfoDialog(QDialog):
         # FormLayout idealnie nadaje się do par "Etykieta: Wartość"
         form = QFormLayout()
         
-        self.experiment.load_data()
-        self.experiment.process_data()
+        self.experiment.load_meta_data()
         for key, val_tuple in experiment.get_essentials().items():
             val = val_tuple[0]
             form.addRow(f"<b>{key}</b>", QLabel(f"{val}"))
@@ -166,11 +171,22 @@ class ExperimentPanel(QWidget):
 
         
         # 2. UI - Przyciski
-        self.btn_load_dialog = QPushButton("Wybierz pliki")
-        self.btn_load_folder_dialog = QPushButton("Wybierz folder")
-        self.btn_delete = QPushButton('Usuń węzeł')
-        self.btn_copy = QPushButton("Skopiuj")
+        self.btn_load_dialog = QPushButton()
+        self.btn_load_folder_dialog = QPushButton()
+        self.btn_delete = QPushButton()
+        self.btn_copy = QPushButton()
+
+        self.btn_load_dialog.setShortcut('Ctrl+O')
+        self.btn_load_folder_dialog.setShortcut('Ctrl+Shift+O')
+        self.btn_delete.setShortcut('Delete')
+        self.btn_copy.setShortcut('Ctrl+C')
+
         
+        # 2.1 UI - Icons
+        self.btn_load_dialog.setIcon(QIcon("Fugue_icons/fugue-icons-3.5.6/icons/document--plus.png"))
+        self.btn_load_folder_dialog.setIcon(QIcon("Fugue_icons/fugue-icons-3.5.6/icons/folder-open.png"))
+        self.btn_delete.setIcon(QIcon("Fugue_icons/fugue-icons-3.5.6/icons/document--minus.png"))
+        self.btn_copy.setIcon(QIcon("Fugue_icons/fugue-icons-3.5.6/icons/document-copy.png"))
 
         # 3. Layouty
         button_layout = QHBoxLayout()
@@ -291,7 +307,9 @@ class ExperimentPanel(QWidget):
             self.add_experiment_to_model(new_experiment, text = new_experiment.file_name + "_C")
        
 
-    def delete_item(self, index = None):
+    def delete_item(self, event, index = None):
+
+        print('working')
         # 1. Pobieramy unikalne wiersze (tylko z pierwszej kolumny)
         if index is None:
             selected_indices = self.tree_view.selectionModel().selectedRows(0)
@@ -343,7 +361,11 @@ class ExperimentPanel(QWidget):
         action_notepad = menu.addAction("Open in text editor")
         menu.addSeparator()
         action_delete = menu.addAction("Delete")
+        action_process = menu.addAction("Process")
+        action_change_class = menu.addAction("Change type")
+
         action = menu.exec(self.tree_view.viewport().mapToGlobal(position))
+        
 
         if action == action_info:
             self.on_double_clicked(index)
@@ -351,5 +373,54 @@ class ExperimentPanel(QWidget):
             open_file_in_system_editor(selected_exp.file_path)
         elif action == action_delete:
             self.delete_item(index = index)
+        elif action == action_process:
+            selected_exp.load_data()
+            selected_exp.process_data()
+            item = self.model.itemFromIndex(index)
+            # coloring
+            item.setBackground(QColor("green"))
+        elif action == action_change_class:
+
+            x = QDialog()
+            layout = QHBoxLayout(x)
+            combo = QTreeView()
+            model = QStandardItemModel()
+            for key, items in self.loader.experiment_classes.items():
+                parent = QStandardItem(key)
+                print(key)
+                model.appendRow(parent)
+                for item in items:
+                    parent.appendRow(QStandardItem(item))
+            
+            qbrowser = QTextBrowser()
+            qbrowser.setPlaceholderText("Choose experiment to get info")
+            qbrowser.setMinimumWidth(200)
+            combo.clicked.connect(lambda x: qbrowser.setText(model.item(Qt.DisplayRole)))
+
+            combo.setModel(model)
+            layout.addWidget(combo)
+            layout.addWidget(qbrowser)
+            x.setLayout(layout)
+            x.exec()
+
+    def get_selected_experiments(self):
+        """Zwraca listę obiektów Experiment, które są aktualnie zaznaczone w drzewie."""
+        # Pobieramy zaznaczone wiersze (tylko kolumna 0, bo tam mamy UserRole)
+        indices = self.tree_view.selectionModel().selectedRows(0)
+        
+        selected_objects = []
+        for index in indices:
+            # Sprawdzamy, czy to 'CHILD' (korzystamy z Twojej funkcji identify_selection)
+            if self.identify_selection(index) == "CHILD":
+                exp = index.data(Qt.ItemDataRole.UserRole)
+                if exp:
+                    selected_objects.append(exp)
+                    
+        return selected_objects
+
+
+
+
+
 
 

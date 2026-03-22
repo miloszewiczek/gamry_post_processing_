@@ -28,17 +28,21 @@ class Experiment():
         self.reference_potential = 0
         self.Ru = 0
 
-    def load_data(self):
+    def load_meta_data(self):
         
         DTA_parser.load(self.file_path)
         self.meta_data = DTA_parser.get_header()
         self.TAG = self.meta_data['TAG']
+        return self.meta_data
+
+    def load_curves(self):
+        
+        DTA_parser.load(self.file_path)
         self.data_list = DTA_parser.get_curves() 
         if len(self.data_list[-1].index) == 1:
             self.data_list.pop(-1)
             #print(f'Single point curve removed in file {self.file_path}')
-        return self.meta_data
-
+        return self.data_list
 
     def get_multiindex_labels(self, columns, curve_index, add_curve_index = True) -> tuple[list[list[str]], list[str]]:
         """
@@ -203,7 +207,6 @@ class Experiment():
             'Filepath': (self.file_path, 'LABEL', str, 'file_path'),
             'Experiment ID': (self.id, 'LABEL', int, 'id'),
             'Experiment TAG': (self.meta_data['TAG'], 'LABEL', str, 'TAG'),
-            'Number of curves': (len(self.data_list), 'LABEL', int, 'NONE'),
             'Title': (self.meta_data['TITLE'],'LABEL', str, 'TITLE'),
             'Potentiostat': (self.meta_data['PSTAT'],'LABEL', str, 'PSTAT'),
             'Date | Time': (" | ".join([self.meta_data['DATE'], self.meta_data['TIME']]), 'LABEL', str, 'NONE'),
@@ -211,5 +214,9 @@ class Experiment():
             'Reference Potential [V]': (self.reference_potential, 'ENTRY', float, 'reference_potential'),
             f'Ru [{uni_map['Ohm']}]': (self.Ru, 'ENTRY', float, 'Ru')
         }
+
+        if hasattr(self, 'data_list'):
+            essentials['Number of curves'] = (len(self.data_list), 'LABEL', int, 'NONE')
+            
         return essentials
     

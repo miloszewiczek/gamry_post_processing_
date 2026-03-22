@@ -4,7 +4,6 @@ from datetime import datetime
 import re
 from itertools import chain
 from glob import glob
-from tkinterdnd2 import TkinterDnD
 from tkinter.filedialog import askopenfilenames, askdirectory
 from random import sample
 
