@@ -20,7 +20,7 @@ class Experiment():
         self.date_time = date_time
         self.id = id
         self.tag = tag
-        self.parameters = {}
+        self.custom_parameters = defaultdict()
         self.cycle = cycle
         self.default_x = 'E vs RHE [V]'
         self.default_y = 'J_GEO [A/cm2]'
@@ -78,6 +78,9 @@ class Experiment():
 
     def process_data(self, **kwargs) -> list[pd.DataFrame]:
         
+        if not hasattr(self, 'data_list'):
+            self.load_curves()
+
         print(messages.processing_messages['processing_data_fp_id_len'].format(
             file_path = self.file_path,
             id = self.id,
@@ -113,8 +116,7 @@ class Experiment():
         return pd.concat(dfs, axis=1)
 
     def get_tree_structure(self) -> dict:
-        """Return a nested dictionary representing the file → [curve or potential] → parameters tree.
-    Supports both 2- and 3-level MultiIndex DataFrames."""
+        """Return a nested dictionary representing the file → [curve or potential] → custom_parameters tree.defaultdict()   Supports both 2- and 3-level MultiIndex DataFrames."""
     
         if not hasattr(self, "processed_data"):
             raise ValueError("Run process_data() first.")
@@ -220,3 +222,6 @@ class Experiment():
             
         return essentials
     
+    def set_parameter(self, parameter:str, value):
+        self.custom_parameters[parameter] = value
+        

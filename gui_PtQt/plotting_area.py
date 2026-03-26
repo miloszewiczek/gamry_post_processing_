@@ -1,8 +1,9 @@
-from PyQt5.QtWidgets import QVBoxLayout, QHBoxLayout, QPushButton, QWidget, QTreeView, QListWidget, QListWidgetItem, QLabel
+from PyQt5.QtWidgets import QVBoxLayout, QHBoxLayout, QPushButton, QWidget, QTreeView, QListWidget, QListWidgetItem, QLabel, QShortcut
 from matplotlib.backends.backend_qtagg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.figure import Figure
 from random import sample
 from PyQt5.QtCore import Qt
+from PyQt5.QtGui import QKeySequence
 from .painting import create_line_icon, ColorManager
 
 ColorRole = Qt.UserRole + 1
@@ -89,10 +90,13 @@ class PlotManagerPanel(QWidget):
         btn =QPushButton("Delete")
 
         btn.clicked.connect(self.delete_plot)
-        btn.setShortcut("Delete")
         btn = self.my_layout.addWidget(btn)
 
         self.list_widget.itemChanged.connect(self.update_canvas)
+
+        btn_delete_shortcut = QShortcut(QKeySequence("Delete"), self.list_widget)
+        btn_delete_shortcut.setContext(Qt.ShortcutContext.WidgetShortcut)
+        btn_delete_shortcut.activated.connect(self.delete_plot)    
         
 
 
@@ -133,6 +137,7 @@ class PlotManagerPanel(QWidget):
             self.update_canvas()
     
     def delete_plot(self):
+            print('elo')
             selected_items = self.list_widget.selectedItems()
             if not selected_items:
                 return

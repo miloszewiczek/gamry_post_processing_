@@ -686,3 +686,4 @@ def open_file_in_system_editor(file_path):
         subprocess.call(['open', file_path])
     else:  # Linux
         subprocess.call(['xdg-open', file_path])
+

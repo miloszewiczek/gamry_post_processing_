@@ -2,12 +2,13 @@ from PyQt5.QtWidgets import (QTreeWidget, QWidget, QLayout, QPushButton, QHBoxLa
                              QVBoxLayout, QTreeView, QFileDialog, QMessageBox, 
                              QAbstractItemView, QDialog, QLabel, 
                              QFormLayout, QDialogButtonBox, QTableView,
-                             QComboBox, QMenu, QTextBrowser)
-from PyQt5.QtGui import QStandardItemModel, QStandardItem, QColor, QIcon
+                             QComboBox, QMenu, QTextBrowser, QShortcut, QInputDialog, QDoubleSpinBox)
+from PyQt5.QtGui import QStandardItemModel, QStandardItem, QColor, QIcon, QKeySequence
 from PyQt5.QtCore import Qt, QAbstractTableModel
 from core import ExperimentLoader, ExperimentManager, Experiment
 from pathlib import Path
 from gui.functions import open_file_in_system_editor
+from gui.calculate_diameter import area_dialog_box
 
 
 class PandasModel(QAbstractTableModel):
@@ -169,7 +170,6 @@ class ExperimentPanel(QWidget):
         self.tree_view.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
         self.tree_view.customContextMenuRequested.connect(self.open_menu)
 
-        
         # 2. UI - Przyciski
         self.btn_load_dialog = QPushButton()
         self.btn_load_folder_dialog = QPushButton()
@@ -178,10 +178,15 @@ class ExperimentPanel(QWidget):
 
         self.btn_load_dialog.setShortcut('Ctrl+O')
         self.btn_load_folder_dialog.setShortcut('Ctrl+Shift+O')
-        self.btn_delete.setShortcut('Delete')
-        self.btn_copy.setShortcut('Ctrl+C')
 
-        
+        btn_copy_shortcut = QShortcut(QKeySequence("Ctrl+C"), self.tree_view)
+        btn_copy_shortcut.setContext(Qt.ShortcutContext.WidgetShortcut)
+        btn_copy_shortcut.activated.connect(self.copy_item)
+
+        btn_delete_shortcut = QShortcut(QKeySequence("Delete"), self.tree_view)
+        btn_delete_shortcut.setContext(Qt.ShortcutContext.WidgetShortcut)
+        btn_delete_shortcut.activated.connect(self.delete_item)  
+
         # 2.1 UI - Icons
         self.btn_load_dialog.setIcon(QIcon("Fugue_icons/fugue-icons-3.5.6/icons/document--plus.png"))
         self.btn_load_folder_dialog.setIcon(QIcon("Fugue_icons/fugue-icons-3.5.6/icons/folder-open.png"))
@@ -286,6 +291,28 @@ class ExperimentPanel(QWidget):
         
         parent_item.appendRow([child_name, child_class, child_id])
 
+    def get_target_indices(self, clicked_index=None):
+        """
+        Zwraca listę indeksów do przetworzenia.
+        Priorytet:
+        1. Jeśli kliknięty prawym przyciskiem indeks nie jest w obecnym zaznaczeniu -> tylko ten indeks.
+        2. Jeśli kliknięty indeks JEST w zaznaczeniu -> całe zaznaczenie.
+        3. Jeśli nie kliknięto w nic konkretnego (np. skrót klawiszowy) -> całe zaznaczenie.
+        """
+        selection_model = self.tree_view.selectionModel()
+        
+        # Przypadek: Wywołanie ze skrótu klawiszowego (clicked_index to None lub bool)
+        if clicked_index is None or isinstance(clicked_index, bool):
+            return selection_model.selectedRows(0)
+
+        # Przypadek: Kliknięcie prawym przyciskiem myszy
+        if selection_model.isSelected(clicked_index):
+            # Jeśli kliknąłeś w coś, co już jest zaznaczone (część grupy)
+            return selection_model.selectedRows(0)
+        else:
+            # Jeśli kliknąłeś w coś poza zaznaczeniem, traktujemy to jako wybór tylko tego jednego
+            return [clicked_index]
+
 
     def identify_selection(self, index):
         if not index.isValid():
@@ -307,11 +334,10 @@ class ExperimentPanel(QWidget):
             self.add_experiment_to_model(new_experiment, text = new_experiment.file_name + "_C")
        
 
-    def delete_item(self, event, index = None):
+    def delete_item(self, index = None):
 
-        print('working')
         # 1. Pobieramy unikalne wiersze (tylko z pierwszej kolumny)
-        if index is None:
+        if index is None or isinstance(index, bool):
             selected_indices = self.tree_view.selectionModel().selectedRows(0)
         else:
             selected_indices = [index,]
@@ -350,10 +376,12 @@ class ExperimentPanel(QWidget):
 
     def open_menu(self, position):
         index = self.tree_view.indexAt(position)
+        print(index)
         if not index.isValid():
             return
         
-        selected_exp = index.data(Qt.UserRole)
+        targets = self.get_target_indices(index)
+        selected_exp:list[Experiment] = [i.data(Qt.UserRole) for i in targets]
         
         menu = QMenu(self)
 
@@ -363,6 +391,10 @@ class ExperimentPanel(QWidget):
         action_delete = menu.addAction("Delete")
         action_process = menu.addAction("Process")
         action_change_class = menu.addAction("Change type")
+        action_set_custom_parameter = menu.addAction("Set parameter")
+        action_set_Ru = menu.addAction("Set Ru")
+        action_set_geometrical_area = menu.addAction("Set Geometrical Area")
+        action_set_reference_potential = menu.addAction("Set Reference Potential")
 
         action = menu.exec(self.tree_view.viewport().mapToGlobal(position))
         
@@ -374,11 +406,42 @@ class ExperimentPanel(QWidget):
         elif action == action_delete:
             self.delete_item(index = index)
         elif action == action_process:
-            selected_exp.load_data()
-            selected_exp.process_data()
-            item = self.model.itemFromIndex(index)
-            # coloring
-            item.setBackground(QColor("green"))
+            for exp in selected_exp:
+                exp.process_data()
+                items = list(map(self.model.itemFromIndex, targets))
+                for item in items:
+                    item.setBackground(QColor('green'))
+
+        elif action == action_set_custom_parameter:
+            for exp in selected_exp:
+                exp.set_parameter('Ru', 10)
+            print('Ru set to 10')
+        elif action == action_set_geometrical_area:
+            def init_dialog_box():
+                x = area_dialog_box()
+                x.exec()
+
+
+            x = QDialog()
+            layout = QVBoxLayout(x)
+            label = QLabel('Geometrical Area [cm2]')
+            value_box = QDoubleSpinBox()
+            value_box.setRange(0, 1000)
+            value_box.setValue(1)
+            value_box.setDecimals(3)
+            
+            calculate_from_diameter_btn = QPushButton('From diameter...')
+            layout.addWidget(label)
+            layout.addWidget(calculate_from_diameter_btn)
+            layout.addWidget(value_box)
+            
+            calculate_from_diameter_btn.clicked.connect(init_dialog_box)
+            x.setLayout(layout)
+            x.exec()
+
+            
+
+
         elif action == action_change_class:
 
             x = QDialog()
