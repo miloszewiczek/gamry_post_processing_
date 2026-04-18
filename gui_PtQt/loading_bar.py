@@ -419,8 +419,11 @@ class ExperimentPanel(QWidget):
         elif action == action_set_geometrical_area:
             def init_dialog_box():
                 x = area_dialog_box()
-                x.exec()
+                if x.exec() == QDialog.Accepted:
 
+                    value_box.setValue(x.get_value())
+                else:
+                    print('none')
 
             x = QDialog()
             layout = QVBoxLayout(x)
