@@ -5,19 +5,15 @@ from experiments import *
 from PyQt5.Qt import QApplication, QMainWindow, QWidget, QHBoxLayout, QSplitter
 from PyQt5.QtCore import Qt
 from sys import argv
-import json
+from gui_PtQt.config import SettingsManager
 
-with open('gui_PtQt/settings.json') as file:
-    global_settings = file.read()
-    print(global_settings) 
 
 
 class MainWindow(QMainWindow):
-    def __init__(self, settings):
+    def __init__(self):
         super().__init__()
 
-
-        
+      
         self.loader = ExperimentLoader()
         self.manager = ExperimentManager(self.loader.load_testing(5))        
 
@@ -56,9 +52,9 @@ class MainWindow(QMainWindow):
         self.plot_manager.add_plots(current_exps)
 
 
-
 if __name__ == '__main__':
 
+    settings = SettingsManager()
     app = QApplication(argv)
     mainwindow = MainWindow()
     mainwindow.show()

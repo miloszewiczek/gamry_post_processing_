@@ -4,10 +4,10 @@ from PyQt5.QtWidgets import (QTreeWidget, QWidget, QLayout, QPushButton, QHBoxLa
                              QFormLayout, QDialogButtonBox, QTableView,
                              QComboBox, QMenu, QTextBrowser, QShortcut, QInputDialog, QDoubleSpinBox)
 from PyQt5.QtGui import QStandardItemModel, QStandardItem, QColor, QIcon, QKeySequence
-from PyQt5.QtCore import Qt, QAbstractTableModel
+from PyQt5.QtCore import Qt, QAbstractTableModel, QItemSelection, QItemSelectionModel, QPersistentModelIndex
 from core import ExperimentLoader, ExperimentManager, Experiment
 from pathlib import Path
-from gui.functions import open_file_in_system_editor
+from gui.functions import open_file_in_system_editor, open_folder_in_explorer
 from gui.calculate_diameter import area_dialog_box, area_dialog
 
 
@@ -152,11 +152,12 @@ class ExperimentInfoDialog(QDialog):
         open_file_in_system_editor(self.experiment.file_path)
 
 class ExperimentPanel(QWidget):
-    def __init__(self, loader:ExperimentLoader, manager:ExperimentManager, parent=None):
+    def __init__(self, loader:ExperimentLoader, manager:ExperimentManager, parent=None, settings = None):
         super().__init__(parent)
 
         self.loader = loader
         self.manager = manager
+        self.settings = settings
         
         # 1. Inicjalizacja Modelu i Widoku
         self.tree_view = QTreeView()
@@ -186,6 +187,11 @@ class ExperimentPanel(QWidget):
         btn_delete_shortcut = QShortcut(QKeySequence("Delete"), self.tree_view)
         btn_delete_shortcut.setContext(Qt.ShortcutContext.WidgetShortcut)
         btn_delete_shortcut.activated.connect(self.delete_item)  
+
+        btn_select_shortcut = QShortcut(QKeySequence("Ctrl+A"), self.tree_view)
+        btn_select_shortcut.setContext(Qt.ShortcutContext.WidgetShortcut)
+        btn_select_shortcut.activated.connect(self.select_all)
+        self.selected_all = False
 
         # 2.1 UI - Icons
         self.btn_load_dialog.setIcon(QIcon("Fugue_icons/fugue-icons-3.5.6/icons/document--plus.png"))
@@ -311,7 +317,7 @@ class ExperimentPanel(QWidget):
             return selection_model.selectedRows(0)
         else:
             # Jeśli kliknąłeś w coś poza zaznaczeniem, traktujemy to jako wybór tylko tego jednego
-            return [clicked_index]
+            return [clicked_index.siblingAtColumn(0)]
 
 
     def identify_selection(self, index):
@@ -337,10 +343,12 @@ class ExperimentPanel(QWidget):
     def delete_item(self, index = None):
 
         # 1. Pobieramy unikalne wiersze (tylko z pierwszej kolumny)
-        if index is None or isinstance(index, bool):
+        if (index is None) or (isinstance(index, bool)):
             selected_indices = self.tree_view.selectionModel().selectedRows(0)
         else:
             selected_indices = [index,]
+        
+        print(selected_indices)
 
         if not selected_indices:
             QMessageBox.information(self, 'Select node', 'No node selected...')
@@ -354,6 +362,7 @@ class ExperimentPanel(QWidget):
 
             if tipo == "CHILD":
                 exp = index.data(Qt.UserRole)
+                print(exp)
                 parent_index = index.parent()
                 # Usuwamy z logiki (manager/baza)
                 self.manager.delete_experiment_by_id(exp.id)
@@ -374,57 +383,66 @@ class ExperimentPanel(QWidget):
                     # Usuwamy cały folder z widoku
                     self.model.removeRow(index.row(), index.parent())
 
+
     def open_menu(self, position):
         index = self.tree_view.indexAt(position)
-        print(index)
         if not index.isValid():
             return
-        
-        targets = self.get_target_indices(index)
-        selected_exp:list[Experiment] = [i.data(Qt.UserRole) for i in targets]
-        
-        menu = QMenu(self)
 
-        action_info = menu.addAction("Show details")
-        action_notepad = menu.addAction("Open in text editor")
-        menu.addSeparator()
-        action_delete = menu.addAction("Delete")
-        action_process = menu.addAction("Process")
-        action_change_class = menu.addAction("Change type")
-        action_set_custom_parameter = menu.addAction("Set parameter")
-        action_set_Ru = menu.addAction("Set Ru")
-        action_set_geometrical_area = menu.addAction("Set Geometrical Area")
-        action_set_reference_potential = menu.addAction("Set Reference Potential")
-
+        targets = self.tree_view.selectionModel().selectedRows(0)
+        # verify if parent and child are in the group
+        
+        menu_type = self.identify_selection(index)
+        menu = self._build_context_menu(menu_type, len(targets))
         action = menu.exec(self.tree_view.viewport().mapToGlobal(position))
-        
+        self._handle_experiment_action(action = action, index = targets)
 
-        if action == action_info:
-            self.on_double_clicked(index)
-        elif action == action_notepad:
-            open_file_in_system_editor(selected_exp.file_path)
-        elif action == action_delete:
-            self.delete_item(index = index)
-        elif action == action_process:
-            for exp in selected_exp:
+    def _build_context_menu(self, node_type, amount_of_targets):
+        
+        menu = QMenu()
+        
+        if node_type == 'CHILD':
+
+            self.action_info = menu.addAction("Show details")
+
+            if amount_of_targets > 1:
+                self.action_info.setDisabled(True)
+
+            self.action_notepad = menu.addAction("Open in text editor")
+            self.action_change_class = menu.addAction("Change type")
+            menu.addSeparator()
+            self.action_set_parameters = menu.addAction("Set Geometrical Area")
+            self.action_process = menu.addAction("Process")
+        
+        return menu
+
+    def _handle_experiment_action(self, action, index):
+        experiments = self.experimentFromIndex(index)
+
+        if action == getattr(self, 'action_info', None):
+            self.on_double_clicked(index[0])
+
+        elif action == getattr(self, 'action_notepad', None):
+            for experiment in experiments:
+                open_file_in_system_editor(experiment.file_path)
+
+        elif action == getattr(self, 'action_process', None):
+            for exp in experiments:
                 exp.process_data()
-                items = list(map(self.model.itemFromIndex, targets))
+                items = list(map(self.model.itemFromIndex, index))
                 for item in items:
                     item.setBackground(QColor('green'))
 
-        elif action == action_set_custom_parameter:
-            for exp in selected_exp:
-                exp.set_parameter('Ru', 10)
-            print('Ru set to 10')
-        elif action == action_set_geometrical_area:
+        elif action == getattr(self, 'action_set_parameters', None):
             x = area_dialog()        
             if x.exec() == QDialog.Accepted:
-                print(x.get_value)
+                geometric_area = x.get_value()
+            else:
+                return
+            for exp in experiments:
+                exp.set_area(geometric_area)
 
-            
-
-
-        elif action == action_change_class:
+        elif action == getattr(self, 'action_change_class', None):
 
             x = QDialog()
             layout = QHBoxLayout(x)
@@ -447,25 +465,50 @@ class ExperimentPanel(QWidget):
             layout.addWidget(qbrowser)
             x.setLayout(layout)
             x.exec()
-
-    def get_selected_experiments(self):
-        """Zwraca listę obiektów Experiment, które są aktualnie zaznaczone w drzewie."""
-        # Pobieramy zaznaczone wiersze (tylko kolumna 0, bo tam mamy UserRole)
-        indices = self.tree_view.selectionModel().selectedRows(0)
         
-        selected_objects = []
-        for index in indices:
-            # Sprawdzamy, czy to 'CHILD' (korzystamy z Twojej funkcji identify_selection)
-            if self.identify_selection(index) == "CHILD":
-                exp = index.data(Qt.ItemDataRole.UserRole)
-                if exp:
-                    selected_objects.append(exp)
-                    
-        return selected_objects
+        # elif action == getattr(self, 'explorer_info', None):
+        #   open_folder_in_explorer()
+        
+        else:
+            return
+
+    def get_children(self, parent_index):
+        children = self.model.rowCount(parent_index)
+        indexes = [self.model.index(child, 0, parent_index) for child in range(children)]
+        return indexes
 
 
+    def verify_parent_children_relationship(self, targets):
 
+        parents = [target for target in targets if self.identify_selection(target) == 'PARENT']
+        selected_children = [target for target in targets if self.identify_selection(target) == 'CHILD']
+        selection_model = self.tree_view.selectionModel()
+        selection = QItemSelection()
+        
+        if (len(parents) != 0) and (len(selected_children) > 0):
+            button = QMessageBox.question(self,
+                                 "Multiple selection",
+                                 "It appears you selected both folder and its child(ren). Extend selection to all children?",
+                                 buttons = QMessageBox.StandardButton.Yes
+                                 | QMessageBox.StandardButton.No,
+                                 defaultButton = QMessageBox.StandardButton.No
+                                 )
+            if button == QMessageBox.StandardButton.Yes:
+                for parent in parents:
+                    children = self.get_children(parent)
+                    selected_children += children
+            elif button == QMessageBox.StandardButton.No:
+                selected_children = selected_children
 
-
-
-
+            selected_children = set(selected_children)
+            for idx in selected_children:
+                selection.select(idx, idx)
+            selection_model.select(selection, QItemSelectionModel.SelectionFlag.ClearAndSelect)
+        
+        return selected_children
+                
+    def experimentFromIndex(self, indexes) -> list[Experiment]:
+        return [index.data(Qt.UserRole) for index in indexes]
+        
+    def select_all(self):
+        pass

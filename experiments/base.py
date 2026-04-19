@@ -224,4 +224,7 @@ class Experiment():
     
     def set_parameter(self, parameter:str, value):
         self.custom_parameters[parameter] = value
+
+    def set_area(self, area: float):
+        self.geometrical_area = area
         

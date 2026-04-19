@@ -1,36 +1,63 @@
 from PyQt5.QtWidgets import QDialog, QDoubleSpinBox, QPushButton, QHBoxLayout, QVBoxLayout, QDialog, QComboBox, QLabel, QLineEdit, QRadioButton, QButtonGroup
+from gui_PtQt.config import SettingsManager
 
 class area_dialog(QDialog):
     def __init__(self):
         super().__init__()
 
+
+
         def init_dialog_box():
             x = area_dialog_box()
             if x.exec() == QDialog.Accepted:
-
-                value_box.setValue(x.get_value())
+                self.value_box.setValue(x.get_value())
             else:
                 print('none')
 
         layout = QVBoxLayout()
         label = QLabel('Geometrical Area [cm2]')
-        value_box = QDoubleSpinBox()
-        value_box.setRange(0, 1000)
-        value_box.setValue(1)
-        value_box.setDecimals(3)
-        
-        calculate_from_diameter_btn = QPushButton('From diameter...')
-        layout.addWidget(label)
-        layout.addWidget(calculate_from_diameter_btn)
-        layout.addWidget(value_box)
-        
-        calculate_from_diameter_btn.clicked.connect(init_dialog_box)
+        self.value_box = QDoubleSpinBox()
+        self.value_box.setRange(0, 1000)
+        self.value_box.setDecimals(3)
+        self.value_box.setValue(0.196)
+
         self.setLayout(layout)
 
-        area_dict = {'RedoxMe 5 mm': 0.196, 'GCE 3 mm': 0.07056, 'RedoxMe 1 mm': 0.008}
+        #in .json the file contains key-value pairs corresponding to various electrode types
+        self.settings = SettingsManager()
+        areas = self.settings.get('electrode_area')
         defaults_box = QComboBox()
-        defaults_box.addItems(['RedoxMe 5 mm', 'GCE 3 mm', 'RedoxMe 1 mm'])
-        defaults_box.currentTextChanged.connect
+        defaults_box.addItems(areas.keys())
+        defaults_box.currentTextChanged.connect(lambda x: self.value_box.setValue(areas[x]))
+        
+
+        calculate_from_diameter_btn = QPushButton('From diameter...')
+        calculate_from_diameter_btn.clicked.connect(init_dialog_box)
+
+        ok_button = QPushButton('OK')
+        ok_button.clicked.connect(self.accept)
+
+        bottom_layout = QHBoxLayout()
+        bottom_layout.addWidget(calculate_from_diameter_btn)
+        bottom_layout.addWidget(ok_button)
+
+        #### REFERENCE POTENTIAL
+        label_ref = QLabel('Reference potential [V]')
+        ref_box = QComboBox()
+        ref_box.addItems()
+        
+        
+        layout.addWidget(label)
+        layout.addWidget(defaults_box)
+        layout.addWidget(self.value_box)
+        layout.addLayout(bottom_layout)
+
+
+
+    def get_value(self):
+        return self.value_box.value()
+        
+
 
 class area_dialog_box(QDialog):
     def __init__(self):

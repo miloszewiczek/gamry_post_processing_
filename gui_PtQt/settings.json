@@ -1,5 +1,5 @@
 {
-    "electrode_areas": {
+    "electrode_area": {
         "RedoxMe 5 mm": 0.196,
         "RedoxMe 1 mm": 0.008,
         "GCE 3 mm": 0.07069

@@ -18,6 +18,7 @@ from dataclasses import dataclass
 from experiments import Experiment
 import platform
 import subprocess
+from pathlib import Path
 
 
 
@@ -679,11 +680,20 @@ def variable_separation(variable: str, separator: str, final_type = None):
     return list_of_variables
 
     
-def open_file_in_system_editor(file_path):
+def open_file_in_system_editor(path):
+    
     if platform.system() == 'Windows':
-        os.startfile(file_path)
+        os.startfile(path)
     elif platform.system() == 'Darwin':  # macOS
-        subprocess.call(['open', file_path])
+        subprocess.call(['open', path])
     else:  # Linux
-        subprocess.call(['xdg-open', file_path])
+        subprocess.call(['xdg-open', path])
 
+def open_folder_in_explorer(file_path):
+    # 1. Upewniamy się, że mamy ścieżkę do folderu
+    # Jeśli podano plik, bierzemy jego folder nadrzędny (.parent)
+    path = Path(file_path)
+    folder_path = str(path.parent if path.is_file() else path)
+
+    # 2. Wywołujemy odpowiednią komendę systemową
+    open_file_in_system_editor(folder_path)
