@@ -5,11 +5,19 @@ from experiments import *
 from PyQt5.Qt import QApplication, QMainWindow, QWidget, QHBoxLayout, QSplitter
 from PyQt5.QtCore import Qt
 from sys import argv
+import json
+
+with open('gui_PtQt/settings.json') as file:
+    global_settings = file.read()
+    print(global_settings) 
+
 
 class MainWindow(QMainWindow):
-    def __init__(self):
+    def __init__(self, settings):
         super().__init__()
 
+
+        
         self.loader = ExperimentLoader()
         self.manager = ExperimentManager(self.loader.load_testing(5))        
 

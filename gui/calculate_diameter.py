@@ -1,5 +1,37 @@
 from PyQt5.QtWidgets import QDialog, QDoubleSpinBox, QPushButton, QHBoxLayout, QVBoxLayout, QDialog, QComboBox, QLabel, QLineEdit, QRadioButton, QButtonGroup
 
+class area_dialog(QDialog):
+    def __init__(self):
+        super().__init__()
+
+        def init_dialog_box():
+            x = area_dialog_box()
+            if x.exec() == QDialog.Accepted:
+
+                value_box.setValue(x.get_value())
+            else:
+                print('none')
+
+        layout = QVBoxLayout()
+        label = QLabel('Geometrical Area [cm2]')
+        value_box = QDoubleSpinBox()
+        value_box.setRange(0, 1000)
+        value_box.setValue(1)
+        value_box.setDecimals(3)
+        
+        calculate_from_diameter_btn = QPushButton('From diameter...')
+        layout.addWidget(label)
+        layout.addWidget(calculate_from_diameter_btn)
+        layout.addWidget(value_box)
+        
+        calculate_from_diameter_btn.clicked.connect(init_dialog_box)
+        self.setLayout(layout)
+
+        area_dict = {'RedoxMe 5 mm': 0.196, 'GCE 3 mm': 0.07056, 'RedoxMe 1 mm': 0.008}
+        defaults_box = QComboBox()
+        defaults_box.addItems(['RedoxMe 5 mm', 'GCE 3 mm', 'RedoxMe 1 mm'])
+        defaults_box.currentTextChanged.connect
+
 class area_dialog_box(QDialog):
     def __init__(self):
         super().__init__()

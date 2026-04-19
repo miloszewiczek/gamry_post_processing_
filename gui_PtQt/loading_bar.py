@@ -8,7 +8,7 @@ from PyQt5.QtCore import Qt, QAbstractTableModel
 from core import ExperimentLoader, ExperimentManager, Experiment
 from pathlib import Path
 from gui.functions import open_file_in_system_editor
-from gui.calculate_diameter import area_dialog_box
+from gui.calculate_diameter import area_dialog_box, area_dialog
 
 
 class PandasModel(QAbstractTableModel):
@@ -417,30 +417,9 @@ class ExperimentPanel(QWidget):
                 exp.set_parameter('Ru', 10)
             print('Ru set to 10')
         elif action == action_set_geometrical_area:
-            def init_dialog_box():
-                x = area_dialog_box()
-                if x.exec() == QDialog.Accepted:
-
-                    value_box.setValue(x.get_value())
-                else:
-                    print('none')
-
-            x = QDialog()
-            layout = QVBoxLayout(x)
-            label = QLabel('Geometrical Area [cm2]')
-            value_box = QDoubleSpinBox()
-            value_box.setRange(0, 1000)
-            value_box.setValue(1)
-            value_box.setDecimals(3)
-            
-            calculate_from_diameter_btn = QPushButton('From diameter...')
-            layout.addWidget(label)
-            layout.addWidget(calculate_from_diameter_btn)
-            layout.addWidget(value_box)
-            
-            calculate_from_diameter_btn.clicked.connect(init_dialog_box)
-            x.setLayout(layout)
-            x.exec()
+            x = area_dialog()        
+            if x.exec() == QDialog.Accepted:
+                print(x.get_value)
 
             
 
