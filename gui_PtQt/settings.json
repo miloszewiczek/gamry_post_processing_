@@ -3,6 +3,9 @@
         "RedoxMe 5 mm": 0.196,
         "RedoxMe 1 mm": 0.008,
         "GCE 3 mm": 0.07069
+    },
+    "reference_electrode": {
+        "AgCl/Ag (3M)": 0.210 
     }
          
 }
