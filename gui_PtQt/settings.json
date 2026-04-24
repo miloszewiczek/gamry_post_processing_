@@ -5,7 +5,9 @@
         "GCE 3 mm": 0.07069
     },
     "reference_electrode": {
-        "AgCl/Ag (3M)": 0.210 
+        "AgCl/Ag (3M KCl)": 0.210,
+        "Hg2Cl2/Hg (3M KCl)": 0.268,
+        "HgO/Hg (3M KOH)":  0.035
     }
          
 }

@@ -43,13 +43,26 @@ class area_dialog(QDialog):
 
         #### REFERENCE POTENTIAL
         label_ref = QLabel('Reference potential [V]')
+        reference_potentials = self.settings.get('reference_electrode')
         ref_box = QComboBox()
-        ref_box.addItems()
+        
+        self.reference_value_box = QDoubleSpinBox()
+        self.reference_value_box.setRange(0, 1000)
+        self.reference_value_box.setDecimals(3)
+        self.reference_value_box.setValue(0.196)
+
+        ref_box.addItems(reference_potentials.keys())
+        ref_box.currentTextChanged.connect(lambda x: self.reference_value_box.setValue(reference_potentials[x]))
         
         
         layout.addWidget(label)
         layout.addWidget(defaults_box)
         layout.addWidget(self.value_box)
+
+        layout.addWidget(label_ref)
+        layout.addWidget(ref_box)
+        layout.addWidget(self.reference_value_box)
+
         layout.addLayout(bottom_layout)
 
 
