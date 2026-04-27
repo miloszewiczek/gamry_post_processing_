@@ -5,7 +5,7 @@ from experiments import *
 from PyQt5.Qt import QApplication, QMainWindow, QWidget, QHBoxLayout, QSplitter
 from PyQt5.QtCore import Qt
 from sys import argv
-from gui_PtQt.config import SettingsManager
+from gui_PtQt.config import settings
 
 
 
@@ -54,7 +54,7 @@ class MainWindow(QMainWindow):
 
 if __name__ == '__main__':
 
-    settings = SettingsManager()
+    settings = settings
     app = QApplication(argv)
     mainwindow = MainWindow()
     mainwindow.show()

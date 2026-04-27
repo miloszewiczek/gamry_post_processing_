@@ -104,7 +104,7 @@ class ExperimentLoader():
         return self.populate_list_of_experiments(files)
 
         
-    def create_experiment(self, file_path, manager = None):
+    def create_experiment(self, file_path, manager = None) -> Experiment:
         '''Factory function to create the experiment and store it in a manager.
         Depending on the TAG of the .DTA file, it creates a different experiment object characterized by different data processing methods.'''
 

@@ -5,10 +5,12 @@ from random import sample
 from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QKeySequence
 from .painting import create_line_icon, ColorManager
+import pandas as pd
+import matplotlib.dates as mdates
 
 ColorRole = Qt.UserRole + 1
 
-class PlottingCanvas(FigureCanvas):
+class PlottingCanvasTest(FigureCanvas):
     def __init__(self):
         self.fig = Figure(figsize=(5, 4), dpi=100)
         self.axes = self.fig.add_subplot(111)
@@ -19,25 +21,6 @@ class PlottingCanvas(FigureCanvas):
         # Generujemy losowe dane do testu
         self.axes.plot(sample(range(1, 101), 10), sample(range(1, 101), 10), 'o-')
         self.draw()
-
-class PlottingArea(QWidget): # Zmieniamy na QWidget, żeby zawierał Layout
-    def __init__(self):
-        super().__init__()
-        
-        # Tworzymy główny layout dla tego widgetu
-        self.main_layout = QVBoxLayout(self)
-        
-        self.Canvas = PlottingCanvas()
-        self.button_row = QHBoxLayout()
-
-        btn = QPushButton('Press to plot')
-        # Lambda odcina sygnał 'checked', więc do funkcji trafi None (domyślny)
-        btn.clicked.connect(lambda: self.Canvas.plot_experiments())
-        
-        self.button_row.addWidget(btn)
-
-        self.main_layout.addWidget(self.Canvas)
-        self.main_layout.addLayout(self.button_row) # Ważne: addLayout!
 
 
 class PlottingCanvas(FigureCanvas):
@@ -61,6 +44,20 @@ class PlottingCanvas(FigureCanvas):
 
         self.draw()
 
+    def plot(self, x, y):
+        self.axes.plot(x, y)
+        self.draw()
+
+    def plot_df(self, df):
+        self.axes.clear()
+        df.index = pd.to_datetime(df.index)
+        df = df.sort_index()
+        df.plot(ax = self.axes)
+        self.axes.xaxis.set_major_formatter(mdates.DateFormatter('%Y-%m-%d %H:%M'))
+        self.fig.autofmt_xdate() # Obraca daty
+        self.axes.grid(True)
+        self.axes.set_title("Pomiary elektrod")
+        self.draw() # Odświeżamy Canvas
 
 
 class MyListWidget(QListWidget):
@@ -169,6 +166,7 @@ class PlottingArea(QWidget):
         super().__init__()
 
         self.Canvas = PlottingCanvas()
+        self.axes = self.Canvas.axes
         my_layout = QVBoxLayout()
         self.btn = QPushButton('Press to plot')
 
@@ -180,7 +178,7 @@ class PlottingArea(QWidget):
     def get_canvas(self):
         return self.Canvas
 
-
-        
+    def plot(self, df):     
+        self.Canvas.plot(df)
     
 

@@ -24,3 +24,4 @@ class OpenCircuit(Experiment):
         level_values = [[f'{self.file_path}'], [f'{self.meta_data['TIMEOUT']}'], columns]
         level_names = ['Path', 'Duration [s]', 'Parameter']
         return level_values, level_names
+    

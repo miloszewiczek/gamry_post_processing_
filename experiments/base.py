@@ -143,7 +143,7 @@ class Experiment():
     def perform_postprocessing(self):
         return 'Base class has no postprocessing defined'
 
-    def get_data(self, index:int|None, data_type: str = Literal['data_list', 'processed_data']):
+    def get_data(self, index:int|None, data_type: str = Literal['data_list', 'processed_data']) -> list[pd.DataFrame]:
         #Need to add functionality to get either self.data_list or processed_list or even something different
         #None is a string, because the treeview stores values as strings!
 
@@ -227,4 +227,14 @@ class Experiment():
 
     def set_area(self, area: float):
         self.geometrical_area = area
+
+    def plot(self, ax,  data_type = Literal['processed_data', 'data_list'], index = None, x = None, y = None):
+        data = getattr(self, data_type)
+
+        if (x is None) and (y is None):
+            x, y = self.get_default_columns('both')
+        if index is not None:
+            data = data[index]
+        data.plot(ax = ax, x = x, y = y)
+
         

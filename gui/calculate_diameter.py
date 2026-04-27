@@ -1,18 +1,26 @@
 from PyQt5.QtWidgets import QDialog, QDoubleSpinBox, QPushButton, QHBoxLayout, QVBoxLayout, QDialog, QComboBox, QLabel, QLineEdit, QRadioButton, QButtonGroup
-from gui_PtQt.config import SettingsManager
+from gui_PtQt.config import settings, references
+from PyQt5.QtCore import pyqtSignal
+from functions.gui_functions import load_files, load_data, load_folder
+from core import ExperimentLoader
+from gui_PtQt.plotting_area import PlottingCanvas
 
-class area_dialog(QDialog):
+
+class AreaDialog(QDialog):
     def __init__(self):
         super().__init__()
 
 
-
         def init_dialog_box():
-            x = area_dialog_box()
+            x = AreaDialogBox()
             if x.exec() == QDialog.Accepted:
                 self.value_box.setValue(x.get_value())
             else:
                 print('none')
+
+        def init_reference_manager():
+            x = ReferenceManager()
+            x.exec()
 
         layout = QVBoxLayout()
         label = QLabel('Geometrical Area [cm2]')
@@ -24,7 +32,7 @@ class area_dialog(QDialog):
         self.setLayout(layout)
 
         #in .json the file contains key-value pairs corresponding to various electrode types
-        self.settings = SettingsManager()
+        self.settings = settings
         areas = self.settings.get('electrode_area')
         defaults_box = QComboBox()
         defaults_box.addItems(areas.keys())
@@ -49,10 +57,13 @@ class area_dialog(QDialog):
         self.reference_value_box = QDoubleSpinBox()
         self.reference_value_box.setRange(0, 1000)
         self.reference_value_box.setDecimals(3)
-        self.reference_value_box.setValue(0.196)
+        self.reference_value_box.setValue(0.210)
 
         ref_box.addItems(reference_potentials.keys())
         ref_box.currentTextChanged.connect(lambda x: self.reference_value_box.setValue(reference_potentials[x]))
+
+        self.define_ref_btn = QPushButton('Define')
+        self.define_ref_btn.clicked.connect(init_reference_manager)
         
         
         layout.addWidget(label)
@@ -61,6 +72,7 @@ class area_dialog(QDialog):
 
         layout.addWidget(label_ref)
         layout.addWidget(ref_box)
+        layout.addWidget(self.define_ref_btn)
         layout.addWidget(self.reference_value_box)
 
         layout.addLayout(bottom_layout)
@@ -72,7 +84,7 @@ class area_dialog(QDialog):
         
 
 
-class area_dialog_box(QDialog):
+class AreaDialogBox(QDialog):
     def __init__(self):
         super().__init__()
 
@@ -198,3 +210,41 @@ class area_dialog_box(QDialog):
             return self.area
         except:
             return
+
+
+class ReferenceManager(QDialog):
+    def __init__(self):
+        super().__init__()
+
+        layout = QHBoxLayout()
+        self.setLayout(layout)
+
+        left_layout = QVBoxLayout()
+        load_calibration_OCP = QPushButton('Add new entry')
+        load_calibration_from_file = QPushButton('From file')
+        load_calibration_from_file.clicked.connect(self.load)
+        left_layout.addWidget(load_calibration_OCP)
+        left_layout.addWidget(load_calibration_from_file)
+        load_calibration_OCP.clicked.connect(lambda x: self.load_files_and_process())
+
+
+        figures_layout = QHBoxLayout()
+        self.OCP_plotting_area = PlottingCanvas()
+        self.reference_plotting_area = PlottingCanvas()
+        figures_layout.addWidget(self.OCP_plotting_area)
+        figures_layout.addWidget(self.reference_plotting_area)
+
+        layout.addLayout(left_layout)
+        layout.addLayout(figures_layout)
+
+    def load_files_and_process(self):
+        loader = ExperimentLoader()
+        files = load_files()
+        files = [loader.create_experiment(file) for file in files]
+        for file in files:
+            file.process_data()
+            file.plot(self.OCP_plotting_area.axes, 'processed_data', 0, 'T [s]', 'E vs RHE [V]')
+        self.OCP_plotting_area.draw()
+
+    def load(self):
+        self.reference_plotting_area.plot_df(references.get_all_data())

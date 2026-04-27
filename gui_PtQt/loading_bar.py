@@ -8,7 +8,8 @@ from PyQt5.QtCore import Qt, QAbstractTableModel, QItemSelection, QItemSelection
 from core import ExperimentLoader, ExperimentManager, Experiment
 from pathlib import Path
 from gui.functions import open_file_in_system_editor, open_folder_in_explorer
-from gui.calculate_diameter import area_dialog_box, area_dialog
+from functions.gui_functions import load_data, load_files, load_folder
+from gui.calculate_diameter import AreaDialogBox, AreaDialog
 
 
 class PandasModel(QAbstractTableModel):
@@ -235,29 +236,16 @@ class ExperimentPanel(QWidget):
             print('nic')
         
     def load_folder(self): 
-        folder = QFileDialog.getExistingDirectory(
-            self,
-            "Choose Folder",
-            ""
-        )
-        normalized_folder_path = Path(folder)
-        files = normalized_folder_path.glob('*.DTA')
+        files = load_folder(self)
         if files:
             self.load_data(files)
 
     def load_files(self):
-
-        files, _ = QFileDialog.getOpenFileNames(
-            self,
-            "Choose files",
-            "",
-            "Gamry files (*.DTA);;All files (*)"
-        )
+        files = load_files(self)
         if files:
             self.load_data(files)
 
     def load_data(self, files):
-
         for file in files:
             try:
                 # providing manager in create_experiment automatically updates the manager's dict_of_experiments
@@ -267,7 +255,6 @@ class ExperimentPanel(QWidget):
 
             except Exception as e:
                 pass
-                
 
     def add_experiment_to_model(self, exp, text = None):
         # 1. Sprawdź, czy folder (rodzic) już istnieje w modelu
@@ -434,7 +421,7 @@ class ExperimentPanel(QWidget):
                     item.setBackground(QColor('green'))
 
         elif action == getattr(self, 'action_set_parameters', None):
-            x = area_dialog()        
+            x = AreaDialog()        
             if x.exec() == QDialog.Accepted:
                 geometric_area = x.get_value()
             else:
