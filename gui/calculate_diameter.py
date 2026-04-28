@@ -3,7 +3,7 @@ from gui_PtQt.config import settings, references
 from PyQt5.QtCore import pyqtSignal
 from functions.gui_functions import load_files, load_data, load_folder
 from core import ExperimentLoader
-from gui_PtQt.plotting_area import PlottingCanvas
+from gui_PtQt.plotting_area import PlottingCanvas, OCPPlot
 
 
 class AreaDialog(QDialog):
@@ -229,9 +229,15 @@ class ReferenceManager(QDialog):
 
 
         figures_layout = QHBoxLayout()
-        self.OCP_plotting_area = PlottingCanvas()
+        ocp_layout = QVBoxLayout()
+        self.current_point_label = QLabel("Select a point") 
+        self.OCP_plotting_area = OCPPlot((3,4), 100, self.current_point_label)
+        ocp_layout.addWidget(self.current_point_label)
+        ocp_layout.addWidget(self.OCP_plotting_area)
+
+
         self.reference_plotting_area = PlottingCanvas()
-        figures_layout.addWidget(self.OCP_plotting_area)
+        figures_layout.addLayout(ocp_layout)
         figures_layout.addWidget(self.reference_plotting_area)
 
         layout.addLayout(left_layout)
@@ -243,8 +249,7 @@ class ReferenceManager(QDialog):
         files = [loader.create_experiment(file) for file in files]
         for file in files:
             file.process_data()
-            file.plot(self.OCP_plotting_area.axes, 'processed_data', 0, 'T [s]', 'E vs RHE [V]')
-        self.OCP_plotting_area.draw()
+        self.OCP_plotting_area.plot_experiments(files)
 
     def load(self):
         self.reference_plotting_area.plot_df(references.get_all_data())

@@ -7,6 +7,8 @@ from PyQt5.QtGui import QKeySequence
 from .painting import create_line_icon, ColorManager
 import pandas as pd
 import matplotlib.dates as mdates
+from functions.functions import calc_closest_2D
+
 
 ColorRole = Qt.UserRole + 1
 
@@ -43,6 +45,81 @@ class PlottingCanvas(FigureCanvas):
             self.axes.plot(processed_data[0][x], processed_data[0][y], color = color)
 
         self.draw()
+
+    def plot(self, x, y):
+        self.axes.plot(x, y)
+        self.draw()
+
+
+class OCPPlot(FigureCanvas):
+    def __init__(self, figsize = (3,4), dpi = 100, label = None):
+        self.fig = Figure(figsize = figsize, dpi = dpi)
+        super().__init__(self.fig)
+
+
+        # Axes settings
+        self.label = label
+        self.axes = self.fig.add_subplot(111)
+        self.axes.set_title('Open Circuit Potential')
+        self.axes.set_xlabel('Time [s]')
+        self.axes.set_ylabel('OCP [V]')
+        self.v_line = self.axes.axvline(color = 'gray', linestyle="--", linewidth = 0.8, visible = False)
+        self.h_line = self.axes.axhline(color = 'gray', linestyle="--", linewidth = 0.8, visible = False)
+
+        self.fig.canvas.mpl_connect('button_release_event', self.on_release)
+        self.fig.canvas.mpl_connect('motion_notify_event', self.on_movement)
+        
+    def on_movement(self, event):
+        if not event.inaxes:
+            self.v_line.set_visible(False)
+            self.h_line.set_visible(False)
+        else:
+            self.v_line.set_visible(True)
+            self.h_line.set_visible(True)
+            self.v_line.set_xdata([event.xdata])
+            self.h_line.set_ydata([event.ydata])
+            self.draw_idle()
+
+    def on_release(self, event):
+        
+
+        if hasattr(self, 'selected_point'):
+            self.selected_point.remove()
+
+        click_x = event.xdata
+        click_y = event.ydata
+        # Dobra praktyka: sprawdź czy to na pewno Twoja linia
+        # (przydatne gdy masz wiele linii na jednym wykresie)
+        x_data = self.current_plot.get_xdata()
+        y_data = self.current_plot.get_ydata()
+        
+
+        self.actual_x, self.actual_y = calc_closest_2D(x_data, y_data, click_x, click_y, self.axes)
+        self.selected_point, = self.axes.plot(self.actual_x, self.actual_y, color = 'red', marker = 'o' , markersize = 5)
+
+        self.label.setText(f'Current point: {self.actual_x}, {self.actual_y}')
+        self.draw_idle()
+        
+
+    def plot_experiments(self, experiments_list = None):
+        for exp in experiments_list:
+            if not hasattr(exp, 'data_list'):
+                data = exp.load_curves()
+
+            x, y = exp.get_default_columns('both')
+            if not hasattr(exp, 'processed_data'):
+                processed_data = exp.process_data()
+            else:
+                processed_data = getattr(exp, 'processed_data')
+            self.current_plot, = self.axes.plot(
+            processed_data[0][x], 
+            processed_data[0][y], 
+            picker=5        # 10 pikseli tolerancji (liczba, nie True!)
+            )
+
+
+        self.draw()
+
 
     def plot(self, x, y):
         self.axes.plot(x, y)

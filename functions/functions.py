@@ -202,6 +202,7 @@ def calc_closest(point, array, n = 1) -> int | list[int]:
     """
     
     array = np.asarray(array, dtype = float)
+
     distances = np.abs(array - point)
     indices = np.argsort(distances)
     indices = indices[~np.isnan(distances[indices])]
@@ -211,6 +212,22 @@ def calc_closest(point, array, n = 1) -> int | list[int]:
     elif n > 1:
         return indices[:n]
     
+def calc_closest_2D(x_data, y_data, click_x, click_y, ax) -> float | list[float]:
+    # Pobieramy aktualne limity osi
+        xlim = ax.get_xlim()
+        ylim = ax.get_ylim()
+        
+        # Liczymy dystans procentowy (0.0 do 1.0 zasięgu osi)
+        dx = (x_data - click_x) / (xlim[1] - xlim[0])
+        dy = (y_data - click_y) / (ylim[1] - ylim[0])
+        
+        idx = np.argmin(dx**2 + dy**2)
+        return x_data[idx], y_data[idx]
+        
+        # Wybieramy indeks tego, który ma najmniejszy dystans
+     
+    
+
 def calc_first(point, array, n = 1) -> int | list[int]:
     
     mask = array <= point
