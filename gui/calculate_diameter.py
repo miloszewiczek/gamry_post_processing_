@@ -232,7 +232,10 @@ class ReferenceManager(QDialog):
         ocp_layout = QVBoxLayout()
         self.current_point_label = QLabel("Select a point") 
         self.OCP_plotting_area = OCPPlot((3,4), 100, self.current_point_label)
+        btn = QPushButton('Press me!')
+        btn.clicked.connect(self.add_entry)
         ocp_layout.addWidget(self.current_point_label)
+        ocp_layout.addWidget(btn)
         ocp_layout.addWidget(self.OCP_plotting_area)
 
 
@@ -246,10 +249,25 @@ class ReferenceManager(QDialog):
     def load_files_and_process(self):
         loader = ExperimentLoader()
         files = load_files()
-        files = [loader.create_experiment(file) for file in files]
-        for file in files:
+        self.current_files = [loader.create_experiment(file) for file in files]
+        for file in self.current_files:
             file.process_data()
-        self.OCP_plotting_area.plot_experiments(files)
+        self.OCP_plotting_area.plot_experiments(self.current_files)
 
     def load(self):
         self.reference_plotting_area.plot_df(references.get_all_data())
+
+    def add_entry(self):
+        x = self.current_files[0]
+
+
+        time, offset = self.OCP_plotting_area.get_entry()
+        if offset:
+            references.add_measurement(electrode_id = 'AM',
+                                       type = 'Ag/AgCl',
+                                      date =  str(x.date_time),
+                                       file_path =  x.file_path,
+                                        time = time,
+                                         offset = offset)
+            references.save()
+        

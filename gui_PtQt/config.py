@@ -27,6 +27,7 @@ class JsonManager:
         with open(self.file_path, 'w', encoding='utf-8') as f:
             json.dump(self._settings, f, indent=4)
 
+db = {}
 class ReferenceManager(JsonManager):
     def __init__(self):
         super().__init__("reference_potentials.json")
@@ -36,7 +37,23 @@ class ReferenceManager(JsonManager):
         df.index = pd.to_datetime(df.index)
         return df
 
+    def add_measurement(self, electrode_id, type, date, file_path, time, offset,  notes = None):
+        to_add = {
+                "filepath": file_path,
+                "time at offset [s]": time,
+                "offset [V]": offset,
+                "notes": notes
+            }
 
+
+        electrode = self._settings.setdefault(electrode_id, {
+            "metadata": {"type": type},
+            "measurements": {}
+        })
+
+        # 3. Dodajemy lub aktualizujemy pomiar dla konkretnej daty
+        electrode['measurements'][date] = to_add
+        
 # Tworzysz gotowe instancje raz, w jednym miejscu
 settings = JsonManager("settings.json")
 references = ReferenceManager()

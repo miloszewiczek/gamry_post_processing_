@@ -1,4 +1,4 @@
-from PyQt5.QtWidgets import QVBoxLayout, QHBoxLayout, QPushButton, QWidget, QTreeView, QListWidget, QListWidgetItem, QLabel, QShortcut
+from PyQt5.QtWidgets import QVBoxLayout, QHBoxLayout, QPushButton, QWidget, QTreeView, QListWidget, QListWidgetItem, QLabel, QShortcut, QMenu, QFileDialog
 from matplotlib.backends.backend_qtagg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.figure import Figure
 from random import sample
@@ -8,7 +8,7 @@ from .painting import create_line_icon, ColorManager
 import pandas as pd
 import matplotlib.dates as mdates
 from functions.functions import calc_closest_2D
-
+from experiments import Experiment
 
 ColorRole = Qt.UserRole + 1
 
@@ -56,16 +56,18 @@ class OCPPlot(FigureCanvas):
         self.fig = Figure(figsize = figsize, dpi = dpi)
         super().__init__(self.fig)
 
-
         # Axes settings
         self.label = label
         self.axes = self.fig.add_subplot(111)
         self.axes.set_title('Open Circuit Potential')
         self.axes.set_xlabel('Time [s]')
         self.axes.set_ylabel('OCP [V]')
+
+        #crosshair
         self.v_line = self.axes.axvline(color = 'gray', linestyle="--", linewidth = 0.8, visible = False)
         self.h_line = self.axes.axhline(color = 'gray', linestyle="--", linewidth = 0.8, visible = False)
 
+        #connecting functions
         self.fig.canvas.mpl_connect('button_release_event', self.on_release)
         self.fig.canvas.mpl_connect('motion_notify_event', self.on_movement)
         
@@ -81,27 +83,54 @@ class OCPPlot(FigureCanvas):
             self.draw_idle()
 
     def on_release(self, event):
-        
+        """A graph function that allows the user to pick a point on the OCP graph
+        and visualize it on the top of the graph. The (x,y) coordinates are stored in picked_x and picked_y attributes."""
 
+        # in case the user already pressed once, delete previous point
         if hasattr(self, 'selected_point'):
             self.selected_point.remove()
 
+        #capturing the data coordinates which need to be normalized later on
         click_x = event.xdata
         click_y = event.ydata
-        # Dobra praktyka: sprawdź czy to na pewno Twoja linia
-        # (przydatne gdy masz wiele linii na jednym wykresie)
+
+        #grabbing full OCP data
         x_data = self.current_plot.get_xdata()
         y_data = self.current_plot.get_ydata()
         
+        # the calc_closest_2D normalizees the x_data and y_data, so that it aligns with the place user pressed
+        self.picked_x, self.picked_y = calc_closest_2D(x_data, y_data, click_x, click_y, self.axes)
 
-        self.actual_x, self.actual_y = calc_closest_2D(x_data, y_data, click_x, click_y, self.axes)
-        self.selected_point, = self.axes.plot(self.actual_x, self.actual_y, color = 'red', marker = 'o' , markersize = 5)
+        # plot is better than scatter, but needs the marker to do one point
+        self.selected_point, = self.axes.plot(self.picked_x, self.picked_y, color = 'red', marker = 'o' , markersize = 5)
 
-        self.label.setText(f'Current point: {self.actual_x}, {self.actual_y}')
+        #storing the result also in the label
+        self.label.setText(f'Current point: {self.picked_x}, {self.picked_y}')
         self.draw_idle()
         
+    def contextMenuEvent(self, event):
+        menu = QMenu(self)
 
-    def plot_experiments(self, experiments_list = None):
+        action_save_graph = menu.addAction("Save the graph")
+        action_copy_graph = menu.addAction("Copy numerical data")
+        action_add_entry = menu.addAction("Add entry")
+
+        action = menu.exec_(event.globalPos())
+
+        if action == action_save_graph:
+            path, _ = QFileDialog.getSaveFileName(
+                self, "Save graph as", "", "PNG (*.png);;PDF (*.pdf);;All Files (*)"
+            )
+            if path:
+                self.fig.savefig(path)
+
+    def get_entry(self):
+        if self.selected_point:
+            return (self.picked_x, self.picked_y)
+        else:
+            return
+
+    def plot_experiments(self, experiments_list: list[Experiment] = None):
         for exp in experiments_list:
             if not hasattr(exp, 'data_list'):
                 data = exp.load_curves()
@@ -116,8 +145,7 @@ class OCPPlot(FigureCanvas):
             processed_data[0][y], 
             picker=5        # 10 pikseli tolerancji (liczba, nie True!)
             )
-
-
+            
         self.draw()
 
 
