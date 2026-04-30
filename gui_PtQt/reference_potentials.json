@@ -1,20 +1,5 @@
 {
-    "AM": {
-        "metadata": {
-            "type": "Ag/AgCl"
-        },
-        "measurements": {
-            "2025-07-01 13:47:48": {
-                "filepath": "D:/!UNI/!sci_materials/!doktorat/!wyniki/!TM3Se4/seria_3/CATALYSIS/PELLETS/SERIA_2/F2N_PELLET_STRONA_2_POMIAR_1_AM_REDOXME_01_07_2025/OCP.DTA",
-                "time at offset [s]": 415.14,
-                "offset [V]": 0.432297,
-                "notes": null
-            },
-            "2025-07-03 09:07:02": {
-                "filepath": "OCP.DTA",
-                "offset": 0.399851,
-                "notes": null
-            }
-        }
-    }
+    "AgCl/Ag": {},
+    "HgO/Hg": {},
+    "HgCl2/Hg": {}
 }

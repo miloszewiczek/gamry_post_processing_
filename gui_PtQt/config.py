@@ -2,6 +2,7 @@ from pathlib import Path
 import json
 import os
 import pandas as pd
+from operator import itemgetter
 
 class JsonManager:
     def __init__(self, filename):
@@ -37,22 +38,68 @@ class ReferenceManager(JsonManager):
         df.index = pd.to_datetime(df.index)
         return df
 
-    def add_measurement(self, electrode_id, type, date, file_path, time, offset,  notes = None):
+    def get_electrode_types(self):
+        return self._settings.keys()
+
+    def get_electrodes(self, electrode_type) -> dict:
+        try:
+            return self._settings[electrode_type]
+        except:
+            return
+        
+    def get_electrode_names(self, electrode_type) -> list[str]:
+        if electrode_type == '<all>':
+            test = [obj for x in self._settings.values() for obj in x.keys()]
+            print(test)
+            return test
+
+        try:
+            return list(self._settings[electrode_type].keys())
+        except:
+            return
+
+    def get_all_electrode_data(self) -> pd.DataFrame:
+        tmp = []
+        for electrode_type in self._settings.keys():
+            df = self.get_electrode_data(electrode_type)
+            tmp.append(df)
+        return pd.concat(tmp, axis = 1)
+
+    def get_electrode_data(self, electrode_type) -> pd.DataFrame:
+        
+        tmp = []
+        electrode_dict = self.get_electrodes(electrode_type)
+        if electrode_dict:
+            for label, ito in electrode_dict.items():
+
+
+                df = pd.DataFrame.from_dict(ito, orient = 'index')[['calibration offset [V]']]
+                df.columns = [label,]
+                tmp.append(df)
+
+            df_new = pd.concat(tmp, axis = 1)
+            print(df_new)
+            return df_new
+
+        print('no')
+        return
+
+        
+
+
+    def add_measurement(self, electrode_id, electrode_type, date, file_path, time, offset,  notes = None):
         to_add = {
                 "filepath": file_path,
                 "time at offset [s]": time,
-                "offset [V]": offset,
+                "calibration offset [V]": offset,
                 "notes": notes
             }
 
 
-        electrode = self._settings.setdefault(electrode_id, {
-            "metadata": {"type": type},
-            "measurements": {}
-        })
+        electrode = self._settings[electrode_type].setdefault(electrode_id, {})
 
         # 3. Dodajemy lub aktualizujemy pomiar dla konkretnej daty
-        electrode['measurements'][date] = to_add
+        electrode[date] = to_add
         
 # Tworzysz gotowe instancje raz, w jednym miejscu
 settings = JsonManager("settings.json")

@@ -50,6 +50,8 @@ class PlottingCanvas(FigureCanvas):
         self.axes.plot(x, y)
         self.draw()
 
+    def clear(self):
+        self.axes.clear()
 
 class OCPPlot(FigureCanvas):
     def __init__(self, figsize = (3,4), dpi = 100, label = None):
@@ -125,12 +127,15 @@ class OCPPlot(FigureCanvas):
                 self.fig.savefig(path)
 
     def get_entry(self):
-        if self.selected_point:
+        if hasattr(self, 'selected_point'):
             return (self.picked_x, self.picked_y)
         else:
             return
 
     def plot_experiments(self, experiments_list: list[Experiment] = None):
+        if hasattr(self, 'current_plot'):
+            self.current_plot.remove()
+
         for exp in experiments_list:
             if not hasattr(exp, 'data_list'):
                 data = exp.load_curves()

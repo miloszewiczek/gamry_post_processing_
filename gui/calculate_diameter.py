@@ -1,9 +1,10 @@
-from PyQt5.QtWidgets import QDialog, QDoubleSpinBox, QPushButton, QHBoxLayout, QVBoxLayout, QDialog, QComboBox, QLabel, QLineEdit, QRadioButton, QButtonGroup
+from PyQt5.QtWidgets import QDialog, QDoubleSpinBox, QPushButton, QHBoxLayout, QVBoxLayout, QDialog, QComboBox, QLabel, QLineEdit, QRadioButton, QButtonGroup, QInputDialog
 from gui_PtQt.config import settings, references
 from PyQt5.QtCore import pyqtSignal
 from functions.gui_functions import load_files, load_data, load_folder
 from core import ExperimentLoader
 from gui_PtQt.plotting_area import PlottingCanvas, OCPPlot
+from pandas import DataFrame
 
 
 class AreaDialog(QDialog):
@@ -226,6 +227,19 @@ class ReferenceManager(QDialog):
         left_layout.addWidget(load_calibration_OCP)
         left_layout.addWidget(load_calibration_from_file)
         load_calibration_OCP.clicked.connect(lambda x: self.load_files_and_process())
+        #print(references.get_all_data())
+        
+        # electrode types such as AgCl/Ag
+        self.references_types = QComboBox()
+        self.references_types.addItems(list(references.get_electrode_types()) + ['<all>'])
+
+        # defined electrodes, a "child" of electrode type
+        self.references_combobox = QComboBox()
+
+        self.references_types.currentTextChanged.connect(self.update_combobox)
+
+        left_layout.addWidget(self.references_types)
+        left_layout.addWidget(self.references_combobox)
 
 
         figures_layout = QHBoxLayout()
@@ -246,7 +260,39 @@ class ReferenceManager(QDialog):
         layout.addLayout(left_layout)
         layout.addLayout(figures_layout)
 
+        # initializing
+        self.update_combobox(None)
+        self.plot_calibration_potentials(None)
+
+    def update_combobox(self, event):
+
+
+        self.references_combobox.clear()
+        if event is None:
+            items_from_references = references.get_electrode_names(self.references_types.currentText())
+            self.references_combobox.addItems(items_from_references + ["<new_electrode>"])
+        else:
+            electrode_labels = references.get_electrode_names(event)
+            self.references_combobox.addItems(electrode_labels + ["<new_electrode>"])
+
+            if event == '<all>':
+                dataframe = references.get_all_electrode_data()
+            else:
+                dataframe = references.get_electrode_data(event)
+            self.plot_calibration_potentials(dataframe = dataframe)
+
+
+    def plot_calibration_potentials(self, dataframe = None | DataFrame):
+        if dataframe is None:
+            dataframe = references.get_all_electrode_data()
+        self.reference_plotting_area.clear()
+        dataframe.plot(ax = self.reference_plotting_area.axes, marker = 'o', markersize = '5')
+        self.reference_plotting_area.draw_idle()
+
+            
     def load_files_and_process(self):
+        "Simple function that creates the OCP data to view"
+
         loader = ExperimentLoader()
         files = load_files()
         self.current_files = [loader.create_experiment(file) for file in files]
@@ -255,18 +301,38 @@ class ReferenceManager(QDialog):
         self.OCP_plotting_area.plot_experiments(self.current_files)
 
     def load(self):
-        self.reference_plotting_area.plot_df(references.get_all_data())
+        return references.get_electrodes()
 
     def add_entry(self):
-        x = self.current_files[0]
+        """Function to add entry into the reference_potentials.json file.
+        It's based on the comboboxes in the left_layout Layout.
+        Prompts the user if <all> or <new_electrode> options are selected."""
 
-
+        electrode_type = self.references_types.currentText()
+        electrode_id = self.references_combobox.currentText()
+        if (electrode_id == "") or (electrode_id == '<new_electrode>'):
+            electrode_id, done = QInputDialog.getText(self, 
+                                              "Electrode label", 
+                                              "No electrodes found. Define electrode label (e.g. \"AM\", \"6\" or other)")
+        if (electrode_type == "") or (electrode_type == '<all>'):
+            electrode_type, done = QInputDialog.getText(self, 
+                                    "Electrode type", 
+                                    "Specify the electrode type:\nAvailable:\nAgCl/Ag\nHg2Cl2/Hg\nHgO/Hg")
+            
+        
         time, offset = self.OCP_plotting_area.get_entry()
+
+        # need to remember about this
+        current_experiment = self.current_files[0]
+        date = str(current_experiment.date_time)
+        file_path = current_experiment.file_path
+        
+        # adding the data to .json file
         if offset:
-            references.add_measurement(electrode_id = 'AM',
-                                       type = 'Ag/AgCl',
-                                      date =  str(x.date_time),
-                                       file_path =  x.file_path,
+            references.add_measurement(electrode_type = electrode_type,
+                                       electrode_id = electrode_id,
+                                      date =  date,
+                                       file_path =  file_path,
                                         time = time,
                                          offset = offset)
             references.save()
