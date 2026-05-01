@@ -10,6 +10,7 @@ from pathlib import Path
 from gui.functions import open_file_in_system_editor, open_folder_in_explorer
 from functions.gui_functions import load_data, load_files, load_folder
 from gui.calculate_diameter import AreaDialogBox, AreaDialog
+from gui_PtQt.config import icon_path
 
 
 class PandasModel(QAbstractTableModel):
@@ -195,10 +196,10 @@ class ExperimentPanel(QWidget):
         self.selected_all = False
 
         # 2.1 UI - Icons
-        self.btn_load_dialog.setIcon(QIcon("Fugue_icons/fugue-icons-3.5.6/icons/document--plus.png"))
-        self.btn_load_folder_dialog.setIcon(QIcon("Fugue_icons/fugue-icons-3.5.6/icons/folder-open.png"))
-        self.btn_delete.setIcon(QIcon("Fugue_icons/fugue-icons-3.5.6/icons/document--minus.png"))
-        self.btn_copy.setIcon(QIcon("Fugue_icons/fugue-icons-3.5.6/icons/document-copy.png"))
+        self.btn_load_dialog.setIcon(QIcon(icon_path + 'document--plus.png'))
+        self.btn_load_folder_dialog.setIcon(QIcon(icon_path + 'folder-open.png'))
+        self.btn_delete.setIcon(QIcon(icon_path + 'document--minus.png'))
+        self.btn_copy.setIcon(QIcon(icon_path + 'document-copy.png'))
 
         # 3. Layouty
         button_layout = QHBoxLayout()

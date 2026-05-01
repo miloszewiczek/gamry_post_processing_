@@ -1,6 +1,6 @@
 from PyQt5.QtWidgets import QDialog, QDoubleSpinBox, QPushButton, QHBoxLayout, QVBoxLayout, QDialog, QComboBox, QLabel, QLineEdit, QRadioButton, QButtonGroup
 from gui_PtQt.config import settings, references
-from .reference_manager import ReferenceManager
+from .reference_manager import ReferenceManagerWindow
 
 
 class AreaDialog(QDialog):
@@ -39,7 +39,7 @@ class AreaDialog(QDialog):
         label_ref = QLabel('Reference potential [V]')
         reference_potentials = self.settings.get('reference_electrode')
         self.ref_box = QComboBox()
-        self.ref_box.insertItems(-1, references.get_electrode_names())
+        #self.ref_box.insertItems(-1, references.get_electrode_names())
 
 
         # instead of single value_box, add 3 inputs that correspond to standard potential, offset and pH
@@ -80,7 +80,7 @@ class AreaDialog(QDialog):
             print('none')
 
     def init_reference_manager(self):
-        x = ReferenceManager()
+        x = ReferenceManagerWindow()
         if x.exec() == QDialog.Accepted:
             electrode_type, offset = x.get_data()
 

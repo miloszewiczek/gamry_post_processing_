@@ -1,11 +1,13 @@
 from PyQt5.QtWidgets import QDialog, QHBoxLayout, QPushButton, QComboBox, QVBoxLayout, QLabel, QInputDialog, QGridLayout, QFormLayout, QGroupBox, QTextEdit
+from PyQt5.QtGui import QIcon
 from core.experiment_loader import ExperimentLoader
-from gui_PtQt.config import references
+from gui_PtQt.config import references, icon_path
 from gui_PtQt.plotting_area import OCPPlot, PlottingCanvas
 from functions.gui_functions import load_files, shorten_path
 from pandas import DataFrame
 
-class ReferenceManager(QDialog):
+
+class ReferenceManagerWindow(QDialog):
     def __init__(self):
         super().__init__()
 
@@ -53,7 +55,7 @@ class ReferenceManager(QDialog):
         
         # electrode types such as AgCl/Ag
         self.references_types = QComboBox()
-        self.references_types.addItems(list(references.get_electrode_types()) + ['<all>'])
+        self.references_types.addItems(list(references.electrodes.keys()) + ['<all>'])
         self.references_types.currentTextChanged.connect(self.update_combobox)
 
         # defined electrodes, a "child" of electrode type
@@ -61,8 +63,16 @@ class ReferenceManager(QDialog):
         self.references_combobox.currentTextChanged.connect(self.update_reference_info)
 
 
+        add_new_electrode_button = QPushButton('Add')
+        add_new_electrode_button.setIcon(QIcon(icon_path + 'plus'))
+        add_new_electrode_button.clicked.connect(self.create_new_reference_electrode)
+
+        row_layout = QHBoxLayout()
+        row_layout.addWidget(self.references_combobox, stretch = 1)
+        row_layout.addWidget(add_new_electrode_button)
+
         left_upper_layout.addRow(QLabel('Type'), self.references_types)
-        left_upper_layout.addRow(QLabel('Electrode'),self.references_combobox)
+        left_upper_layout.addRow(QLabel('Electrode'), row_layout)
 
         left_layout.addLayout(left_upper_layout)
         left_layout.addLayout(left_down_layout)
@@ -113,7 +123,7 @@ class ReferenceManager(QDialog):
         return self.electrode_type.text(), float(self.last_calibration_offset.text())
 
     def select_point(self, event):
-        self.OCP_plotting_area.activate(event, self.select_btn, callback = self.add_entry)
+        self.OCP_plotting_area.activate(event, self.select_btn, callback = self.add_measurement)
         self.select_btn.setEnabled(False)
 
     def update_reference_info(self, event = None, electrode_name = None):
@@ -124,46 +134,60 @@ class ReferenceManager(QDialog):
 
         self.electrode_name.setText(electrode_name)
         self.electrode_type.setText(electrode_type)
-        electrode_info = references.get_electrode_info(electrode_name)
-        if electrode_info:
-            fresh, days = references.get_newest_calibration(electrode_info)
-            self.days_since_last_calibration.setText(str(days))
-            short_path = shorten_path(str(fresh['filepath']))
-            self.last_calibration_file.setText(short_path)
-            self.last_calibration_offset.setText(str(fresh['calibration offset [V]']))
-            self.last_notes.setText(fresh['notes'])
+        electrode = references.get_electrode(label = electrode_name)
+        if electrode:
+            electrode_info = electrode[0].get_info()
+
+            if electrode_info:
+                self.days_since_last_calibration.setText(str(electrode_info['last_calibration_date']))
+                short_path = shorten_path(str(electrode_info['filepath']))
+                self.last_calibration_file.setText(short_path)
+                self.last_calibration_offset.setText(str(electrode_info['calibration offset [V]']))
+                self.last_notes.setText(electrode_info['notes'])
+                return
+            self.set_blank_info()
         else:
-            self.days_since_last_calibration.setText('N/A')
-            self.last_calibration_file.setText('N/A')
-            self.last_calibration_offset.setText('N/A')
-            self.last_notes.setText('N/A')
+            self.set_blank_info()
+
+    def set_blank_info(self):
+        self.days_since_last_calibration.setText('N/A')
+        self.last_calibration_file.setText('N/A')
+        self.last_calibration_offset.setText('N/A')
+        self.last_notes.setText('N/A')
 
 
     def update_combobox(self, event = None):
 
-        self.references_combobox.clear()
-        if event is None:
-            items_from_references = references.get_electrode_names(self.references_types.currentText())
-            self.references_combobox.addItems(items_from_references + ["<new_electrode>"])
+        if event == '<all>':
+            current_electrodes = references.get_electrode(all = True, group = False)
         else:
-            electrode_labels = references.get_electrode_names(event)
-            self.references_combobox.addItems(electrode_labels + ["<new_electrode>"])
+            current_electrodes = references.get_electrode(electrode_type = self.references_types.currentText())
+        if current_electrodes:
 
-            if event == '<all>':
-                dataframe = references.get_all_electrode_data()
-            else:
-                dataframe = references.get_electrode_data(event)
+            current_electrodes_labels = [electrode.label for electrode in current_electrodes]
+            self.references_combobox.clear()
+            self.references_combobox.addItems(current_electrodes_labels)
+            dataframe = references.get_electrodes_data(current_electrodes)
             self.plot_calibration_potentials(dataframe = dataframe)
+            self.references_combobox.setEnabled(True)
+            return
+        
+        self.references_combobox.setEnabled(False)
+        self.reference_plotting_area.axes.clear()
+        self.reference_plotting_area.draw_idle()
+        return
 
 
     def plot_calibration_potentials(self, dataframe = DataFrame):
         if dataframe is None:
-            dataframe = references.get_all_electrode_data()
-            print(dataframe)
-            if dataframe is None:
+            electrodes = references.get_electrode(all = True, group = False)
+            electrodes_df = references.get_electrodes_data(electrodes)
+            if electrodes_df is None:
                 return
+        else:
+            electrodes_df = dataframe
         self.reference_plotting_area.clear()
-        dataframe.plot(ax = self.reference_plotting_area.axes, marker = 'o', markersize = '5')
+        electrodes_df.plot(ax = self.reference_plotting_area.axes, marker = 'o', markersize = '5')
         self.reference_plotting_area.draw_idle()
 
             
@@ -180,44 +204,36 @@ class ReferenceManager(QDialog):
     def load(self):
         return references.get_electrodes()
 
-    def add_entry(self):
-        """Function to add entry into the reference_potentials.json file.
-        It's based on the comboboxes in the left_layout Layout.
-        Prompts the user if <all> or <new_electrode> options are selected."""
+    def create_new_reference_electrode(self):
 
-        electrode_type = self.references_types.currentText()
-        electrode_id = self.references_combobox.currentText()
-        if (electrode_id == "") or (electrode_id == '<new_electrode>'):
-            electrode_id, done = QInputDialog.getText(self, 
-                                              "Electrode label", 
-                                              "No electrodes found. Define electrode label (e.g. \"AM\", \"6\" or other)")
-            
-            if done is False:
-                return
-        if (electrode_type == "") or (electrode_type == '<all>'):
-            electrode_type, done = QInputDialog.getText(self, 
-                                    "Electrode type", 
-                                    "Specify the electrode type:\nAvailable:\nAgCl/Ag\nHg2Cl2/Hg\nHgO/Hg")
-            if done is False:
-                return
-            
+        current_type = self.references_types.currentText()
+        electrode_label, done = QInputDialog.getText(self, 
+                                    "New reference electrode", 
+                                    f"You are trying to create a new {current_type} electrode.\n Choose name.")
+
+        if done:
+            new_electrode = references.create_electrode(electrode_type = current_type, 
+                                                        label = electrode_label)
+        self.update_combobox()
+        self.references_combobox.setCurrentText(new_electrode.label)
+
+    def add_measurement(self):
+        current_electrode = references.get_electrode(label = self.references_combobox.currentText())[0]
         
         time, offset = self.OCP_plotting_area.get_entry()
-
-        # need to remember about this
-        current_experiment = self.current_files[0]
-        date = str(current_experiment.date_time)
-        file_path = current_experiment.file_path
         
-        # adding the data to .json file
+        # need to remember about this
         if offset:
-            references.add_measurement(electrode_type = electrode_type,
-                                       electrode_id = electrode_id,
-                                      date =  date,
-                                       file_path =  file_path,
-                                        time = time,
-                                         offset = offset)
-            references.save()
+            current_experiment = self.current_files[0]
+            date = str(current_experiment.date_time)
+            file_path = current_experiment.file_path
 
-            self.update_reference_info(electrode_name = electrode_id)
+            current_electrode.add_data(date_time = date, 
+                                        file_path = file_path,
+                                        time_at_offset = time,
+                                        calibration_offset = offset,
+                                        notes = None) # for future use
+            
             self.update_combobox()
+            self.update_reference_info(electrode_name = current_electrode.label)
+            self.references_combobox.setCurrentText(current_electrode.label)

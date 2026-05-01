@@ -1,8 +1,7 @@
 from pathlib import Path
 import json
-import os
 import pandas as pd
-from datetime import datetime, date
+from experiments.reference_electrode import ReferenceElectrode
 
 class JsonManager:
     def __init__(self, filename):
@@ -37,7 +36,10 @@ class ReferenceManager(JsonManager):
         self.electrodes = {}
         self.construct_from_json()
 
-    def get_electrode(self, label = None, electrode_type = None, all = False):
+    def get_electrode(self, label = None, electrode_type = None, all = False, group = False) -> list[ReferenceElectrode] | dict[str:ReferenceElectrode]:
+        """Function to retrieve ReferenceElectrode objects based on query. You can search electrdoes
+        by label (e.g AM), electrode_type (e.g. AgCl/Ag) or get all of them (all = True) either grouped
+        (group = True) or a flat list of all electrodes (group = False)"""
         
         electrodes_to_get = []
         if label:
@@ -45,12 +47,20 @@ class ReferenceManager(JsonManager):
                 if label in electrodes.keys():
                     electrodes_to_get.append(electrodes[label])
         if electrode_type:
-            electrodes_to_get = list(self.electrodes[electrode_type])
+            electrodes_to_get = list(self.electrodes[electrode_type].values())
 
         if all:
             for electrode_type_in_dict, electrodes in self.electrodes.items():
                 if electrodes:
-                    electrodes_to_get = {electrode_key: list(electrodes.values()) for electrode_key, electrodes in self.electrodes.items() if electrodes}
+
+                    # returning e.g. {'AgCl/Ag': [list_of_electrodes]}
+                    if group is True:
+                        electrodes_to_get = {electrode_key: list(electrodes.values()) for electrode_key, electrodes in self.electrodes.items() if electrodes}
+                    
+                    # returns a flat list of all electrodes
+                    elif group is False:
+                        electrodes_to_get = [electrode for electrodes in self.electrodes.values() for electrode in electrodes.values() if electrodes]
+                        
         return electrodes_to_get
 
     def construct_from_json(self):
@@ -63,52 +73,17 @@ class ReferenceManager(JsonManager):
                     electrode = ReferenceElectrode(electrode_type, electrode_label, electrode_measurements)
                     category[electrode_label] = electrode
 
-class ReferenceElectrode():
-    def __init__(self, type, label, dictionary = None):
-        self.type = type
-        self.label = label
-        self.measurements = {}
-        self.date_format = "%Y-%m-%d %H:%M:%S"
-
-        if dictionary:
-            self.add_dictionary(dictionary)
-        
-    def add_data(self, date_time, file_path, time_at_offset, calibration_offset, notes):
-        dict_to_save = {
-            'filepath': file_path,
-            'time at offset [s]': time_at_offset,
-            'calibration offset [V]': calibration_offset,
-            'notes': notes
-        }
-        
-        date_time = datetime.strptime(date_time, self.date_format)
-        self.measurements[date_time] = dict_to_save 
+    def get_electrodes_data(self, electrodes: list[ReferenceElectrode]) -> pd.DataFrame:
+        result = map(ReferenceElectrode.get_calibration_data, electrodes)
+        return pd.concat(result, axis = 1)
     
-    def add_dictionary(self, measurement_dict):
-
-        for date_time, measurement_info in measurement_dict.items():
-            date_time = datetime.strptime(date_time, self.date_format)
-            self.measurements[date_time] = measurement_info
-    
-    def sort(self):
-
-        sorted_dates = sorted(self.measurements.keys())
-        self.measurements = {k: self.measurements[k] for k in sorted_dates}
-        self.last_calibration_date = sorted_dates[-1]
-        self.last_callibration_data = self.measurements[self.last_calibration_date] 
-        self.isSorted = True
+    def create_electrode(self, electrode_type, label):
         
-    def calculate_last_calibration(self):
-        difference = datetime.now() - self.last_calibration_date
-        days = difference.days
-
-        return days
- 
-    def get_calibration_data(self):
-        df = pd.DataFrame.from_dict(self.measurements, orient = 'index')[['calibration offset [V]']]
-        df.columns = [self.label,]
-        return df
+        new_electrode =ReferenceElectrode(type = electrode_type, label = label, dictionary = None)
+        self.electrodes[electrode_type].setdefault(label, new_electrode)
+        return new_electrode
 
 # Tworzysz gotowe instancje raz, w jednym miejscu
 settings = JsonManager("settings.json")
 references = ReferenceManager()
+icon_path = 'Fugue_icons/fugue-icons-3.5.6/icons/'

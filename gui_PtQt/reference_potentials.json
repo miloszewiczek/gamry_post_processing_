@@ -23,7 +23,8 @@
                 "filepath": "D:/!UNI/!sci_materials/!doktorat/!wyniki/!TM3Se4/seria_3/CATALYSIS/PELLETS/SERIA_2/F2N_PELLET_STRONA_2_POMIAR_1_AM_REDOXME_01_07_2025/OCP.DTA",
                 "time at offset [s]": 511.02,
                 "calibration offset [V]": 0.43526,
-                "notes": null
+                "notes": null,
+                "last_calibration_date": 303
             }
         },
         "testdrugi": {
@@ -52,7 +53,6 @@
                 "notes": null
             }
         }
-        
     },
     "HgO/Hg": {},
     "HgCl2/Hg": {}
