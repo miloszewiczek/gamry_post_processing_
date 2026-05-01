@@ -69,10 +69,24 @@ class OCPPlot(FigureCanvas):
         self.v_line = self.axes.axvline(color = 'gray', linestyle="--", linewidth = 0.8, visible = False)
         self.h_line = self.axes.axhline(color = 'gray', linestyle="--", linewidth = 0.8, visible = False)
 
-        #connecting functions
-        self.fig.canvas.mpl_connect('button_release_event', self.on_release)
-        self.fig.canvas.mpl_connect('motion_notify_event', self.on_movement)
+
+    
+    def activate(self, event, button, callback = None):
         
+        #connecting functions
+        self.button_to_release = button
+        self.callback = callback
+
+        self.cids = [self.fig.canvas.mpl_connect('button_release_event', self.on_release),
+                    self.fig.canvas.mpl_connect('motion_notify_event', self.on_movement)]
+        
+    
+    def deactivate(self, event):
+        for cid in self.cids:
+            self.fig.canvas.mpl_disconnect(cid)
+        del self.cids
+        print(event)
+
     def on_movement(self, event):
         if not event.inaxes:
             self.v_line.set_visible(False)
@@ -109,6 +123,10 @@ class OCPPlot(FigureCanvas):
         #storing the result also in the label
         self.label.setText(f'Current point: {self.picked_x}, {self.picked_y}')
         self.draw_idle()
+
+        self.button_to_release.setEnabled(True)
+        self.callback()
+        self.deactivate(event)
         
     def contextMenuEvent(self, event):
         menu = QMenu(self)

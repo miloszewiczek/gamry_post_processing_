@@ -33,3 +33,8 @@ def load_data(parent, files):
 
         except Exception as e:
             pass
+
+def shorten_path(path, max_len=30):
+    if len(path) <= max_len:
+        return path
+    return path[:10] + "..." + path[-15:]
