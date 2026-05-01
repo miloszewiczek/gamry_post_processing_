@@ -33,107 +33,35 @@ class ReferenceManager(JsonManager):
     def __init__(self):
         super().__init__("reference_potentials.json")
 
+
+        self.electrodes = {}
         self.construct_from_json()
-    
-    def get_all_data(self):
-        df = pd.DataFrame(self._settings)
-        df.index = pd.to_datetime(df.index)
-        return df
 
-    def get_electrode_types(self):
-        return self._settings.keys()
-
-    def get_electrodes(self, electrode_type) -> dict:
+    def get_electrode(self, label = None, electrode_type = None, all = False):
         
-        try:
-            return self._settings[electrode_type]
-        except:
-            return
-        
-    def get_electrode_names(self, electrode_type = '<all>') -> list[str]:
-        if electrode_type == '<all>':
-            test = [obj for x in self._settings.values() for obj in x.keys()]
-            return test
+        electrodes_to_get = []
+        if label:
+            for electrode_type_in_dict, electrodes in self.electrodes.items():
+                if label in electrodes.keys():
+                    electrodes_to_get.append(electrodes[label])
+        if electrode_type:
+            electrodes_to_get = list(self.electrodes[electrode_type])
 
-        try:
-            return list(self._settings[electrode_type].keys())
-        except:
-            return
-
-    def get_all_electrode_data(self) -> pd.DataFrame:
-        tmp = []
-        for electrode_type in self._settings.keys():
-            df = self.get_electrode_data(electrode_type)
-            tmp.append(df)
-
-        try:
-            return pd.concat(tmp, axis = 1)
-        except:
-            return None
-
-    def get_electrode_info(self, electrode):
-        for electrode_type in self._settings.values():
-            if electrode in electrode_type.keys():
-                return electrode_type.get(electrode)
-        return
-    
-
-    def get_newest_calibration(self, electrode_dict):
-        if isinstance(electrode_dict, dict):
-            dates = list(electrode_dict.keys())
-            date_format = "%Y-%m-%d %H:%M:%S"
-            sorted_dates = sorted(dates, key = lambda x: datetime.strptime(x, date_format))
-            freshest_calibration = sorted_dates[-1]
-            days_since_last_calibration = datetime.now() - datetime.strptime(freshest_calibration, date_format)
-            days = days_since_last_calibration.days
-            
-            return electrode_dict[freshest_calibration], days
-        else:
-            return
-
-
-    def get_electrode_data(self, electrode_type) -> pd.DataFrame:
-        
-        tmp = []
-        electrode_dict = self.get_electrodes(electrode_type)
-        if electrode_dict:
-            for label, ito in electrode_dict.items():
-
-                df = pd.DataFrame.from_dict(ito, orient = 'index')[['calibration offset [V]']]
-                df.columns = [label,]
-                tmp.append(df)
-
-            df_new = pd.concat(tmp, axis = 1)
-            print(df_new)
-            return df_new
-
-        print('no')
-        return
-
-        
-    def add_measurement(self, electrode_id, electrode_type, date, file_path, time, offset,  notes = None):
-        to_add = {
-                "filepath": file_path,
-                "time at offset [s]": time,
-                "calibration offset [V]": offset,
-                "notes": notes
-            }
-
-
-        electrode = self._settings[electrode_type].setdefault(electrode_id, {})
-
-        # 3. Dodajemy lub aktualizujemy pomiar dla konkretnej daty
-        electrode[date] = to_add
+        if all:
+            for electrode_type_in_dict, electrodes in self.electrodes.items():
+                if electrodes:
+                    electrodes_to_get = {electrode_key: list(electrodes.values()) for electrode_key, electrodes in self.electrodes.items() if electrodes}
+        return electrodes_to_get
 
     def construct_from_json(self):
-        self.electrodes = {}
+
         for electrode_type, electrodes in self._settings.items():
+            category = self.electrodes.setdefault(electrode_type, {})
+
             for electrode_label, electrode_measurements in electrodes.items():
                 if electrode_measurements:
                     electrode = ReferenceElectrode(electrode_type, electrode_label, electrode_measurements)
-                    x = self.electrodes.setdefault(electrode_type, {electrode_label: electrode})
-                    print(x)
-        
+                    category[electrode_label] = electrode
 
 class ReferenceElectrode():
     def __init__(self, type, label, dictionary = None):
