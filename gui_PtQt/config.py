@@ -23,7 +23,7 @@ class JsonManager:
         self._settings[key] = value
         self.save()
 
-    def save(self):
+    def save(self, object = None):
         with open(self.file_path, 'w', encoding='utf-8') as f:
             json.dump(self._settings, f, indent=4)
 
@@ -35,6 +35,7 @@ class ReferenceManager(JsonManager):
 
         self.electrodes = {}
         self.construct_from_json()
+        self.isEmpty = True
 
     def get_electrode(self, label = None, electrode_type = None, all = False, group = False) -> list[ReferenceElectrode] | dict[str:ReferenceElectrode]:
         """Function to retrieve ReferenceElectrode objects based on query. You can search electrdoes
@@ -60,8 +61,9 @@ class ReferenceManager(JsonManager):
                     # returns a flat list of all electrodes
                     elif group is False:
                         electrodes_to_get = [electrode for electrodes in self.electrodes.values() for electrode in electrodes.values() if electrodes]
-                        
-        return electrodes_to_get
+
+        if electrodes_to_get:                
+            return electrodes_to_get
 
     def construct_from_json(self):
 
@@ -72,17 +74,34 @@ class ReferenceManager(JsonManager):
                 if electrode_measurements:
                     electrode = ReferenceElectrode(electrode_type, electrode_label, electrode_measurements)
                     category[electrode_label] = electrode
+                    
+                    # first initialization
+                    self.isEmpty = False
 
     def get_electrodes_data(self, electrodes: list[ReferenceElectrode]) -> pd.DataFrame:
-        result = map(ReferenceElectrode.get_calibration_data, electrodes)
-        return pd.concat(result, axis = 1)
+        if electrodes:
+            result = map(ReferenceElectrode.get_calibration_data, electrodes)
+            return pd.concat(result, axis = 1)
     
     def create_electrode(self, electrode_type, label):
         
         new_electrode =ReferenceElectrode(type = electrode_type, label = label, dictionary = None)
         self.electrodes[electrode_type].setdefault(label, new_electrode)
         return new_electrode
-
+    
+    def save(self):
+        
+        electrode_dict = {
+            electrode_type: {
+                    electrode_label: electrode.get_dict() # upewnij się, czy to funkcja (), czy właściwość
+            for electrode_label, electrode in electrodes.items()
+            } 
+        for electrode_type, electrodes in self.electrodes.items()
+}
+        with open(self.file_path, 'w', encoding='utf-8') as f:
+            json.dump(electrode_dict, f, indent=4)
+        return
+    
 # Tworzysz gotowe instancje raz, w jednym miejscu
 settings = JsonManager("settings.json")
 references = ReferenceManager()

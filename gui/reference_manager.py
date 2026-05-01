@@ -119,6 +119,10 @@ class ReferenceManagerWindow(QDialog):
         self.update_combobox(None)
         self.plot_calibration_potentials(None)
 
+    def accept(self):
+        references.save()
+        super().accept()
+
     def get_data(self):
         return self.electrode_type.text(), float(self.last_calibration_offset.text())
 
@@ -163,12 +167,12 @@ class ReferenceManagerWindow(QDialog):
         else:
             current_electrodes = references.get_electrode(electrode_type = self.references_types.currentText())
         if current_electrodes:
-
             current_electrodes_labels = [electrode.label for electrode in current_electrodes]
             self.references_combobox.clear()
             self.references_combobox.addItems(current_electrodes_labels)
-            dataframe = references.get_electrodes_data(current_electrodes)
-            self.plot_calibration_potentials(dataframe = dataframe)
+            if references.isEmpty == False:
+                dataframe = references.get_electrodes_data(current_electrodes)
+                self.plot_calibration_potentials(dataframe = dataframe)
             self.references_combobox.setEnabled(True)
             return
         
@@ -214,6 +218,9 @@ class ReferenceManagerWindow(QDialog):
         if done:
             new_electrode = references.create_electrode(electrode_type = current_type, 
                                                         label = electrode_label)
+            
+        
+
         self.update_combobox()
         self.references_combobox.setCurrentText(new_electrode.label)
 

@@ -1,6 +1,7 @@
 from PyQt5.QtWidgets import QDialog, QDoubleSpinBox, QPushButton, QHBoxLayout, QVBoxLayout, QDialog, QComboBox, QLabel, QLineEdit, QRadioButton, QButtonGroup
 from gui_PtQt.config import settings, references
 from .reference_manager import ReferenceManagerWindow
+from functions.gui_functions import add_category
 
 
 class AreaDialog(QDialog):
@@ -39,7 +40,18 @@ class AreaDialog(QDialog):
         label_ref = QLabel('Reference potential [V]')
         reference_potentials = self.settings.get('reference_electrode')
         self.ref_box = QComboBox()
-        #self.ref_box.insertItems(-1, references.get_electrode_names())
+
+        add_category(self.ref_box, 'Standard')
+        
+        for standard_electrode, potential in reference_potentials.items():
+            self.ref_box.addItem(standard_electrode, potential)
+
+        custom_electrodes = references.get_electrode(all = True, group = True)
+        if custom_electrodes:
+            for electrode_type, electrodes in custom_electrodes.items():
+                add_category(self.ref_box, electrode_type)
+                for electrode in electrodes:
+                    self.ref_box.addItem(electrode.label, electrode.get_calibration_offset())
 
 
         # instead of single value_box, add 3 inputs that correspond to standard potential, offset and pH
@@ -48,8 +60,8 @@ class AreaDialog(QDialog):
         self.reference_value_box.setDecimals(3)
         self.reference_value_box.setValue(0.210)
 
-        self.ref_box.addItems(reference_potentials.keys())
-        self.ref_box.currentTextChanged.connect(lambda x: self.reference_value_box.setValue(reference_potentials[x]))
+
+        self.ref_box.currentTextChanged.connect(lambda x: self.reference_value_box.setValue(self.ref_box.currentData()))
 
         self.define_ref_btn = QPushButton('Define')
         self.define_ref_btn.clicked.connect(self.init_reference_manager)
@@ -67,11 +79,9 @@ class AreaDialog(QDialog):
         layout.addLayout(bottom_layout)
 
 
-
     def get_value(self):
         return self.value_box.value()
 
-    
     def init_dialog_box(self):
         x = AreaDialogBox()
         if x.exec() == QDialog.Accepted:

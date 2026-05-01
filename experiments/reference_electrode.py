@@ -10,6 +10,7 @@ class ReferenceElectrode():
 
         if dictionary:
             self.add_dictionary(dictionary)
+            self.sort()
         
     def add_data(self, date_time, file_path, time_at_offset, calibration_offset, notes):
         dict_to_save = {
@@ -39,7 +40,6 @@ class ReferenceElectrode():
     def calculate_last_calibration(self):
         difference = datetime.now() - self.last_calibration_date
         days = difference.days
-
         return days
  
     def get_info(self) -> dict:
@@ -57,5 +57,10 @@ class ReferenceElectrode():
             return df
         return
     
-    def add_measurement(self, type, time, offset, file_path, date):
-        pass
+    def get_calibration_offset(self):
+        if self.last_calibration_data:
+            return self.last_calibration_data['calibration offset [V]']
+        return
+    
+    def get_dict(self):
+        return {str(date_time): measurement for date_time, measurement in self.measurements.items()}
