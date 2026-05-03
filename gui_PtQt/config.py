@@ -103,6 +103,6 @@ class ReferenceManager(JsonManager):
         return
     
 # Tworzysz gotowe instancje raz, w jednym miejscu
-settings = JsonManager("settings.json")
+defaults = JsonManager("settings.json")
 references = ReferenceManager()
 icon_path = 'Fugue_icons/fugue-icons-3.5.6/icons/'

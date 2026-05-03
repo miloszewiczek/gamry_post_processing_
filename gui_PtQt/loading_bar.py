@@ -422,13 +422,21 @@ class ExperimentPanel(QWidget):
                     item.setBackground(QColor('green'))
 
         elif action == getattr(self, 'action_set_parameters', None):
-            x = AreaDialog()        
-            if x.exec() == QDialog.Accepted:
-                geometric_area = x.get_value()
+            area_dialog = AreaDialog()
+            area_dialog.load_from_settings()    
+
+            if area_dialog.exec() == QDialog.Accepted:
+                parameters = area_dialog.get_data()
+                area, potential = parameters.get('geometrical_area'), parameters.get('reference_potential')
+                print(area)
+                print(potential)
+                area_dialog.save_to_settings()
             else:
                 return
             for exp in experiments:
-                exp.set_area(geometric_area)
+               exp.set_area(area)
+               exp.set_potential(potential)
+
 
         elif action == getattr(self, 'action_change_class', None):
 

@@ -228,6 +228,14 @@ class Experiment():
     def set_area(self, area: float):
         self.geometrical_area = area
 
+    def set_potential(self, potential: float):
+        if not isinstance(potential, float):
+            try:
+                potential = float(potential)
+            except:
+                return
+        self.reference_potential = potential
+
     def plot(self, ax,  data_type = Literal['processed_data', 'data_list'], index = None, x = None, y = None):
         data = getattr(self, data_type)
 

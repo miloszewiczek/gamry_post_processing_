@@ -1,5 +1,25 @@
 {
-    "AgCl/Ag": {},
-    "HgO/Hg": {},
-    "HgCl2/Hg": {}
+    "AgCl/Ag (3M KCl)": {
+        "AM": {
+            "2025-07-01 13:47:48": {
+                "filepath": "D:/!UNI/!sci_materials/!doktorat/!wyniki/!TM3Se4/seria_3/CATALYSIS/PELLETS/SERIA_2/F2N_PELLET_STRONA_2_POMIAR_1_AM_REDOXME_01_07_2025/OCP.DTA",
+                "time at offset [s]": 3.06,
+                "calibration offset [V]": 0.362796,
+                "notes": null,
+                "last_calibration_date": 305
+            }
+        }
+    },
+    "Hg2Cl2/Hg (3M KCl)": {},
+    "HgO/Hg (3M KOH)": {
+        "Nowy_HgO": {
+            "2025-07-01 13:47:48": {
+                "filepath": "D:/!UNI/!sci_materials/!doktorat/!wyniki/!TM3Se4/seria_3/CATALYSIS/PELLETS/SERIA_2/F2N_PELLET_STRONA_2_POMIAR_1_AM_REDOXME_01_07_2025/OCP.DTA",
+                "time at offset [s]": 349.35,
+                "calibration offset [V]": 0.429587,
+                "notes": null,
+                "last_calibration_date": 305
+            }
+        }
+    }
 }

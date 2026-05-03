@@ -3,9 +3,12 @@ from gui_PtQt.loading_bar import ExperimentPanel
 from gui_PtQt.plotting_area import PlottingArea, PlotManagerPanel
 from experiments import *
 from PyQt5.Qt import QApplication, QMainWindow, QWidget, QHBoxLayout, QSplitter
-from PyQt5.QtCore import Qt
+from PyQt5.QtCore import Qt, QCoreApplication
 from sys import argv
-from gui_PtQt.config import settings
+from gui_PtQt.config import defaults
+
+
+# Ustawiamy metadane aplikacji raz na samym początku
 
 
 
@@ -53,8 +56,10 @@ class MainWindow(QMainWindow):
 
 
 if __name__ == '__main__':
+    QCoreApplication.setOrganizationName("MyChemistryLab")
+    QCoreApplication.setApplicationName("ElectrodeAnalyzer")
 
-    settings = settings
+    defaults = defaults
     app = QApplication(argv)
     mainwindow = MainWindow()
     mainwindow.show()

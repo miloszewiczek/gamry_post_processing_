@@ -5,9 +5,10 @@ from gui_PtQt.config import references, icon_path
 from gui_PtQt.plotting_area import OCPPlot, PlottingCanvas
 from functions.gui_functions import load_files, shorten_path
 from pandas import DataFrame
+from .small_widgets import BaseDataDialog
 
 
-class ReferenceManagerWindow(QDialog):
+class ReferenceManagerWindow(BaseDataDialog):
     def __init__(self):
         super().__init__()
 
@@ -124,7 +125,7 @@ class ReferenceManagerWindow(QDialog):
         super().accept()
 
     def get_data(self):
-        return self.electrode_type.text(), float(self.last_calibration_offset.text())
+        return self.electrode_name.text(), float(self.last_calibration_offset.text())
 
     def select_point(self, event):
         self.OCP_plotting_area.activate(event, self.select_btn, callback = self.add_measurement)
