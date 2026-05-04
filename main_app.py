@@ -42,10 +42,9 @@ class MainWindow(QMainWindow):
         self.setCentralWidget(tmp_Qwidget)
 
 
-        for exp in self.manager.get_all():
-            self.experiment_panel.add_experiment_to_model(exp)
+        for sample in self.manager.samples.values():
+            self.experiment_panel.refresh_sample_in_model(sample)
             
-        #self.experiment_panel.tree_view.selectionModel().selectionChanged.connect(self.on_selection_change)
 
 
         self.draw_panel.btn.clicked.connect(self.handle_plotting)

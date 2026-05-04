@@ -11,6 +11,7 @@ from gui.functions import open_file_in_system_editor, open_folder_in_explorer
 from functions.gui_functions import load_data, load_files, load_folder
 from gui.calculate_diameter import AreaDialogBox, AreaDialog
 from gui_PtQt.config import icon_path
+from experiments.sample import Sample
 
 
 class PandasModel(QAbstractTableModel):
@@ -226,15 +227,15 @@ class ExperimentPanel(QWidget):
             index = index.siblingAtColumn(0)
 
         identity = self.identify_selection(index)
-        if identity == "CHILD":
+        if isinstance(identity, Experiment):
             exp = index.data(Qt.UserRole)
             dialog = ExperimentInfoDialog(exp, self)
             dialog.exec()
 
-        elif identity == "PARENT":
-            print('rodzic')
+        elif isinstance(identity, Sample):
+            print('DUPA')
         else:
-            print('nic')
+            return
         
     def load_folder(self): 
         files = load_folder(self)
@@ -249,38 +250,49 @@ class ExperimentPanel(QWidget):
     def load_data(self, files):
         for file in files:
             try:
-                # providing manager in create_experiment automatically updates the manager's dict_of_experiments
                 experiment = self.loader.create_experiment(str(file))
-                self.manager.add_experiment(experiment)
-                self.add_experiment_to_model(experiment)
+                
+                # Manager teraz zwraca obiekt Sample, do którego trafił eksperyment
+                # Domyślnie grupujemy np. po folderze
+                sample = self.manager.add_experiment(experiment, sample_name=experiment.folder)
+                
+                # Odświeżamy model na poziomie Próbki
+                self.refresh_sample_in_model(sample)
 
             except Exception as e:
-                pass
+                print(f"Błąd ładowania: {e}")
 
-    def add_experiment_to_model(self, exp, text = None):
-        # 1. Sprawdź, czy folder (rodzic) już istnieje w modelu
+    def refresh_sample_in_model(self, sample):
+        """Aktualizuje lub tworzy węzeł dla danej próbki i jej dzieci."""
+        
+        # 1. Znajdź węzeł próbki (używamy UserRole, by trzymać obiekt Sample, nie tekst)
         parent_item = None
         for row in range(self.model.rowCount()):
             item = self.model.item(row)
-            if item.text() == exp.folder:
+            if item.data(Qt.UserRole) == sample: # Porównujemy obiekty, nie napisy!
                 parent_item = item
                 break
         
-        # 2. Jeśli nie ma takiego folderu, stwórz go
+        # 2. Jeśli nie ma, stwórz węzeł próbki
         if not parent_item:
-            parent_item = QStandardItem(exp.folder)
+            parent_item = QStandardItem(f"Sample: {sample.sample_name}")
+            parent_item.setData(sample, Qt.UserRole) # Kluczowe!
             self.model.appendRow(parent_item)
         
-        # 3. Dodaj wiersz z danymi eksperymentu
-        if text is None:
-            child_name = QStandardItem(exp.file_name)
-        else:
-            child_name = QStandardItem(text)
-
-        child_id = QStandardItem(str(exp.id))
-        child_class = QStandardItem(exp.__class__.__name__)
+        # 3. Wyczyść dzieci i dodaj je na nowo (najprostsza droga do synchronizacji)
+        # Można to zoptymalizować, sprawdzając tylko brakujące
+        parent_item.setRowCount(0)
         
-        # Pamiętaj o UserRole dla ID, żeby usuwanie działało!
+        for exp in sample.experiments:
+            self.add_experiment_to_item(parent_item, exp)
+
+    def add_experiment_to_item(self, parent_item, exp):
+        """Dodaje pojedynczy wiersz eksperymentu pod rodzica."""
+        child_name = QStandardItem(exp.file_name)
+        child_class = QStandardItem(exp.__class__.__name__)
+        child_id = QStandardItem(str(exp.id))
+
+        # Przechowujemy cały obiekt w UserRole pierwszego kolumny
         child_name.setData(exp, Qt.UserRole)
         
         parent_item.appendRow([child_name, child_class, child_id])
@@ -310,12 +322,8 @@ class ExperimentPanel(QWidget):
 
     def identify_selection(self, index):
         if not index.isValid():
-            return "Nic"
-        
-        if not index.parent().isValid():
-            return "PARENT"
-        else:
-            return "CHILD"
+            return
+        return index.data(Qt.UserRole)
         
     def copy_item(self):
 
@@ -348,7 +356,7 @@ class ExperimentPanel(QWidget):
         for index in selected_indices:
             tipo = self.identify_selection(index)
 
-            if tipo == "CHILD":
+            if isinstance(tipo, Experiment):
                 exp = index.data(Qt.UserRole)
                 print(exp)
                 parent_index = index.parent()
@@ -360,7 +368,7 @@ class ExperimentPanel(QWidget):
                 if self.model.rowCount(parent_index) == 0:
                     self.model.removeRow(parent_index.row(), parent_index.parent())
 
-            elif tipo == "PARENT":
+            elif isinstance(tipo, Sample):
                 path_name = index.data(Qt.DisplayRole)
                 reply = QMessageBox.question(self, 'Deleting Folder', 
                                         'Delete all experiments?', 
@@ -377,96 +385,86 @@ class ExperimentPanel(QWidget):
         if not index.isValid():
             return
 
-        targets = self.tree_view.selectionModel().selectedRows(0)
-        # verify if parent and child are in the group
+        # Pobieramy poprawne indeksy (jeśli kliknięto poza zaznaczeniem, bierzemy tylko kliknięty)
+        targets = self.get_target_indices(index)
         
-        menu_type = self.identify_selection(index)
-        menu = self._build_context_menu(menu_type, len(targets))
-        action = menu.exec(self.tree_view.viewport().mapToGlobal(position))
-        self._handle_experiment_action(action = action, index = targets)
+        # Pobieramy obiekt (Sample lub Experiment) przypisany do klikniętego wiersza
+        node_type = self.identify_selection(index)
+        
+        # Budujemy i od razu wyświetlamy menu
+        menu = self._build_context_menu(node_type, targets)
+        if menu:
+            menu.exec(self.tree_view.viewport().mapToGlobal(position))
 
-    def _build_context_menu(self, node_type, amount_of_targets):
-        
+    def _build_context_menu(self, node_type, targets_indices):
         menu = QMenu()
-        
-        if node_type == 'CHILD':
+        # Wyciągamy obiekty Experiment z wybranych indeksów
+        experiments = self.experimentFromIndex(targets_indices)
+        amount = len(targets_indices)
 
-            self.action_info = menu.addAction("Show details")
+        if isinstance(node_type, Experiment):
+            # Akcja: Info (tylko dla jednego zaznaczenia)
+            info_act = menu.addAction("Show details")
+            info_act.setEnabled(amount == 1)
+            info_act.triggered.connect(lambda: self.on_double_clicked(targets_indices[0]))
 
-            if amount_of_targets > 1:
-                self.action_info.setDisabled(True)
+            # Akcja: Notatnik
+            note_act = menu.addAction("Open in text editor")
+            note_act.triggered.connect(lambda: [open_file_in_system_editor(e.file_path) for e in experiments])
 
-            self.action_notepad = menu.addAction("Open in text editor")
-            self.action_change_class = menu.addAction("Change type")
             menu.addSeparator()
-            self.action_set_parameters = menu.addAction("Set Geometrical Area")
-            self.action_process = menu.addAction("Process")
-        
+
+            # Akcja: Przetwarzanie (wykorzystuje Twoją nową metodę pomocniczą)
+            proc_act = menu.addAction("Process")
+            proc_act.triggered.connect(lambda: self._bulk_process(experiments, targets_indices))
+
+            # Akcja: Zmiana parametrów powierzchni/potencjału
+            param_act = menu.addAction("Set Geometrical Area")
+            param_act.triggered.connect(lambda: self._open_area_dialog(experiments))
+            
+            # Akcja: Zapis (Batch process w managerze)
+            save_act = menu.addAction('Save to Excel')
+            save_act.triggered.connect(lambda: self.manager.batch_process_selected_experiments(experiments, 'test', 'tag'))
+
+        elif isinstance(node_type, Sample):
+            # Akcja dla całego kontenera Sample
+            batch_act = menu.addAction("Batch process all in Sample")
+            
+            def process_sample():
+                # node_type jest tutaj obiektem Sample, po którym można iterować
+                for exp in node_type:
+                    exp.process_data()
+                print(f"Przetworzono eksperymenty dla próbki: {node_type.sample_name}")
+                # Opcjonalnie: odśwież widok tego Sample
+                self.refresh_sample_in_model(node_type)
+
+            batch_act.triggered.connect(process_sample)
+            
+            menu.addSeparator()
+            delete_folder_act = menu.addAction("Delete Sample")
+            delete_folder_act.triggered.connect(lambda: self.delete_item(targets_indices[0]))
+
         return menu
 
-    def _handle_experiment_action(self, action, index):
-        experiments = self.experimentFromIndex(index)
-
-        if action == getattr(self, 'action_info', None):
-            self.on_double_clicked(index[0])
-
-        elif action == getattr(self, 'action_notepad', None):
-            for experiment in experiments:
-                open_file_in_system_editor(experiment.file_path)
-
-        elif action == getattr(self, 'action_process', None):
-            for exp in experiments:
-                exp.process_data()
-                items = list(map(self.model.itemFromIndex, index))
-                for item in items:
-                    item.setBackground(QColor('green'))
-
-        elif action == getattr(self, 'action_set_parameters', None):
-            area_dialog = AreaDialog()
-            area_dialog.load_from_settings()    
-
-            if area_dialog.exec() == QDialog.Accepted:
-                parameters = area_dialog.get_data()
-                area, potential = parameters.get('geometrical_area'), parameters.get('reference_potential')
-                print(area)
-                print(potential)
-                area_dialog.save_to_settings()
-            else:
-                return
-            for exp in experiments:
-               exp.set_area(area)
-               exp.set_potential(potential)
-
-
-        elif action == getattr(self, 'action_change_class', None):
-
-            x = QDialog()
-            layout = QHBoxLayout(x)
-            combo = QTreeView()
-            model = QStandardItemModel()
-            for key, items in self.loader.experiment_classes.items():
-                parent = QStandardItem(key)
-                print(key)
-                model.appendRow(parent)
-                for item in items:
-                    parent.appendRow(QStandardItem(item))
-            
-            qbrowser = QTextBrowser()
-            qbrowser.setPlaceholderText("Choose experiment to get info")
-            qbrowser.setMinimumWidth(200)
-            combo.clicked.connect(lambda x: qbrowser.setText(model.item(Qt.DisplayRole)))
-
-            combo.setModel(model)
-            layout.addWidget(combo)
-            layout.addWidget(qbrowser)
-            x.setLayout(layout)
-            x.exec()
+    def _bulk_process(self, experiments, indices):
+        for exp in experiments:
+            exp.process_data()
         
-        # elif action == getattr(self, 'explorer_info', None):
-        #   open_folder_in_explorer()
-        
-        else:
-            return
+        # Aktualizacja GUI (kolorowanie)
+        for idx in indices:
+            item = self.model.itemFromIndex(idx)
+            if item:
+                item.setBackground(QColor('lightgreen'))
+
+    def _open_area_dialog(self, experiments):
+        dialog = AreaDialog()
+        dialog.load_from_settings()
+        if dialog.exec() == QDialog.Accepted:
+            data = dialog.get_data()
+            for exp in experiments:
+                exp.set_area(data['geometrical_area'])
+                exp.set_potential(data['reference_potential'])
+            dialog.save_to_settings()
 
     def get_children(self, parent_index):
         children = self.model.rowCount(parent_index)

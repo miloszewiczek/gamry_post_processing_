@@ -7,13 +7,14 @@ from app_config import messages, settings
 from typing import Literal
 from unicode_mapping import uni_map
 import os
+from datetime import datetime
 
 DTA_parser = gamry_parser.GamryParser()
-print(DTA_parser)
 
 class Experiment():
     def __init__(self, file_path, date_time, id, tag, cycle):
-
+        date_format = "%Y-%m-%d %H:%M:%S"
+        
         self.file_path = file_path
         self.folder = os.path.dirname(file_path)
         self.file_name = os.path.basename(file_path)
@@ -80,6 +81,7 @@ class Experiment():
         
         if not hasattr(self, 'data_list'):
             self.load_curves()
+            self.load_meta_data()
 
         print(messages.processing_messages['processing_data_fp_id_len'].format(
             file_path = self.file_path,
@@ -245,4 +247,5 @@ class Experiment():
             data = data[index]
         data.plot(ax = ax, x = x, y = y)
 
-        
+    def __repr__(self):
+        return f"Experiment(id={self.id}, tag='{self.tag}', cycle={self.cycle}, file='{self.file_name}')"

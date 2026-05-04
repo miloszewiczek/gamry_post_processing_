@@ -3,16 +3,19 @@ import tabulate
 import re
 from typing import Literal
 from copy import deepcopy
+from experiments.sample import Sample
 
 class ExperimentManager():
-    def __init__(self, experiments = None):
-
-        self.filtered = None
-        self.dict_of_experiments: dict[str, Experiment] = {
-            exp.id: exp for exp in (experiments.values() or [])
-        }
+    def __init__(self, initial_experiments: dict = None):
+            self.samples: dict[str, Sample] = {}
+            self.dict_of_experiments: dict[int, Experiment] = {}
             
-    
+            if initial_experiments:
+                for exp in initial_experiments.values():
+                    # Tutaj decydujesz o domyślnym grupowaniu
+                    # Na start najlepiej użyć folderu jako nazwy próbki
+                    self.add_experiment(exp, sample_name=exp.folder)
+
     def filter(
         self,
         experiments: list[Experiment] = None,
@@ -102,9 +105,13 @@ class ExperimentManager():
         return tmp
         
 
-
-    def add_experiment(self, experiment:Experiment):
+    def add_experiment(self, experiment: Experiment, sample_name: str):
+        if sample_name not in self.samples:
+            self.samples[sample_name] = Sample(sample_name)
+        
+        self.samples[sample_name].add_experiment(experiment)
         self.dict_of_experiments[experiment.id] = experiment
+        return self.samples[sample_name]
     
     def update_dict(self, data):
         """
@@ -167,7 +174,7 @@ class ExperimentManager():
         
         exp_copy = deepcopy(exp_to_copy)
         setattr(exp_copy, 'id', new_id)
-        self.add_experiment(exp_copy)
+        self.add_experiment(exp_copy, None)
         return exp_copy
 
     def combine_experiment(self, experiment_list):
