@@ -467,10 +467,9 @@ class ExperimentPanel(QWidget):
             
             def process_sample():
                 # node_type jest tutaj obiektem Sample, po którym można iterować
-                item = self.model.itemFromIndex(targets_indices[0]).setBackground(QColor('lightgreen'))
-                self._bulk_process(node_type.experiments, sample_children)
-                print(f"Przetworzono eksperymenty dla próbki: {node_type.sample_name}")
-                # Opcjonalnie: odśwież widok tego Sample
+                x = self.get_children(targets_indices, 'item')
+                self._bulk_process(node_type.experiments)
+                self.color_indexes(x, color = QColor('green'))
 
             batch_act.triggered.connect(process_sample)
             
@@ -483,16 +482,19 @@ class ExperimentPanel(QWidget):
 
         return menu
     
+    def color_indexes(self, indices:list[QStandardItem], color = None):
+        if isinstance(color, QColor):
+            color_to_apply = color
+        elif isinstance(color, str):
+            return
+        for index in indices:
+            index.setBackground(color_to_apply)
 
-    def _bulk_process(self, experiments, indices):
+
+    def _bulk_process(self, experiments):
         for exp in experiments:
             exp.process_data()
         
-        # Aktualizacja GUI (kolorowanie)
-        for idx in indices:
-            item = self.model.itemFromIndex(idx)
-            if item:
-                item.setBackground(QColor('lightgreen'))
 
     def _open_area_dialog(self, experiment_items):
         dialog = AreaDialog()
@@ -505,11 +507,14 @@ class ExperimentPanel(QWidget):
                 experiment.set_potential(data['reference_potential'])
             dialog.save_to_settings()
 
-    def get_children(self, parent_indexes):
+    def get_children(self, parent_indexes, type = 'index'):
         for parent_index in parent_indexes:
             children = self.model.rowCount(parent_index)
             indexes = [self.model.index(child, 0, parent_index) for child in range(children)]
-        return indexes
+        if type == 'index':
+            return indexes
+        elif type =='item':
+            return [self.model.itemFromIndex(index) for index in indexes]
 
 
     def verify_parent_children_relationship(self, targets):
