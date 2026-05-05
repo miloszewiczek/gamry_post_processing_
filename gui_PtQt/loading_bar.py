@@ -3,7 +3,7 @@ from PyQt5.QtWidgets import (QTreeWidget, QWidget, QLayout, QPushButton, QHBoxLa
                              QAbstractItemView, QDialog, QLabel, 
                              QFormLayout, QDialogButtonBox, QTableView,
                              QComboBox, QMenu, QTextBrowser, QShortcut, QInputDialog, QDoubleSpinBox)
-from PyQt5.QtGui import QStandardItemModel, QStandardItem, QColor, QIcon, QKeySequence
+from PyQt5.QtGui import QStandardItemModel, QStandardItem, QColor, QIcon, QKeySequence, QBrush
 from PyQt5.QtCore import Qt, QAbstractTableModel, QItemSelection, QItemSelectionModel, QPersistentModelIndex
 from core import ExperimentLoader, ExperimentManager, Experiment
 from pathlib import Path
@@ -221,6 +221,7 @@ class ExperimentPanel(QWidget):
 
         self.tree_view.doubleClicked.connect(self.on_double_clicked)
 
+
     def on_double_clicked(self, index):
         
         if index.column() != 0:
@@ -261,6 +262,9 @@ class ExperimentPanel(QWidget):
 
             except Exception as e:
                 print(f"Błąd ładowania: {e}")
+    
+    def getChildren(self, parent):
+        return [item for item in parent.row_Count()]
 
     def refresh_sample_in_model(self, sample):
         """Aktualizuje lub tworzy węzeł dla danej próbki i jej dzieci."""
@@ -457,15 +461,16 @@ class ExperimentPanel(QWidget):
 
         elif isinstance(node_type, Sample):
             # Akcja dla całego kontenera Sample
+            sample_children = self.get_children(targets_indices)
+            print(sample_children)
             batch_act = menu.addAction("Batch process all in Sample")
             
             def process_sample():
                 # node_type jest tutaj obiektem Sample, po którym można iterować
-                for exp in node_type:
-                    exp.process_data()
+                item = self.model.itemFromIndex(targets_indices[0]).setBackground(QColor('lightgreen'))
+                self._bulk_process(node_type.experiments, sample_children)
                 print(f"Przetworzono eksperymenty dla próbki: {node_type.sample_name}")
                 # Opcjonalnie: odśwież widok tego Sample
-                self.refresh_sample_in_model(node_type)
 
             batch_act.triggered.connect(process_sample)
             
@@ -475,7 +480,7 @@ class ExperimentPanel(QWidget):
 
             batch_apply_parameters = menu.addAction("Apply parameters")
             batch_apply_parameters.triggered.connect(lambda: self._open_area_dialog(node_type.experiments))
-            
+
         return menu
     
 
@@ -489,19 +494,21 @@ class ExperimentPanel(QWidget):
             if item:
                 item.setBackground(QColor('lightgreen'))
 
-    def _open_area_dialog(self, experiments):
+    def _open_area_dialog(self, experiment_items):
         dialog = AreaDialog()
         dialog.load_from_settings()
         if dialog.exec() == QDialog.Accepted:
             data = dialog.get_data()
-            for exp in experiments:
-                exp.set_area(data['geometrical_area'])
-                exp.set_potential(data['reference_potential'])
+            for exp_item in experiment_items:
+                experiment = exp_item.data(Qt.UserROle)
+                experiment.set_area(data['geometrical_area'])
+                experiment.set_potential(data['reference_potential'])
             dialog.save_to_settings()
 
-    def get_children(self, parent_index):
-        children = self.model.rowCount(parent_index)
-        indexes = [self.model.index(child, 0, parent_index) for child in range(children)]
+    def get_children(self, parent_indexes):
+        for parent_index in parent_indexes:
+            children = self.model.rowCount(parent_index)
+            indexes = [self.model.index(child, 0, parent_index) for child in range(children)]
         return indexes
 
 
