@@ -336,6 +336,7 @@ class ExperimentPanel(QWidget):
                 new_sample, new_experiment = self.manager.copy_experiment(experiment, new_id = self.loader.get_counter(), sample_name = sample.sample_name + "Copy")
                 self.loader.update_counter(1)
                 
+            #refreshing for each sample
             self.refresh_sample_in_model(new_sample)
 
 
@@ -364,8 +365,6 @@ class ExperimentPanel(QWidget):
             self.add_experiment_to_item(parent_item = parent, exp = new_experiment )
 
         
-       
-
     def delete_item(self, index = None):
 
         # 1. Pobieramy unikalne wiersze (tylko z pierwszej kolumny)
@@ -474,7 +473,11 @@ class ExperimentPanel(QWidget):
             delete_folder_act = menu.addAction("Delete Sample")
             delete_folder_act.triggered.connect(lambda: self.delete_item(targets_indices[0]))
 
+            batch_apply_parameters = menu.addAction("Apply parameters")
+            batch_apply_parameters.triggered.connect(lambda: self._open_area_dialog(node_type.experiments))
+            
         return menu
+    
 
     def _bulk_process(self, experiments, indices):
         for exp in experiments:
