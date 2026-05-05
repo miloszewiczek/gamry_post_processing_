@@ -324,16 +324,46 @@ class ExperimentPanel(QWidget):
         if not index.isValid():
             return
         return index.data(Qt.UserRole)
-        
+    
+    def copy_folder(self, parents_indexes):
+        for index in parents_indexes:
+            sample = index.data(Qt.UserRole)
+            parent_item = self.model.itemFromIndex(index)
+            exps_to_copy = []
+            for experiment in sample:
+
+                #copy_experiment returns both sample and experiment if sample_name is specified
+                new_sample, new_experiment = self.manager.copy_experiment(experiment, new_id = self.loader.get_counter(), sample_name = sample.sample_name + "Copy")
+                self.loader.update_counter(1)
+                
+            self.refresh_sample_in_model(new_sample)
+
+
     def copy_item(self):
 
         selected_indices = self.tree_view.selectionModel().selectedRows(0)
+
+        #checking if sample in selection:
+        samples = [index for index in selected_indices if isinstance(index.data(Qt.UserRole), Sample)]
+        if samples:
+                reply = QMessageBox.question(self, 'Copying folder', 
+                                        'Copy folder?', 
+                                        QMessageBox.Yes | QMessageBox.No)
+                
+                if reply == QMessageBox.Yes:
+                    self.copy_folder(samples)
+                    return
+                    
         
         for index in selected_indices:
+            parent_index = index.parent()
+            parent = self.model.itemFromIndex(parent_index)
             experiment = index.data(Qt.UserRole)
             new_experiment = self.manager.copy_experiment(experiment, new_id = self.loader.get_counter())
             self.loader.update_counter(1)
-            self.add_experiment_to_model(new_experiment, text = new_experiment.file_name + "_C")
+            self.add_experiment_to_item(parent_item = parent, exp = new_experiment )
+
+        
        
 
     def delete_item(self, index = None):
@@ -344,7 +374,6 @@ class ExperimentPanel(QWidget):
         else:
             selected_indices = [index,]
         
-        print(selected_indices)
 
         if not selected_indices:
             QMessageBox.information(self, 'Select node', 'No node selected...')
@@ -365,6 +394,7 @@ class ExperimentPanel(QWidget):
                 # Usuwamy bezpośrednio z modelu (bez odświeżania całego drzewa)
                 self.model.removeRow(index.row(), index.parent())
                 
+                # deleting the parent
                 if self.model.rowCount(parent_index) == 0:
                     self.model.removeRow(parent_index.row(), parent_index.parent())
 

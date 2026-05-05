@@ -170,12 +170,18 @@ class ExperimentManager():
         for id in ids_of_experiments:
             self.delete_experiment_by_id(id)
     
-    def copy_experiment(self, exp_to_copy, new_id):
+    def copy_experiment(self, exp_to_copy, new_id, sample_name = None):
         
         exp_copy = deepcopy(exp_to_copy)
         setattr(exp_copy, 'id', new_id)
-        self.add_experiment(exp_copy, None)
-        return exp_copy
+        if sample_name is None:
+            sample_name = exp_copy.folder
+        sample = self.add_experiment(exp_copy, sample_name)
+
+        if sample_name is None:
+            return exp_copy
+        else:
+            return sample, exp_copy
 
     def combine_experiment(self, experiment_list):
             return pd.concat(experiment_list, axis=1)
