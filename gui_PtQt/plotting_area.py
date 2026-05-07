@@ -2,8 +2,8 @@ from PyQt5.QtWidgets import QVBoxLayout, QHBoxLayout, QPushButton, QWidget, QTre
 from matplotlib.backends.backend_qtagg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.figure import Figure
 from random import sample
-from PyQt5.QtCore import Qt
-from PyQt5.QtGui import QKeySequence
+from PyQt5.QtCore import Qt, pyqtSignal
+from PyQt5.QtGui import QKeySequence, QColor
 from .painting import create_line_icon, ColorManager
 import pandas as pd
 import matplotlib.dates as mdates
@@ -31,21 +31,22 @@ class PlottingCanvas(FigureCanvas):
         self.axes = self.fig.add_subplot(111)
         super().__init__(self.fig)
 
-    def plot_experiments(self, experiments_list = None):
+    def plot_experiments(self, experiments_list: list[tuple[Experiment, QColor]] = None):
         self.axes.clear()
-        for exp, color in experiments_list:
-            if not hasattr(exp, 'data_list'):
-                data = exp.load_curves()
+        
+        if experiments_list:
+            for exp, color in experiments_list:
+                # Wywołujemy nową, mądrzejszą metodę z klasy Experiment
+                exp.plot(ax=self.axes, color=color)
+            
+            # Dodatki estetyczne, o których Experiment nie musi wiedzieć
+            self.axes.set_xlabel(experiments_list[0][0].default_x)
+            self.axes.set_ylabel(experiments_list[0][0].default_y)
+            self.axes.grid(True, alpha=0.3)
+            # self.axes.legend() # Opcjonalnie
 
-            x, y = exp.get_default_columns('both')
-            if not hasattr(exp, 'processed_data'):
-                processed_data = exp.process_data()
-            else:
-                processed_data = getattr(exp, 'processed_data')
-            self.axes.plot(processed_data[0][x], processed_data[0][y], color = color)
-
-        self.draw()
-
+        self.draw_idle()
+        
     def plot(self, x, y):
         self.axes.plot(x, y)
         self.draw()
@@ -202,11 +203,12 @@ class MyListWidget(QListWidget):
         super().addItem(item)
 
 class PlotManagerPanel(QWidget):
-    def __init__(self,  canvas, parent = None,):
+    plotsUpdated = pyqtSignal(list)
+
+    def __init__(self, parent = None,):
         super().__init__(parent)
 
         self.color_manager = ColorManager()
-        self.canvas = canvas
         self.my_layout = QVBoxLayout(self)
         self.list_widget = MyListWidget()
 
@@ -223,7 +225,6 @@ class PlotManagerPanel(QWidget):
         btn_delete_shortcut.setContext(Qt.ShortcutContext.WidgetShortcut)
         btn_delete_shortcut.activated.connect(self.delete_plot)    
         
-
 
     def add_plots(self, experiments):
         """
@@ -274,19 +275,13 @@ class PlotManagerPanel(QWidget):
             self.update_canvas()
 
     def update_canvas(self):
-        # Wyciągamy obiekty eksperymentów z pozostałych elementów listy
         remaining_experiments = []
         for i in range(self.list_widget.count()):
             item = self.list_widget.item(i)
-            exp = item.data(Qt.UserRole)
-            color = item.data(ColorRole)
-
             if item.checkState() == Qt.CheckState.Checked:
-                remaining_experiments.append((exp, color))
+                remaining_experiments.append((item.data(Qt.UserRole), item.data(ColorRole)))
         
-        print(remaining_experiments)
-        # Wywołujemy rysowanie tylko tego, co zostało
-        self.canvas.plot_experiments(remaining_experiments)
+        self.plotsUpdated.emit(remaining_experiments)
 
 
 class PlottingArea(QWidget):

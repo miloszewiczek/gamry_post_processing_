@@ -30,8 +30,12 @@ class MainWindow(QMainWindow):
         
 
         self.experiment_panel = ExperimentPanel(self.loader, self.manager)
+
+
         self.draw_panel = PlottingArea()
-        self.plot_manager = PlotManagerPanel(canvas = self.draw_panel.get_canvas())
+        self.plot_manager = PlotManagerPanel()
+        self.plot_manager.plotsUpdated.connect(self.draw_panel.Canvas.plot_experiments)
+        self.experiment_panel.plotRequested.connect(self.plot_manager.add_plots)
         
         splitter.addWidget(self.experiment_panel)
         splitter.addWidget(self.draw_panel)
@@ -42,16 +46,16 @@ class MainWindow(QMainWindow):
         self.setCentralWidget(tmp_Qwidget)
 
 
+        # for testing
         for sample in self.manager.samples.values():
             self.experiment_panel.refresh_sample_in_model(sample)
-            
-
 
         self.draw_panel.btn.clicked.connect(self.handle_plotting)
 
     def handle_plotting(self):
         current_exps = self.experiment_panel.get_selected_experiments()
-        self.plot_manager.add_plots(current_exps)
+        if current_exps:
+            self.plot_manager.add_plots(current_exps)
 
 
 if __name__ == '__main__':

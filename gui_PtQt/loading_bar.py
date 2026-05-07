@@ -4,7 +4,7 @@ from PyQt5.QtWidgets import (QTreeWidget, QWidget, QLayout, QPushButton, QHBoxLa
                              QFormLayout, QDialogButtonBox, QTableView,
                              QComboBox, QMenu, QTextBrowser, QShortcut, QInputDialog, QDoubleSpinBox)
 from PyQt5.QtGui import QStandardItemModel, QStandardItem, QColor, QIcon, QKeySequence, QBrush
-from PyQt5.QtCore import Qt, QAbstractTableModel, QItemSelection, QItemSelectionModel, QPersistentModelIndex
+from PyQt5.QtCore import Qt, QAbstractTableModel, QItemSelection, QItemSelectionModel, QPersistentModelIndex, pyqtSignal
 from core import ExperimentLoader, ExperimentManager, Experiment
 from pathlib import Path
 from gui.functions import open_file_in_system_editor, open_folder_in_explorer
@@ -155,6 +155,10 @@ class ExperimentInfoDialog(QDialog):
         open_file_in_system_editor(self.experiment.file_path)
 
 class ExperimentPanel(QWidget):
+
+    itemsExported = pyqtSignal(list)
+    plotRequested = pyqtSignal(list)
+
     def __init__(self, loader:ExperimentLoader, manager:ExperimentManager, parent=None, settings = None):
         super().__init__(parent)
 
@@ -222,6 +226,21 @@ class ExperimentPanel(QWidget):
         self.tree_view.doubleClicked.connect(self.on_double_clicked)
 
 
+        open_doublelayer_btn = QPushButton('CDL!')
+        open_doublelayer_btn.clicked.connect(self.double_layer)
+        main_layout.addWidget(open_doublelayer_btn)
+
+    def double_layer(self):
+        from gui_PtQt.double_layer import DoubleLayer
+        x = DoubleLayer(self.get_selected_indices())
+        if x.exec() == QDialog.accepted:
+            print('elo')
+
+    def trigger_export(self):
+        selected = self.get_selected_indices()
+        if selected:
+            self.experimentExported.emit(selected)
+
     def on_double_clicked(self, index):
         
         if index.column() != 0:
@@ -263,9 +282,6 @@ class ExperimentPanel(QWidget):
             except Exception as e:
                 print(f"Błąd ładowania: {e}")
     
-    def getChildren(self, parent):
-        return [item for item in parent.row_Count()]
-
     def refresh_sample_in_model(self, sample):
         """Aktualizuje lub tworzy węzeł dla danej próbki i jej dzieci."""
         
@@ -449,7 +465,7 @@ class ExperimentPanel(QWidget):
 
             # Akcja: Przetwarzanie (wykorzystuje Twoją nową metodę pomocniczą)
             proc_act = menu.addAction("Process")
-            proc_act.triggered.connect(lambda: self._bulk_process(experiments, targets_indices))
+            proc_act.triggered.connect(lambda: self._bulk_process(experiments))
 
             # Akcja: Zmiana parametrów powierzchni/potencjału
             param_act = menu.addAction("Set Geometrical Area")
@@ -458,6 +474,10 @@ class ExperimentPanel(QWidget):
             # Akcja: Zapis (Batch process w managerze)
             save_act = menu.addAction('Save to Excel')
             save_act.triggered.connect(lambda: self.manager.batch_process_selected_experiments(experiments, 'test', 'tag'))
+
+            # Akcja: wyślij gdzieś eksperyment
+            plot_act = menu.addAction('Plot')
+            plot_act.triggered.connect(lambda: self.plotRequested.emit(experiments))
 
         elif isinstance(node_type, Sample):
             # Akcja dla całego kontenera Sample
@@ -478,7 +498,7 @@ class ExperimentPanel(QWidget):
             delete_folder_act.triggered.connect(lambda: self.delete_item(targets_indices[0]))
 
             batch_apply_parameters = menu.addAction("Apply parameters")
-            batch_apply_parameters.triggered.connect(lambda: self._open_area_dialog(node_type.experiments))
+            batch_apply_parameters.triggered.connect(lambda: self._open_area_dialog(sample_children))
 
         return menu
     
@@ -490,21 +510,28 @@ class ExperimentPanel(QWidget):
         for index in indices:
             index.setBackground(color_to_apply)
 
-
     def _bulk_process(self, experiments):
         for exp in experiments:
             exp.process_data()
-        
 
-    def _open_area_dialog(self, experiment_items):
+    def _open_area_dialog(self, indices):
+        """Przyjmuje indeksy, bo musi wiedzieć co zaktualizować w UI po zamknięciu dialogu."""
         dialog = AreaDialog()
         dialog.load_from_settings()
+        
         if dialog.exec() == QDialog.Accepted:
             data = dialog.get_data()
-            for exp_item in experiment_items:
-                experiment = exp_item.data(Qt.UserROle)
+            
+            for idx in indices:
+                experiment = idx.data(Qt.UserRole)
+                # Logika biznesowa
                 experiment.set_area(data['geometrical_area'])
                 experiment.set_potential(data['reference_potential'])
+                
+                # Logika UI - np. zmień kolor, żeby pokazać, że dane są "dirty" (zmodyfikowane)
+                item = self.model.itemFromIndex(idx)
+                item.setToolTip(f"Area: {data['geometrical_area']}") # Przykład aktualizacji UI
+                
             dialog.save_to_settings()
 
     def get_children(self, parent_indexes, type = 'index'):
@@ -548,6 +575,15 @@ class ExperimentPanel(QWidget):
                 
     def experimentFromIndex(self, indexes) -> list[Experiment]:
         return [index.data(Qt.UserRole) for index in indexes]
+    
+    def get_selected_indices(self):
+        indices = self.tree_view.selectionModel().selectedRows()
+        return indices
+
+    def get_selected_experiments(self):
+        indices = self.tree_view.selectionModel().selectedRows()
+        return self.experimentFromIndex(indices)
         
     def select_all(self):
         pass
+    

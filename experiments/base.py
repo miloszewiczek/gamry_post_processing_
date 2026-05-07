@@ -238,14 +238,21 @@ class Experiment():
                 return
         self.reference_potential = potential
 
-    def plot(self, ax,  data_type = Literal['processed_data', 'data_list'], index = None, x = None, y = None):
-        data = getattr(self, data_type)
+    def plot(self, ax, color=None, x=None, y=None, **kwargs):
+        # Automatyczne ładowanie i procesowanie, jeśli zapomniano to zrobić wcześniej
+        if not hasattr(self, 'processed_data'):
+            self.process_data()
 
-        if (x is None) and (y is None):
+        if x is None or y is None:
             x, y = self.get_default_columns('both')
-        if index is not None:
-            data = data[index]
-        data.plot(ax = ax, x = x, y = y)
+
+        # Rysujemy każdą krzywą (curve) w eksperymencie
+        for df in self.processed_data:
+            # Sprawdzamy czy kolumny istnieją, żeby uniknąć KeyError
+            if x in df.columns and y in df.columns:
+                ax.plot(df[x], df[y], color=color, label=self.file_name, **kwargs)
+            else:
+                print(f"Błąd: Brak kolumn {x} lub {y} w eksperymencie {self.id}")
 
     def __repr__(self):
         return f"Experiment(id={self.id}, tag='{self.tag}', cycle={self.cycle}, file='{self.file_name}')"
