@@ -1,90 +1,49 @@
-from PyQt5.QtWidgets import (QTreeWidget, QWidget, QLayout, QPushButton, QHBoxLayout, 
-                             QVBoxLayout, QTreeView, QFileDialog, QMessageBox, 
-                             QAbstractItemView, QDialog, QLabel, 
-                             QFormLayout, QDialogButtonBox, QTableView,
-                             QComboBox, QMenu, QTextBrowser, QShortcut, QInputDialog, QDoubleSpinBox, QCheckBox)
-from PyQt5.QtGui import QStandardItemModel, QStandardItem, QColor, QIcon, QKeySequence, QBrush
-from PyQt5.QtCore import Qt, QAbstractTableModel, QItemSelection, QItemSelectionModel, QPersistentModelIndex, pyqtSignal, QModelIndex
-from core import ExperimentLoader, ExperimentManager, Experiment
-from pathlib import Path
-from gui.functions import open_file_in_system_editor, open_folder_in_explorer
-from functions.gui_functions import load_data, load_files, load_folder
-from gui.calculate_diameter import AreaDialogBox, AreaDialog
-from gui_PtQt.config import icon_path
-from experiments.sample import Sample
-from gui.small_widgets import BaseDataDialog
+from gui.small_widgets import Selector, SimpleDoubleSpinBox
+from PyQt5.QtWidgets import QHBoxLayout, QVBoxLayout, QPushButton, QDialog
+from gui_PtQt.plotting_area import PlottingCanvas
+from functions.functions import calculate_ECSA_from_slope
 
 
-class DoubleLayer(BaseDataDialog):
+class DoubleLayer(QDialog):
     def __init__(self, items):
         super().__init__()
+
+        self.selector = Selector(items)
+        self.canvas = PlottingCanvas()
+        self.init_gui()
+        self.selector.item_changed.connect(self.update_plot)
+
+    def init_gui(self):
         
-        # 1. Modele i Widoki
-        self.source_model = QStandardItemModel()
-        self.dest_model = QStandardItemModel()
-        
-        self.source_view = QTreeView()
-        self.dest_view = QTreeView()
-        
-        for view in [self.source_view, self.dest_view]:
-            view.setModel(self.source_model if view == self.source_view else self.dest_model)
-            view.setSelectionMode(QAbstractItemView.ExtendedSelection)
-            view.setHeaderHidden(False)
+        layout = QVBoxLayout()
 
-        self.source_model.setHorizontalHeaderLabels(['Dostępne Eksperymenty'])
-        self.dest_model.setHorizontalHeaderLabels(['Do Analizy'])
+        self.potential_double_box = SimpleDoubleSpinBox(0, None)
+        self.calculate_btn = QPushButton(text = 'Calculate CDL')
+        self.calculate_btn.clicked.connect(self.calculate_cdl)
 
-        # 2. Przyciski sterujące
-        self.btn_add = QPushButton(">")
-        self.btn_remove = QPushButton("<")
-        self.btn_add_all = QPushButton(">>")
-        self.btn_remove_all = QPushButton("<<")
-        
-        # Layout dla przycisków (pionowy)
-        btn_layout = QVBoxLayout()
-        btn_layout.addStretch()
-        btn_layout.addWidget(self.btn_add_all)
-        btn_layout.addWidget(self.btn_add)
-        btn_layout.addWidget(self.btn_remove)
-        btn_layout.addWidget(self.btn_remove_all)
-        btn_layout.addStretch()
+        layout.addWidget(self.selector)
+        layout.addWidget(self.canvas)
+        layout.addWidget(self.potential_double_box)
+        layout.addWidget(self.calculate_btn)
 
-        # 3. Główny Layout
-        main_layout = QHBoxLayout()
-        main_layout.addWidget(self.source_view)
-        main_layout.addLayout(btn_layout)
-        main_layout.addWidget(self.dest_view)
-        self.setLayout(main_layout)
 
-        # Połączenia
-        self.btn_add.clicked.connect(self.move_selected_to_dest)
-        self.btn_remove.clicked.connect(self.move_selected_to_source)
-        
-        self.populate(items)
 
-    def populate(self, items):
-        for index in items:
-            experiment = index.data(Qt.UserRole)
-            text = index.data(Qt.DisplayRole)
-            item = QStandardItem(text)
-            item.setData(experiment, Qt.UserRole)
-            item.setEditable(False)
-            self.source_model.appendRow(item)
+        self.setLayout(layout)
 
-    def move_selected_to_dest(self):
-        self._move_items(self.source_view, self.source_model, self.dest_model)
+    def update_plot(self):
+        self.experiments = self.selector.get_experiments_to_analysis()
+        self.canvas.plot_experiments_no_color(self.experiments)
 
-    def move_selected_to_source(self):
-        self._move_items(self.dest_view, self.dest_model, self.source_model)
+    def calculate_cdl(self):
+        if self.experiments:
+            values = [self.potential_double_box.value()]
+            indexes = [0,]
 
-    def _move_items(self, view, source_model, dest_model):
-        indices = view.selectedIndexes()
-        # Sortujemy malejąco po wierszach, aby usuwanie nie psuło indeksów
-        indices.sort(key=lambda x: x.row(), reverse=True)
-        
-        for index in indices:
-            # Pobieramy item
-            row_data = source_model.takeRow(index.row())
-            # Wstawiamy do drugiego modelu
-            dest_model.appendRow(row_data)
+            x = calculate_ECSA_from_slope(self.experiments, values, indexes)
+            print(x)
+
+    
+
+
+
     

@@ -26,6 +26,9 @@ class PlottingCanvasTest(FigureCanvas):
 
 
 class PlottingCanvas(FigureCanvas):
+
+    data_requested = pyqtSignal(list)
+
     def __init__(self):
         self.fig = Figure(figsize = (5, 4), dpi=100)
         self.axes = self.fig.add_subplot(111)
@@ -42,6 +45,21 @@ class PlottingCanvas(FigureCanvas):
             # Dodatki estetyczne, o których Experiment nie musi wiedzieć
             self.axes.set_xlabel(experiments_list[0][0].default_x)
             self.axes.set_ylabel(experiments_list[0][0].default_y)
+            self.axes.grid(True, alpha=0.3)
+            # self.axes.legend() # Opcjonalnie
+
+        self.draw_idle()
+
+    def plot_experiments_no_color(self, experiments_list: list[Experiment] = None):
+        self.axes.clear()
+        if experiments_list:
+            for exp in experiments_list:
+                # Wywołujemy nową, mądrzejszą metodę z klasy Experiment
+                exp.plot(ax=self.axes)
+            
+            # Dodatki estetyczne, o których Experiment nie musi wiedzieć
+            self.axes.set_xlabel(experiments_list[0].default_x)
+            self.axes.set_ylabel(experiments_list[0].default_y)
             self.axes.grid(True, alpha=0.3)
             # self.axes.legend() # Opcjonalnie
 

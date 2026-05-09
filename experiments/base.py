@@ -29,6 +29,11 @@ class Experiment():
         self.reference_potential = 0
         self.Ru = 0
 
+    def load_all(self):
+        self.load_curves()
+        self.load_meta_data()
+        return self.meta_data, self.data_list
+
     def load_meta_data(self):
         
         DTA_parser.load(self.file_path)

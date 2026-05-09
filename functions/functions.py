@@ -37,7 +37,8 @@ def calculate_ECSA_from_slope(ECSA_experiments: list[ECSA], potential_list:list,
 
         for experiment in ECSA_experiments:
             if not hasattr(experiment,'data_list'):
-                experiment.load_data()
+                experiment.load_all()
+                experiment.process_data()
             
             # difference and integral are mean values of all curves in an experiment. Need to let user know!
             difference = experiment.calculate_difference_at_potential(potential, index = index)

@@ -92,8 +92,8 @@ class ECSA(Voltammetry):
             current_data = curve[current_column]
             max_potential = potential_data.idxmax()
             
-            integral_scan_forward = np.trapz(abs(current_data.loc[:max_potential + 1]), potential_data.loc[:max_potential + 1])
-            integral_scan_backward = np.trapz(abs(current_data.loc[max_potential+1:]), potential_data.loc[max_potential+1:])   
+            integral_scan_forward = np.trapezoid(abs(current_data.loc[:max_potential + 1]), potential_data.loc[:max_potential + 1])
+            integral_scan_backward = np.trapezoid(abs(current_data.loc[max_potential+1:]), potential_data.loc[max_potential+1:])   
             integral_area = abs(integral_scan_forward - integral_scan_backward)   
 
             potential_window = abs(self.meta_data['VLIMIT1'] - self.meta_data['VLIMIT2'])
