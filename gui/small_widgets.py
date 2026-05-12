@@ -2,6 +2,7 @@ from PyQt5.QtWidgets import QDoubleSpinBox, QDialog, QSpinBox, QComboBox, QLineE
 from PyQt5.QtGui import QStandardItemModel, QStandardItem
 from PyQt5.QtCore import QSettings, Qt, QAbstractTableModel, QItemSelection, QItemSelectionModel, QPersistentModelIndex, pyqtSignal, QModelIndex
 import json
+from experiments.base import Experiment
 
 class SimpleDoubleSpinBox(QDoubleSpinBox):
     def __init__(self, value, range:tuple = None):
@@ -160,7 +161,7 @@ class Selector(BaseDataDialog):
         self._move_items(self.dest_view, self.dest_model, self.source_model)
         self.item_changed.emit()
 
-    def get_experiments_to_analysis(self):
+    def get_experiments_to_analysis(self) -> list[Experiment]:
         experiments = []
         model = self.dest_model
         for row in range(model.rowCount()):

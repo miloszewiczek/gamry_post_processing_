@@ -35,7 +35,6 @@ class ECSA(Voltammetry):
             data = self.processed_data
             current_column = 'I [A]'
 
-            print(current_column)
             if self.Ru > 0:
                 potential_column = 'E_iR vs RHE [V]'
             else:

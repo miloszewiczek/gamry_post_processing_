@@ -293,8 +293,8 @@ class ExperimentManager():
                 key_parts.append(str(value))
             key = tuple(key_parts)
 
-            if not getattr(experiment, 'processed_data'):
-                experiment.load_data()
+            if not hasattr(experiment, 'processed_data'):
+                experiment.load_all()
                 processed = experiment.process_data()
             else:
                 processed = getattr(experiment, 'processed_data')

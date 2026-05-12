@@ -259,5 +259,6 @@ class Experiment():
             else:
                 print(f"Błąd: Brak kolumn {x} lub {y} w eksperymencie {self.id}")
 
+
     def __repr__(self):
         return f"Experiment(id={self.id}, tag='{self.tag}', cycle={self.cycle}, file='{self.file_name}')"

@@ -473,7 +473,7 @@ class ExperimentPanel(QWidget):
             
             # Akcja: Zapis (Batch process w managerze)
             save_act = menu.addAction('Save to Excel')
-            save_act.triggered.connect(lambda: self.manager.batch_process_selected_experiments(experiments, 'test', 'tag'))
+            save_act.triggered.connect(self.quick_save)
 
             # Akcja: wyślij gdzieś eksperyment
             plot_act = menu.addAction('Plot')
@@ -501,6 +501,14 @@ class ExperimentPanel(QWidget):
             batch_apply_parameters.triggered.connect(lambda: self._open_area_dialog(sample_children))
 
         return menu
+    
+    def quick_save(self):
+        indices = self.get_selected_indices()
+        experiments = self.experimentFromIndex(indices)
+        
+        name, done = QInputDialog.getText(self, 'Save name', 'Enter name of file')
+        if done:
+            self.manager.batch_process_selected_experiments(experiments, name, 'tag')
     
     def color_indexes(self, indices:list[QStandardItem], color = None):
         if isinstance(color, QColor):
