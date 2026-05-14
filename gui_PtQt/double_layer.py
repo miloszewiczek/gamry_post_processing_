@@ -41,13 +41,30 @@ class DoubleLayer(QDialog):
 
     def update_plot(self):
         self.experiments = self.selector.get_experiments_to_analysis()
-        maximum_len = [(len(experiment.data_list)) for experiment in self.experiments]
-        maximum_len = min(maximum_len)
-        maximum_len = list(range(maximum_len))
-        maximum_len = [str(max_len) for max_len in maximum_len]
-        self.curve_index_checkbox.addItems(maximum_len)
 
-        # self.canvas.plot_experiments_no_color(self.experiments)
+        if self.experiments:
+            self.curve_index_checkbox.setDisabled(False)
+            current_itemtext = self.curve_index_checkbox.currentText()
+            new_maximum = self.calculate_max_curves()
+            self.curve_index_checkbox.clear()
+            self.curve_index_checkbox.addItems(new_maximum)
+            if current_itemtext in new_maximum:
+                self.curve_index_checkbox.setCurrentText(current_itemtext)
+
+            
+                    
+            self.canvas.plot_experiments_no_color(self.experiments)
+        
+        else:
+            self.curve_index_checkbox.setDisabled(True)
+            self.curve_index_checkbox.setCurrentText('Add an experiment to analysis')
+
+    def calculate_max_curves(self):
+            maximum_len = [(len(experiment.data_list)) for experiment in self.experiments]
+            maximum_len = min(maximum_len)
+            maximum_len = list(range(maximum_len))
+            maximum_len = [str(max_len) for max_len in maximum_len]
+            return maximum_len
 
     def calculate_cdl(self):
         if self.experiments:
