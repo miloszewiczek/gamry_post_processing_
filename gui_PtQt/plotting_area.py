@@ -50,12 +50,12 @@ class PlottingCanvas(FigureCanvas):
 
         self.draw_idle()
 
-    def plot_experiments_no_color(self, experiments_list: list[Experiment] = None):
+    def plot_experiments_no_color(self, experiments_list: list[Experiment] = None, curves = None):
         self.axes.clear()
         if experiments_list:
             for exp in experiments_list:
                 # Wywołujemy nową, mądrzejszą metodę z klasy Experiment
-                exp.plot(ax=self.axes)
+                exp.plot(ax=self.axes, curves = curves)
             
             # Dodatki estetyczne, o których Experiment nie musi wiedzieć
             self.axes.set_xlabel(experiments_list[0].default_x)
@@ -322,4 +322,114 @@ class PlottingArea(QWidget):
     def plot(self, df):     
         self.Canvas.plot(df)
     
+
+
+class DoubleLayerCanvas(FigureCanvas):
+    data_requested = pyqtSignal(list)
+
+    def __init__(self):
+        # Tworzymy figurę o panoramicznych proporcjach pod dwa wykresy obok siebie
+        self.fig = Figure(figsize=(10, 4.5), dpi=100)
+        super().__init__(self.fig)
+        
+        # Tworzymy od razu 2 podwykresy (1 wiersz, 2 kolumny)
+        self.ax_cv, self.ax_cdl = self.fig.subplots(1, 2)
+        
+        # Inicjalne przygotowanie osi (żeby okno nie było puste na starcie)
+        self.clear_all()
+
+    def clear_all(self):
+        """Resetuje oba wykresy i nakłada domyślne siatki."""
+        self.ax_cv.clear()
+        self.ax_cdl.clear()
+        
+        self.ax_cv.set_title("Cyclic Voltammetry")
+        self.ax_cv.grid(True, alpha=0.3)
+        
+        self.ax_cdl.set_title("$C_{dl}$ Linear Fit")
+        self.ax_cdl.grid(True, alpha=0.3)
+        
+        self.v_line = self.ax_cv.axvline(color='gray', linestyle="--", linewidth=0.8, visible=True)
+        self.fig.tight_layout()
+        self.draw_idle()
+
+    def clear_except_line(self):
+        for line in self.ax_cv.lines[:]:  # [:] tworzy bezpieczną kopię listy do iteracji
+            if line is not self.v_line:
+                line.remove()  # Usuwa linię fizycznie z wykresu
+
+    def plot_cv_curves(self, experiments_list, curves=None):
+        """Rysuje TYLKO lewy wykres z woltamperometrią."""
+        self.clear_except_line()
+        self.ax_cv.set_title("Cyclic Voltammetry")
+        self.ax_cv.grid(True, alpha=0.3)
+
+        if experiments_list:
+            for exp in experiments_list:
+                exp.plot(ax=self.ax_cv, curves=curves)
+            
+            self.ax_cv.set_xlabel(experiments_list[0].default_x)
+            self.ax_cv.set_ylabel(experiments_list[0].default_y)
+
+        self.move_vline(experiments_list[0].get_half_potential())
+        self.ax_cv.relim()
+        self.ax_cv.autoscale_view()
+        self.fig.tight_layout()
+        self.draw_idle()
+
+    def plot_cdl_fit(self, final_df_list):
+        """Rysuje TYLKO prawy wykres na podstawie wyników z funkcji obliczeniowej."""
+        self.ax_cdl.clear()
+        self.ax_cdl.set_title("$C_{dl}$ Linear Fit")
+        self.ax_cdl.grid(True, alpha=0.3)
+
+        # BEZPIECZNE SPRAWDZENIE: 
+        # Jeśli dostaliśmy pojedynczy DataFrame, zamieniamy go w listę jednoelementową.
+        # Sprawdzanie pustki robimy za pomocą właściwości .empty dedykowanej dla Pandasa.
+        if isinstance(final_df_list, pd.DataFrame):
+            if final_df_list.empty:
+                self.draw_idle()
+                return
+            final_df_list = [final_df_list]
+        
+        # Jeśli to zwykła lista i jest pusta
+        elif not final_df_list:
+            self.draw_idle()
+            return
+
+        # Teraz pętla zadziała idealnie w każdym przypadku!
+        for df in final_df_list:
+            # 1. Rysujemy punkty pomiarowe (Scanrate vs Difference)
+            self.ax_cdl.plot(
+                df['Scanrate [V/s]'], 
+                df['Difference [A]'], 
+                'o', 
+                label='Experimental $\Delta I$'
+            )
+            # 2. Rysujemy dopasowaną prostą regresji
+            self.ax_cdl.plot(
+                df['Line x [V/s]'], 
+                df['Line y [A]'], 
+                '--', 
+                label='Linear Fit'
+            )
+
+        self.ax_cdl.set_xlabel("Scan rate [V/s]")
+        self.ax_cdl.set_ylabel("Current Difference $\Delta I$ [A]")
+        self.ax_cdl.legend()
+        
+        self.fig.tight_layout()
+        self.draw_idle()
+
+    def move_vline(self, position):
+        if self.v_line is None:
+            return
+        
+        print(position)
+
+        try:
+            self.v_line.set_xdata([position, position])
+            self.draw_idle()
+        except:
+            return
 

@@ -87,6 +87,12 @@ class ExperimentManager():
                 self.filtered = [exp for exp in experiments if any(f(exp) for f in active_filters)] #THE LAST LOGIC APPLIES THE FUNCTIONS ON THE exp AND CHECKS IF ANY ARE TRUE
         return self.filtered
 
+    def filter_samples(self):
+        for sample in self.samples.values():
+            filtered = self.filter(sample.experiments, object_type = ECSA)
+            print(sample.sample_name)
+            print(filtered)
+
     def filter_by_id(self, id: int|list[int]) -> list[Experiment] | Experiment: 
         
         if not isinstance(id, list):

@@ -1,81 +1,176 @@
-from gui.small_widgets import Selector, SimpleDoubleSpinBox
-from PyQt5.QtWidgets import QHBoxLayout, QVBoxLayout, QPushButton, QDialog, QComboBox
-from gui_PtQt.plotting_area import PlottingCanvas
+from contextlib import contextmanager
+from PyQt5.QtWidgets import QDialog, QHBoxLayout, QVBoxLayout, QPushButton, QComboBox, QLabel, QGroupBox
 from PyQt5.QtCore import Qt
+from experiments import Voltammetry, ECSA
+from gui.small_widgets import TreeSelectorWithCheckboxes, SimpleDoubleSpinBox
+from gui_PtQt.plotting_area import DoubleLayerCanvas
 from functions.functions import calculate_ECSA_from_slope
 
 
 class DoubleLayer(QDialog):
-    def __init__(self, items):
-        super().__init__()
-
-        for item in items:
-            experiment = item.data(Qt.UserRole)
-            if hasattr(experiment, "data_list") and hasattr(experiment, "processed_data"):
-                continue
-            else:
-                experiment.load_all()
-                experiment.process_data()
-
-        self.selector = Selector(items)
-        self.canvas = PlottingCanvas()
+    def __init__(self, source_model, selected_indices, parent=None):
+        super().__init__(parent)
+        self.setWindowTitle("Double Layer Capacity & ECSA Calculation")
+        self.resize(1100, 600)  # Szeroki, panoramiczny layout pod dwa wykresy i drzewo
+        
+        self.experiments = []
+        
+        # 1. Wstępne ładowanie i procesowanie surowych danych (Bootstrap)
+        self._bootstrap_data(source_model, selected_indices)
+        
+        # 2. Inicjalizacja komponentów interfejsu
+        # Przekazujemy model nadrzędny i indeksy bezpośrednio do selektora z checkboxami
+        self.selector = TreeSelectorWithCheckboxes(source_model, selected_indices)
+        self.canvas = DoubleLayerCanvas()
+        self.potential_spinbox = SimpleDoubleSpinBox(0, None)
+        self.curve_combobox = QComboBox()
+        self.calculate_btn = QPushButton("Calculate CDL")
+        
         self.init_gui()
-        self.selector.item_changed.connect(self.update_plot)
+        self.connect_signals()
+        
+        # 3. Pierwsze wymuszenie renderu stanu okna
+        self.refresh_ui_state()
+
+    @contextmanager
+    def signals_blocked(self, widget):
+        """Bezpieczny menedżer kontekstu do blokowania sygnałów."""
+        widget.blockSignals(True)
+        try:
+            yield
+        finally:
+            widget.blockSignals(False)
+
+    def _bootstrap_data(self, source_model, selected_indices):
+        """Wstępne ładowanie i procesowanie danych na bazie zaznaczonych indeksów."""
+        for index in selected_indices:
+            experiment = index.data(Qt.UserRole)
+            
+            # Jeśli w drzewie zaznaczono bezpośrednio obiekt typu ECSA lub Voltammetry, sprawdzamy go
+            if isinstance(experiment, (ECSA, Voltammetry)):
+                if not (hasattr(experiment, "data_list") and hasattr(experiment, "processed_data")):
+                    experiment.load_all()
+                    experiment.process_data()
+            
+            # Jeśli zaznaczono cały folder (Sample), przechodzimy głębiej po jego eksperymentach
+            elif hasattr(experiment, "experiments"):
+                for exp in experiment.experiments:
+                    if not (hasattr(exp, "data_list") and hasattr(exp, "processed_data")):
+                        exp.load_all()
+                        exp.process_data()
 
     def init_gui(self):
+        # Główny układ: Lewa strona (Kontrolki) | Prawa strona (Wykres panoramiczny)
+        main_layout = QHBoxLayout(self)
+        control_layout = QVBoxLayout()
         
-        layout = QVBoxLayout()
+        # Panel wyboru eksperymentów z checkboxami
+        control_layout.addWidget(QLabel("<b>Select Experiments:</b>"))
+        control_layout.addWidget(self.selector)
+        
+        # Panel parametrów zgrupowany w ramkę QGroupBox
+        settings_group = QGroupBox("Plotting & Analysis Settings")
+        settings_layout = QVBoxLayout(settings_group)
+        
+        settings_layout.addWidget(QLabel("Select Curve Index:"))
+        settings_layout.addWidget(self.curve_combobox)
+        
+        settings_layout.addWidget(QLabel("Potential value [V]:"))
+        settings_layout.addWidget(self.potential_spinbox)
+        
+        settings_layout.addWidget(self.calculate_btn)
+        
+        control_layout.addWidget(settings_group)
+        
+        # Proporcje (Zajętość ekranu): panel boczny 2, wykres dwupanelowy Matplotlib 3
+        main_layout.addLayout(control_layout, stretch=2)
+        main_layout.addWidget(self.canvas, stretch=3)
 
-        self.potential_double_box = SimpleDoubleSpinBox(0, None)
-        self.calculate_btn = QPushButton(text = 'Calculate CDL')
-        self.calculate_btn.clicked.connect(self.calculate_cdl)
-        self.curve_index_checkbox = QComboBox()
+    def connect_signals(self):
+        # Sygnał z Twojej nowej klasy checkboxów - odświeża stan okna przy każdym kliknięciu ptaszka
+        self.selector.item_changed.connect(self.refresh_ui_state)
+        
+        self.curve_combobox.currentIndexChanged.connect(self.replotted_selected_curve)
+        self.calculate_btn.clicked.connect(self.run_cdl_calculation)
+        
+        # Interaktywna linia vline: zmiana wartości w spinboxie od razu przesuwa kreskę na wykresie CV
+        self.potential_spinbox.valueChanged.connect(self.canvas.move_vline)
 
-        layout.addWidget(self.selector)
-        layout.addWidget(self.canvas)
-        layout.addWidget(self.potential_double_box)
-        layout.addWidget(self.calculate_btn)
-        layout.addWidget(self.curve_index_checkbox)
-
-        self.setLayout(layout)
-
-    def update_plot(self):
+    def refresh_ui_state(self):
+        """Zarządza stanem kontrolek w zależności od wybranego eksperymentu."""
         self.experiments = self.selector.get_experiments_to_analysis()
-
-        if self.experiments:
-            self.curve_index_checkbox.setDisabled(False)
-            current_itemtext = self.curve_index_checkbox.currentText()
-            new_maximum = self.calculate_max_curves()
-            self.curve_index_checkbox.clear()
-            self.curve_index_checkbox.addItems(new_maximum)
-            if current_itemtext in new_maximum:
-                self.curve_index_checkbox.setCurrentText(current_itemtext)
-
-            
-                    
-            self.canvas.plot_experiments_no_color(self.experiments)
         
-        else:
-            self.curve_index_checkbox.setDisabled(True)
-            self.curve_index_checkbox.setCurrentText('Add an experiment to analysis')
+        if not self.experiments:
+            with self.signals_blocked(self.curve_combobox):
+                self.curve_combobox.clear()
+                self.curve_combobox.setCurrentText('Add an experiment to analysis')
+                self.curve_combobox.setDisabled(True)
+                self.calculate_btn.setDisabled(True)
+            self.canvas.clear_all()
+            return
 
-    def calculate_max_curves(self):
-            maximum_len = [(len(experiment.data_list)) for experiment in self.experiments]
-            maximum_len = min(maximum_len)
-            maximum_len = list(range(maximum_len))
-            maximum_len = [str(max_len) for max_len in maximum_len]
-            return maximum_len
+        self.curve_combobox.setDisabled(False)
+        self.calculate_btn.setDisabled(False)
+        
+        # Aktualizacja zawartości ComboBoxa (zakres dostępnych cykli)
+        available_curves = self.get_common_curve_indices()
+        previous_selection = self.curve_combobox.currentText()
+        
+        with self.signals_blocked(self.curve_combobox):
+            self.curve_combobox.clear()
+            self.curve_combobox.addItems(available_curves)
 
-    def calculate_cdl(self):
-        if self.experiments:
-            values = [self.potential_double_box.value()]
-            indexes = [0,]
+            if previous_selection in available_curves:
+                self.curve_combobox.setCurrentText(previous_selection)
+            elif available_curves:
+                self.curve_combobox.setCurrentIndex(0)
+                
+        self.replotted_selected_curve()
+        
+        # AUTOMATYKA: Ustawia spinbox na optymalną wartość środkową (half potential) pierwszej krzywej
+        if hasattr(self.experiments[0], 'get_half_potential'):
+            self.potential_spinbox.setValue(self.experiments[0].get_half_potential())
 
-            x = calculate_ECSA_from_slope(self.experiments, values, indexes)
+    def replotted_selected_curve(self):
+        """Odświeża tylko lewy wykres (Krzywe CV)."""
+        raw_text = self.curve_combobox.currentText()
+        if raw_text and raw_text.isdigit() and self.experiments:
+            selected_curve = [int(raw_text)]
+            self.canvas.plot_cv_curves(self.experiments, curves=selected_curve)
 
+    def get_current_indexes(self):
+        raw_text = self.curve_combobox.currentText()
+        if raw_text and raw_text.isdigit():
+            return [int(raw_text)]
+        return None
 
-    
+    def get_common_curve_indices(self):
+        """Oblicza bezpieczny wspólny zakres krzywych (cykli) dla wybranych plików."""
+        if not self.experiments:
+            return []
+        min_len = min(len(exp.data_list) for exp in self.experiments if hasattr(exp, 'data_list'))
+        return [str(i) for i in range(min_len)]
 
-
-
-    
+    def run_cdl_calculation(self):
+        """Pobiera parametry, liczy nachylenie i rysuje prawy wykres."""
+        if not self.experiments:
+            return
+            
+        chosen_potential = self.potential_spinbox.value()
+        current_index = self.get_current_indexes()
+        if current_index is None:
+            return
+        
+        # Uruchamiamy poprawioną funkcję matematyczną (z bezpiecznym zerowaniem listy punktów)
+        fit_data_1, fit_data_2, results_dfs = calculate_ECSA_from_slope(
+            ECSA_experiments=self.experiments, 
+            potential_list=[chosen_potential], 
+            index=current_index
+        )
+        
+        # Rysujemy proste dopasowania CDL na prawej połówce DoubleLayerCanvas
+        self.canvas.plot_cdl_fit(results_dfs)
+        
+        # Wyświetlenie wyznaczonej pojemności w terminalu diagnostycznym
+        slope1, intercept1, r_value1 = fit_data_1
+        print(f"Wyznaczona pojemność C_dl (z różnicy prądów): {slope1} F, R^2 = {r_value1**2}")

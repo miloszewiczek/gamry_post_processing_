@@ -150,7 +150,7 @@ class Experiment():
     def perform_postprocessing(self):
         return 'Base class has no postprocessing defined'
 
-    def get_data(self, index:int|None, data_type: str = Literal['data_list', 'processed_data']) -> list[pd.DataFrame]:
+    def get_data(self, index:int|None|list[int] = None, data_type: str = Literal['data_list', 'processed_data']) -> list[pd.DataFrame]:
         #Need to add functionality to get either self.data_list or processed_list or even something different
         #None is a string, because the treeview stores values as strings!
 
@@ -243,16 +243,20 @@ class Experiment():
                 return
         self.reference_potential = potential
 
-    def plot(self, ax, color=None, x=None, y=None, **kwargs):
+    def plot(self, ax, curves:list[int] = None, color=None, x=None, y=None, **kwargs):
         # Automatyczne ładowanie i procesowanie, jeśli zapomniano to zrobić wcześniej
         if not hasattr(self, 'processed_data'):
             self.process_data()
 
+        if isinstance(curves, list):
+            curves_to_plot = self.get_data(curves, data_type = 'processed_data')
+        elif curves is None:
+            curves_to_plot = self.get_data(data_type = 'processed_data')
+
         if x is None or y is None:
             x, y = self.get_default_columns('both')
 
-        # Rysujemy każdą krzywą (curve) w eksperymencie
-        for df in self.processed_data:
+        for df in curves_to_plot:
             # Sprawdzamy czy kolumny istnieją, żeby uniknąć KeyError
             if x in df.columns and y in df.columns:
                 ax.plot(df[x], df[y], color=color, label=self.file_name, **kwargs)

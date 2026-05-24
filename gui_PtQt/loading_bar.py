@@ -232,9 +232,10 @@ class ExperimentPanel(QWidget):
 
     def double_layer(self):
         from gui_PtQt.double_layer import DoubleLayer
-        x = DoubleLayer(self.get_selected_indices())
-        if x.exec() == QDialog.accepted:
-            print('elo')
+        self.manager.filter_samples()
+        # x = DoubleLayer(self.get_selected_indices())
+        # if x.exec() == QDialog.accepted:
+        #     print('elo')
 
     def trigger_export(self):
         selected = self.get_selected_indices()

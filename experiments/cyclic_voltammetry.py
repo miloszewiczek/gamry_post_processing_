@@ -35,3 +35,9 @@ class Voltammetry(Experiment):
         level_values = [[f'{self.file_path}'], [f'Curve {curve_index}'], columns]
         level_names = ['Path', 'Curve number', 'Parameter']
         return level_values, level_names
+    
+    def get_half_potential(self) -> float:
+
+        half_potential = (self.meta_data['VLIMIT1'] + self.meta_data['VLIMIT2']) / 2
+        self.half_potential = half_potential
+        return half_potential

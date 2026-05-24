@@ -3,6 +3,10 @@ from PyQt5.QtGui import QStandardItemModel, QStandardItem
 from PyQt5.QtCore import QSettings, Qt, QAbstractTableModel, QItemSelection, QItemSelectionModel, QPersistentModelIndex, pyqtSignal, QModelIndex
 import json
 from experiments.base import Experiment
+from PyQt5.QtWidgets import QWidget, QVBoxLayout, QTreeView, QLabel, QAbstractItemView
+from PyQt5.QtGui import QStandardItemModel, QStandardItem
+from PyQt5.QtCore import Qt, pyqtSignal
+from experiments.sample import Sample
 
 class SimpleDoubleSpinBox(QDoubleSpinBox):
     def __init__(self, value, range:tuple = None):
@@ -181,3 +185,140 @@ class Selector(BaseDataDialog):
             row_data = source_model.takeRow(index.row())
             # Wstawiamy do drugiego modelu
             dest_model.appendRow(row_data)
+
+
+
+
+class TreeSelectorWithCheckboxes(QWidget):
+    # Sygnał wysyłany do okna z wykresem, gdy zmieni się stan jakiegokolwiek checkboxa
+    item_changed = pyqtSignal()
+
+    def __init__(self, main_model, selected_indices):
+        super().__init__()
+        self.main_model = main_model
+
+        # 1. Tworzymy widok drzewiasty podpięty pod TWÓJ ORYGINALNY MODEL aplikacji
+        # Dzięki temu nie duplikujemy danych i nie marnujemy pamięci RAM
+        self.tree_view = QTreeView()
+        self.tree_view.setModel(self.main_model)
+        self.tree_view.setSelectionMode(QAbstractItemView.NoSelection) # Interakcja wyłącznie przez checkboxy
+        
+        # Dopasowanie kolumn do Twojego układu (Experiment | Class | ID)
+        self.tree_view.setColumnWidth(0, 260)
+        self.tree_view.setColumnWidth(1, 100)
+        self.tree_view.setColumnWidth(2, 40)
+
+        # 2. Układ interfejsu (Minimalistyczny i przejrzysty)
+        layout = QVBoxLayout(self)
+        layout.addWidget(QLabel("<b>Wybierz eksperymenty do analizy:</b>"))
+        layout.addWidget(self.tree_view)
+
+        # 3. Aktywacja checkboxów i przeniesienie zaznaczenia startowego
+        self._initialize_checkboxes(selected_indices)
+
+        # 4. Łączymy sygnał zmiany elementu z naszą logiką automatyki zaznaczania
+        self.main_model.itemChanged.connect(self.on_checkbox_state_changed)
+
+    def _initialize_checkboxes(self, selected_indices):
+        """Włącza funkcję checkboxów w całym modelu i zaznacza te, 
+
+        które użytkownik miał podświetlone na ekranie głównym."""
+        # Blokujemy sygnały modelu, żeby kaskada nie odpalała się podczas konfiguracji startowej
+        self.main_model.blockSignals(True)
+
+        # Krok A: Przechodzimy przez całe drzewo i dodajemy puste checkboxy (Unchecked)
+        for row in range(self.main_model.rowCount()):
+            parent_item = self.main_model.item(row, 0)
+            if parent_item:
+                parent_item.setCheckable(True)
+                parent_item.setCheckState(Qt.Unchecked)
+                
+                for child_row in range(parent_item.rowCount()):
+                    child_item = parent_item.child(child_row, 0)
+                    if child_item:
+                        child_item.setCheckable(True)
+                        child_item.setCheckState(Qt.Unchecked)
+
+        # Krok B: Przekładamy zaznaczenie (podświetlenie) z głównego okna na ptaszki
+        for idx in selected_indices:
+            item = self.main_model.itemFromIndex(idx)
+            if not item:
+                continue
+                
+            # Jeśli kliknięto w kolumnę inną niż pierwsza, bierzemy sąsiada z kolumny 0
+            if item.column() != 0:
+                item = item.parent().child(item.row(), 0) if item.parent() else self.main_model.item(item.row(), 0)
+
+            item.setCheckState(Qt.Checked)
+            
+            # AUTOMATYKA STARTOWA: Jeśli zaznaczono cały folder Sample, zaznacz też dzieci
+            if item.hasChildren():
+                for r in range(item.rowCount()):
+                    item.child(r, 0).setCheckState(Qt.Checked)
+
+        self.main_model.blockSignals(False)
+        self.tree_view.expandAll()
+
+    def on_checkbox_state_changed(self, item):
+        """Główny menedżer automatyki zaznaczania w dół i w górę."""
+        # Blokujemy sygnały, aby uniknąć pętli zwrotnej (zmiana dziecka zmienia rodzica, 
+        # a zmiana rodzica zmienia dziecko...)
+        self.main_model.blockSignals(True)
+
+        identity = item.data(Qt.UserRole)
+
+        # =====================================================================
+        # SPECYFICZNA LOGIKA DLA SAMPLE (Kliknięcie w folder-rodzica)
+        # =====================================================================
+        if isinstance(identity, Sample) and item.hasChildren():
+            # Pobieramy stan, jaki użytkownik kliknął na folderze (Checked lub Unchecked)
+            new_folder_state = item.checkState()
+            
+            # Wymuszamy ten sam stan na wszystkich dzieciach wewnątrz tego folderu
+            for r in range(item.rowCount()):
+                child = item.child(r, 0)
+                if child:
+                    child.setCheckState(new_folder_state)
+
+        # =====================================================================
+        # LOGIKA DLA EKSPEROMENTU (Kliknięcie w pojedyncze dziecko)
+        # =====================================================================
+        elif isinstance(identity, Experiment) and item.parent():
+            parent_item = item.parent()
+            
+            # Zbieramy obecne stany wszystkich dzieci z tej gałęzi
+            child_states = [parent_item.child(r, 0).checkState() for r in range(parent_item.rowCount())]
+            
+            # Jeśli wszystkie pliki są zaznaczone -> zaznacz folder
+            if all(state == Qt.Checked for state in child_states):
+                parent_item.setCheckState(Qt.Checked)
+            # Jeśli wszystkie pliki są czyste -> odznacz folder
+            elif all(state == Qt.Unchecked for state in child_states):
+                parent_item.setCheckState(Qt.Unchecked)
+            # Jeśli część jest zaznaczona, a część nie -> ustaw kwadracik częściowego zaznaczenia
+            else:
+                parent_item.setCheckState(Qt.PartiallyChecked)
+
+        self.main_model.blockSignals(False)
+        
+        # Wysyłamy sygnał na zewnątrz (wykres natychmiast wie, że trzeba się przerysować!)
+        self.item_changed.emit()
+
+    def get_experiments_to_analysis(self) -> list[Experiment]:
+        """Przeszukuje model i zwraca gotową płaską listę obiektów Experiment, 
+
+        które posiadają zaznaczony checkbox (Checked)."""
+        selected_experiments = []
+        
+        for row in range(self.main_model.rowCount()):
+            parent_item = self.main_model.item(row, 0)
+            if parent_item:
+                for child_row in range(parent_item.rowCount()):
+                    child_item = parent_item.child(child_row, 0)
+                    # Sprawdzamy tylko te pliki, które mają pełny stan Checked (ptaszek)
+                    if child_item and child_item.checkState() == Qt.Checked:
+                        exp = child_item.data(Qt.UserRole)
+                        if isinstance(exp, Experiment):
+                            selected_experiments.append(exp)
+                            
+        return selected_experiments
