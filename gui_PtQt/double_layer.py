@@ -2,7 +2,7 @@ from contextlib import contextmanager
 from PyQt5.QtWidgets import QDialog, QHBoxLayout, QVBoxLayout, QPushButton, QComboBox, QLabel, QGroupBox
 from PyQt5.QtCore import Qt
 from experiments import Voltammetry, ECSA
-from gui.small_widgets import TreeSelectorWithCheckboxes, SimpleDoubleSpinBox
+from gui.small_widgets import TreeSelectorWithCheckboxes, SimpleDoubleSpinBox, Selector
 from gui_PtQt.plotting_area import DoubleLayerCanvas
 from functions.functions import calculate_ECSA_from_slope
 
@@ -20,7 +20,7 @@ class DoubleLayer(QDialog):
         
         # 2. Inicjalizacja komponentów interfejsu
         # Przekazujemy model nadrzędny i indeksy bezpośrednio do selektora z checkboxami
-        self.selector = TreeSelectorWithCheckboxes(source_model, selected_indices)
+        self.selector = Selector()
         self.canvas = DoubleLayerCanvas()
         self.potential_spinbox = SimpleDoubleSpinBox(0, None)
         self.curve_combobox = QComboBox()
@@ -43,21 +43,14 @@ class DoubleLayer(QDialog):
 
     def _bootstrap_data(self, source_model, selected_indices):
         """Wstępne ładowanie i procesowanie danych na bazie zaznaczonych indeksów."""
-        for index in selected_indices:
-            experiment = index.data(Qt.UserRole)
+        for ECSA_experiment in selected_indices.items():
             
             # Jeśli w drzewie zaznaczono bezpośrednio obiekt typu ECSA lub Voltammetry, sprawdzamy go
-            if isinstance(experiment, (ECSA, Voltammetry)):
-                if not (hasattr(experiment, "data_list") and hasattr(experiment, "processed_data")):
-                    experiment.load_all()
-                    experiment.process_data()
-            
-            # Jeśli zaznaczono cały folder (Sample), przechodzimy głębiej po jego eksperymentach
-            elif hasattr(experiment, "experiments"):
-                for exp in experiment.experiments:
-                    if not (hasattr(exp, "data_list") and hasattr(exp, "processed_data")):
-                        exp.load_all()
-                        exp.process_data()
+            if isinstance(ECSA_experiment, (ECSA, Voltammetry)):
+                if not (hasattr(ECSA_experiment, "data_list") and hasattr(ECSA_experiment, "processed_data")):
+                    ECSA_experiment.load_all()
+                    ECSA_experiment.process_data()
+
 
     def init_gui(self):
         # Główny układ: Lewa strona (Kontrolki) | Prawa strona (Wykres panoramiczny)

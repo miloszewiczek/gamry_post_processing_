@@ -21,7 +21,7 @@ def dodaj_prady(cycle, column_to_average = 'Im_GEO'):
         dfs = []
         for file in files:
             wb = openpyxl.load_workbook(path.abspath(file))
-            lsv1 = wb[f'CYCLE {str(cycle)}_LSV']
+            lsv1 = wb[f'CYCLE {str(cycle)}_LS']
             print(lsv1)
 
             tmp = []

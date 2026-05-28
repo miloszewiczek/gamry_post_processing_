@@ -7,7 +7,7 @@ from PyQt5.QtGui import QStandardItemModel, QStandardItem, QColor, QIcon, QKeySe
 from PyQt5.QtCore import Qt, QAbstractTableModel, QItemSelection, QItemSelectionModel, QPersistentModelIndex, pyqtSignal
 from core import ExperimentLoader, ExperimentManager, Experiment
 from pathlib import Path
-from gui.functions import open_file_in_system_editor, open_folder_in_explorer
+from functions.gui_functions import open_file_in_system_editor, open_folder_in_explorer
 from functions.gui_functions import load_data, load_files, load_folder
 from gui.calculate_diameter import AreaDialogBox, AreaDialog
 from gui_PtQt.config import icon_path
@@ -232,10 +232,15 @@ class ExperimentPanel(QWidget):
 
     def double_layer(self):
         from gui_PtQt.double_layer import DoubleLayer
-        self.manager.filter_samples()
-        # x = DoubleLayer(self.get_selected_indices())
-        # if x.exec() == QDialog.accepted:
-        #     print('elo')
+
+        selected_experiments = self.get_selected_experiments()
+        sample_experiment_tree = self.manager.construct_tree(selected_experiments)
+
+        x = DoubleLayer(sample_experiment_tree)
+        if x.exec() == QDialog.accepted:
+            print('elo')
+
+
 
     def trigger_export(self):
         selected = self.get_selected_indices()
@@ -583,7 +588,26 @@ class ExperimentPanel(QWidget):
         return selected_children
                 
     def experimentFromIndex(self, indexes) -> list[Experiment]:
-        return [index.data(Qt.UserRole) for index in indexes]
+
+        data_list = []
+        
+        for index in indexes:
+            data = index.data(Qt.UserRole)
+            if isinstance(data, Sample):
+                reply = QMessageBox.question(self, 'Select all?', 
+                        f'You have selected a Sample node {data.sample_name}. Select all of its experiments?', 
+                        QMessageBox.Yes | QMessageBox.No)
+                if reply == QMessageBox.Yes:
+                    data_list.extend(data.experiments)
+            elif isinstance(data, Experiment):
+                data_list.append(data)
+        
+        #removing duplicates
+        data_set = set(data_list)
+        return data_set
+
+                
+        
     
     def get_selected_indices(self):
         indices = self.tree_view.selectionModel().selectedRows()

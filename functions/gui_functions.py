@@ -2,6 +2,9 @@ from PyQt5.QtWidgets import QFileDialog, QComboBox
 from PyQt5.QtCore import Qt
 from pathlib import Path
 from core import ExperimentLoader, ExperimentManager
+import platform
+import subprocess
+import os
 
 def load_folder(parent = None): 
         folder = QFileDialog.getExistingDirectory(
@@ -59,3 +62,22 @@ def add_category(combo: QComboBox, text):
     item.setFlags(item.flags() & ~Qt.ItemIsEnabled)
 
     combo.insertSeparator(index + 1)
+
+
+def open_file_in_system_editor(path):
+    
+    if platform.system() == 'Windows':
+        os.startfile(path)
+    elif platform.system() == 'Darwin':  # macOS
+        subprocess.call(['open', path])
+    else:  # Linux
+        subprocess.call(['xdg-open', path])
+
+def open_folder_in_explorer(file_path):
+    # 1. Upewniamy się, że mamy ścieżkę do folderu
+    # Jeśli podano plik, bierzemy jego folder nadrzędny (.parent)
+    path = Path(file_path)
+    folder_path = str(path.parent if path.is_file() else path)
+
+    # 2. Wywołujemy odpowiednią komendę systemową
+    open_file_in_system_editor(folder_path)

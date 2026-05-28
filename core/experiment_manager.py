@@ -88,11 +88,31 @@ class ExperimentManager():
         return self.filtered
 
     def filter_samples(self):
+        
+        sample_dict = {}
         for sample in self.samples.values():
             filtered = self.filter(sample.experiments, object_type = ECSA)
-            print(sample.sample_name)
-            print(filtered)
+            if filtered:
+                sample_dict[sample] = filtered
+        
+        return sample_dict
+    
+    def construct_tree(self, experiments: list[Experiment]):
+        from collections import defaultdict
 
+        tree = defaultdict(list)
+        
+        for experiment in experiments:
+            sample_name = experiment.folder
+
+            sample_obj = self.samples.get(sample_name)
+            if sample_obj:
+                tree[sample_obj].append(experiment)
+        
+        return dict(tree)
+
+
+ 
     def filter_by_id(self, id: int|list[int]) -> list[Experiment] | Experiment: 
         
         if not isinstance(id, list):

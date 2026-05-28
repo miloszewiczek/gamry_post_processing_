@@ -2,7 +2,6 @@ from experiments import ECSA
 import pandas as pd
 import numpy as np
 from scipy.stats import linregress
-from gui.functions import variable_separation
 from matplotlib import pyplot as plt
 import xarray as xr
 import os
