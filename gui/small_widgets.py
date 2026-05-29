@@ -1,6 +1,6 @@
 from PyQt5.QtWidgets import QDoubleSpinBox, QDialog, QSpinBox, QComboBox, QLineEdit, QCheckBox, QTreeView, QHBoxLayout, QVBoxLayout, QPushButton, QAbstractItemView
 from PyQt5.QtGui import QStandardItemModel, QStandardItem
-from PyQt5.QtCore import QSettings, Qt, QAbstractTableModel, QItemSelection, QItemSelectionModel, QPersistentModelIndex, pyqtSignal, QModelIndex
+from PyQt5.QtCore import QSettings, Qt, QAbstractTableModel, QItemSelection, QItemSelectionModel, QPersistentModelIndex, pyqtSignal, QModelIndex, QSortFilterProxyModel
 import json
 from experiments.base import Experiment
 from PyQt5.QtWidgets import QWidget, QVBoxLayout, QTreeView, QLabel, QAbstractItemView
@@ -100,7 +100,7 @@ class BaseDataDialog(QDialog):
 
 class Selector(BaseDataDialog):
 
-    item_changed = pyqtSignal()
+    item_changed = pyqtSignal(dict)
 
     def __init__(self, items):
         super().__init__()
@@ -173,9 +173,10 @@ class Selector(BaseDataDialog):
             if item:
                 exp = item.data(Qt.UserRole)
                 experiments.append(exp)
-        return experiments
+        return {"All experiments": experiments}
 
     def _move_items(self, view, source_model, dest_model):
+        print('Pronto!')
         indices = view.selectedIndexes()
         # Sortujemy malejąco po wierszach, aby usuwanie nie psuło indeksów
         indices.sort(key=lambda x: x.row(), reverse=True)
@@ -186,7 +187,125 @@ class Selector(BaseDataDialog):
             # Wstawiamy do drugiego modelu
             dest_model.appendRow(row_data)
 
+class ExperimentFilterProxy(QSortFilterProxyModel):
+    """Prosty filtr, który decybuje, co wyświetlić w danym oknie"""
+    def __init__(self, show_selected: bool):
+        super().__init__()
+        self.show_selected = show_selected
 
+    def filterAcceptsRow(self, source_row, source_parent):
+        model = self.sourceModel()
+        # Pobieramy indeks dla sprawdzanego wiersza
+        index = model.index(source_row, 0, source_parent)
+        
+        # Jeśli to jest Sample (węzeł główny), zawsze go pokazujemy, 
+        # Qt samo ukryje go, jeśli nie będzie miał żadnych dzieci.
+        if not source_parent.isValid():
+            return True
+            
+        # Jeśli to Experiment, sprawdzamy flagę "selected" (domyślnie False)
+        is_selected = bool(index.data(Qt.ItemDataRole.UserRole + 1))
+        
+        # Zwracamy True tylko, jeśli stan dopasowania się zgadza
+        return is_selected == self.show_selected
+
+
+class SelectorWithSample(Selector):
+    def __init__(self, items):
+        # Inicjalizujemy bazę, ale zaraz podmienimy modele widoków na proxy
+        super().__init__(items)
+        
+        # Tworzymy dwa filtry podpięte pod ten sam model źródłowy (source_model)
+        self.left_proxy = ExperimentFilterProxy(show_selected=False)
+        self.left_proxy.setSourceModel(self.source_model)
+        
+        self.right_proxy = ExperimentFilterProxy(show_selected=True)
+        self.right_proxy.setSourceModel(self.source_model)
+        
+        # Przepinamy widoki na nasze filtry
+        self.source_view.setModel(self.left_proxy)
+        self.dest_view.setModel(self.right_proxy)
+        
+        # Rozwijamy drzewa, żeby od razu wszystko było widać
+        self.source_view.expandAll()
+        self.dest_view.expandAll()
+
+    def populate(self, items: dict[Sample, list[Experiment]]):
+        # Czyścimy domyślne zachowanie z klasy bazowej
+        self.source_model.clear()
+        self.source_model.setHorizontalHeaderLabels(['Eksperymenty'])
+        
+        for sample, experiments in items.items():
+            sample_item = QStandardItem(sample.sample_name)
+            sample_item.setData(sample, Qt.ItemDataRole.UserRole)
+            
+            for experiment in experiments:
+                exp_item = QStandardItem(experiment.file_name)
+                exp_item.setData(experiment, Qt.ItemDataRole.UserRole)
+                # Dodatkowa flaga: False = do wyboru (lewo), True = wybrane (prawo)
+                exp_item.setData(False, Qt.ItemDataRole.UserRole + 1)
+                sample_item.appendRow(exp_item)
+                
+            self.source_model.appendRow(sample_item)
+
+    def _toggle_selection(self, view, proxy_model, target_state: bool):
+        """Poprawiona wersja odporna na znikanie elementów w trakcie pętli"""
+        # 1. Pobieramy wszystkie zaznaczone indeksy
+        proxy_indices = view.selectedIndexes()
+        
+        # 2. Mapujemy je na oryginalny model i odfiltrowujemy:
+        #    - tylko kolumna 0 (żeby uniknąć duplikatów z innych kolumn)
+        #    - tylko elementy posiadające rodzica (czyli Experiment, a nie Sample)
+        source_items = []
+        for proxy_idx in proxy_indices:
+            if proxy_idx.column() == 0:  # Zabezpieczenie przed wieloma kolumnami
+                source_idx = proxy_model.mapToSource(proxy_idx)
+                
+                # Sprawdzamy czy to Experiment (ma rodzica)
+                if source_idx.parent().isValid():
+                    item = self.source_model.itemFromIndex(source_idx)
+                    if item and item not in source_items:
+                        source_items.append(item)
+
+        # 3. Zmieniamy stan TYLKO na przygotowanej, stabilnej liście obiektów
+        for item in source_items:
+            item.setData(target_state, Qt.ItemDataRole.UserRole + 1)
+                
+        # 4. Dopiero na samym końcu, gdy dane są bezpieczne, odświeżamy widoki
+        self.left_proxy.invalidateFilter()
+        self.right_proxy.invalidateFilter()
+        
+        # Ponownie rozwijamy drzewa
+        self.source_view.expandAll()
+        self.dest_view.expandAll()
+
+    def move_selected_to_dest(self):
+        self._toggle_selection(self.source_view, self.left_proxy, target_state=True)
+        self.item_changed.emit(self.get_experiments_to_analysis())
+
+    def move_selected_to_source(self):
+        self._toggle_selection(self.dest_view, self.right_proxy, target_state=False)
+        self.item_changed.emit(self.get_experiments_to_analysis())
+
+    def get_experiments_to_analysis(self) -> dict[Sample, Experiment]:
+        """Pobranie danych staje się banalne – przeglądamy tylko jeden model"""
+        from collections import defaultdict
+        experiments_dict = defaultdict(list)
+
+        for row in range(self.source_model.rowCount()):
+            sample_item = self.source_model.item(row, 0)
+            sample_obj = sample_item.data(Qt.UserRole)
+
+            if sample_item:
+                for child_row in range(sample_item.rowCount()):
+                    exp_item = sample_item.child(child_row, 0)
+                    # Sprawdzamy czy flaga wybrania jest na True
+                    if exp_item and exp_item.data(Qt.ItemDataRole.UserRole + 1) == True:
+                        exp_obj = exp_item.data(Qt.ItemDataRole.UserRole)
+                        experiments_dict[sample_obj].append(exp_obj)
+        
+        final_experiments_dict = dict(experiments_dict)
+        return final_experiments_dict
 
 
 class TreeSelectorWithCheckboxes(QWidget):

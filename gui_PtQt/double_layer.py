@@ -2,25 +2,26 @@ from contextlib import contextmanager
 from PyQt5.QtWidgets import QDialog, QHBoxLayout, QVBoxLayout, QPushButton, QComboBox, QLabel, QGroupBox
 from PyQt5.QtCore import Qt
 from experiments import Voltammetry, ECSA
-from gui.small_widgets import TreeSelectorWithCheckboxes, SimpleDoubleSpinBox, Selector
+from gui.small_widgets import TreeSelectorWithCheckboxes, SimpleDoubleSpinBox, Selector, SelectorWithSample
 from gui_PtQt.plotting_area import DoubleLayerCanvas
 from functions.functions import calculate_ECSA_from_slope
 
 
 class DoubleLayer(QDialog):
-    def __init__(self, source_model, selected_indices, parent=None):
+    def __init__(self, selected_indices, parent=None):
         super().__init__(parent)
         self.setWindowTitle("Double Layer Capacity & ECSA Calculation")
         self.resize(1100, 600)  # Szeroki, panoramiczny layout pod dwa wykresy i drzewo
         
         self.experiments = []
+        print(selected_indices)
         
         # 1. Wstępne ładowanie i procesowanie surowych danych (Bootstrap)
-        self._bootstrap_data(source_model, selected_indices)
-        
+        self._bootstrap_data(selected_indices)
+
         # 2. Inicjalizacja komponentów interfejsu
         # Przekazujemy model nadrzędny i indeksy bezpośrednio do selektora z checkboxami
-        self.selector = Selector()
+        self.selector = SelectorWithSample(selected_indices)
         self.canvas = DoubleLayerCanvas()
         self.potential_spinbox = SimpleDoubleSpinBox(0, None)
         self.curve_combobox = QComboBox()
@@ -41,7 +42,7 @@ class DoubleLayer(QDialog):
         finally:
             widget.blockSignals(False)
 
-    def _bootstrap_data(self, source_model, selected_indices):
+    def _bootstrap_data(self, selected_indices):
         """Wstępne ładowanie i procesowanie danych na bazie zaznaczonych indeksów."""
         for ECSA_experiment in selected_indices.items():
             
@@ -91,7 +92,11 @@ class DoubleLayer(QDialog):
 
     def refresh_ui_state(self):
         """Zarządza stanem kontrolek w zależności od wybranego eksperymentu."""
-        self.experiments = self.selector.get_experiments_to_analysis()
+        self.experiments_dict = self.selector.get_experiments_to_analysis()
+        experiments = self.experiments_dict.values()
+        self.experiments = [exp for exp_list in self.experiments_dict.values() for exp in exp_list]
+
+
         
         if not self.experiments:
             with self.signals_blocked(self.curve_combobox):
@@ -127,9 +132,10 @@ class DoubleLayer(QDialog):
     def replotted_selected_curve(self):
         """Odświeża tylko lewy wykres (Krzywe CV)."""
         raw_text = self.curve_combobox.currentText()
-        if raw_text and raw_text.isdigit() and self.experiments:
+        if raw_text and raw_text.isdigit() and self.experiments_dict:
             selected_curve = [int(raw_text)]
-            self.canvas.plot_cv_curves(self.experiments, curves=selected_curve)
+            for sample, experiments in self.experiments_dict.items():
+                self.canvas.plot_cv_curves(experiments, curves=selected_curve, label = sample.sample_name)
 
     def get_current_indexes(self):
         raw_text = self.curve_combobox.currentText()

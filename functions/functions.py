@@ -273,22 +273,22 @@ def calc_closest_value(list_of_points:list[float | int], index_array, value_arra
     return values
 
 
-def calcualte_overpotentials(benchmark_currents, experiments):
-    benchark_currents = variable_separation(benchmark_currents, ',', float)
-    #divide to obtain A/cm2
-    benchark_currents = [current/1000 for current in benchark_currents]
-    columns = ['E_iR vs RHE [V]', 'J_GEO [A/cm2]']
-    x = []
-    for exp in experiments:
+# def calcualte_overpotentials(benchmark_currents, experiments):
+#     benchark_currents = variable_separation(benchmark_currents, ',', float)
+#     #divide to obtain A/cm2
+#     benchark_currents = [current/1000 for current in benchark_currents]
+#     columns = ['E_iR vs RHE [V]', 'J_GEO [A/cm2]']
+#     x = []
+#     for exp in experiments:
 
-        #need to fix get_columns because curves parameter is now in it
-        df = exp.get_columns(curve = 0, columns = columns)
-        potentials = df.iloc[:,0]
-        current = df.iloc[:,1]
-        c = pd.DataFrame([calc_closest_value(benchark_currents, current, potentials, mode = 'first')], index = [exp.file_name], columns = benchark_currents)
-        x.append(c)
-    x = pd.concat(x)
-    x_transf = x.T
-    x_transf['mean'] = x_transf.mean(axis = 1)
-    x_transf['std'] = x_transf.std(axis = 1)
-    return x_transf
+#         #need to fix get_columns because curves parameter is now in it
+#         df = exp.get_columns(curve = 0, columns = columns)
+#         potentials = df.iloc[:,0]
+#         current = df.iloc[:,1]
+#         c = pd.DataFrame([calc_closest_value(benchark_currents, current, potentials, mode = 'first')], index = [exp.file_name], columns = benchark_currents)
+#         x.append(c)
+#     x = pd.concat(x)
+#     x_transf = x.T
+#     x_transf['mean'] = x_transf.mean(axis = 1)
+#     x_transf['std'] = x_transf.std(axis = 1)
+#     return x_transf

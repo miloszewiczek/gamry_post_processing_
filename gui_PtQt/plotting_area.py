@@ -358,7 +358,7 @@ class DoubleLayerCanvas(FigureCanvas):
             if line is not self.v_line:
                 line.remove()  # Usuwa linię fizycznie z wykresu
 
-    def plot_cv_curves(self, experiments_list, curves=None):
+    def plot_cv_curves(self, experiments_list, curves=None, label = None):
         """Rysuje TYLKO lewy wykres z woltamperometrią."""
         self.clear_except_line()
         self.ax_cv.set_title("Cyclic Voltammetry")
@@ -366,7 +366,12 @@ class DoubleLayerCanvas(FigureCanvas):
 
         if experiments_list:
             for exp in experiments_list:
-                exp.plot(ax=self.ax_cv, curves=curves)
+                if label is not None:
+                    experiment_label = label
+                    exp.plot(ax=self.ax_cv, curves=curves, label = experiment_label)
+                else:
+                    exp.plot(ax=self.ax_cv, curves=curves)
+                
             
             self.ax_cv.set_xlabel(experiments_list[0].default_x)
             self.ax_cv.set_ylabel(experiments_list[0].default_y)

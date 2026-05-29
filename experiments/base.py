@@ -248,6 +248,7 @@ class Experiment():
         if not hasattr(self, 'processed_data'):
             self.process_data()
 
+
         if isinstance(curves, list):
             curves_to_plot = self.get_data(curves, data_type = 'processed_data')
         elif curves is None:
@@ -259,7 +260,7 @@ class Experiment():
         for df in curves_to_plot:
             # Sprawdzamy czy kolumny istnieją, żeby uniknąć KeyError
             if x in df.columns and y in df.columns:
-                ax.plot(df[x], df[y], color=color, label=self.file_name, **kwargs)
+                ax.plot(df[x], df[y], color=color, **kwargs)
             else:
                 print(f"Błąd: Brak kolumn {x} lub {y} w eksperymencie {self.id}")
 
