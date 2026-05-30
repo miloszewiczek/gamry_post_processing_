@@ -358,65 +358,68 @@ class DoubleLayerCanvas(FigureCanvas):
             if line is not self.v_line:
                 line.remove()  # Usuwa linię fizycznie z wykresu
 
-    def plot_cv_curves(self, experiments_list, curves=None, label = None):
+    def plot_cv_curves(self, experiments_dict: dict[Experiment, list[pd.DataFrame]], **kwargs):
         """Rysuje TYLKO lewy wykres z woltamperometrią."""
-        self.clear_except_line()
         self.ax_cv.set_title("Cyclic Voltammetry")
         self.ax_cv.grid(True, alpha=0.3)
 
-        if experiments_list:
-            for exp in experiments_list:
-                if label is not None:
-                    experiment_label = label
-                    exp.plot(ax=self.ax_cv, curves=curves, label = experiment_label)
-                else:
-                    exp.plot(ax=self.ax_cv, curves=curves)
-                
-            
-            self.ax_cv.set_xlabel(experiments_list[0].default_x)
-            self.ax_cv.set_ylabel(experiments_list[0].default_y)
+        first_exp = list(experiments_dict.keys())[0]
+        self.ax_cv.set_xlabel(first_exp.default_x)
+        self.ax_cv.set_ylabel(first_exp.default_y)
 
-        self.move_vline(experiments_list[0].get_half_potential())
+        if experiments_dict:
+            for experiment, data in experiments_dict.items():
+                for df in data:
+                    self.ax_cv.plot(df.iloc[:,0], df.iloc[:,1], label = 'Dupa', **kwargs)
+            
+        self.move_vline(first_exp.get_half_potential())
         self.ax_cv.relim()
         self.ax_cv.autoscale_view()
         self.fig.tight_layout()
         self.draw_idle()
 
-    def plot_cdl_fit(self, final_df_list):
+    def plot_cdl_fit(self, sample:str, data, clear = False, **kwargs):
         """Rysuje TYLKO prawy wykres na podstawie wyników z funkcji obliczeniowej."""
-        self.ax_cdl.clear()
+        if clear == True:
+            self.ax_cdl.clear()
         self.ax_cdl.set_title("$C_{dl}$ Linear Fit")
         self.ax_cdl.grid(True, alpha=0.3)
 
         # BEZPIECZNE SPRAWDZENIE: 
         # Jeśli dostaliśmy pojedynczy DataFrame, zamieniamy go w listę jednoelementową.
         # Sprawdzanie pustki robimy za pomocą właściwości .empty dedykowanej dla Pandasa.
-        if isinstance(final_df_list, pd.DataFrame):
-            if final_df_list.empty:
+        if isinstance(data, pd.DataFrame):
+            if data.empty:
                 self.draw_idle()
                 return
-            final_df_list = [final_df_list]
+            data = [data]
         
         # Jeśli to zwykła lista i jest pusta
-        elif not final_df_list:
+        elif not data:
             self.draw_idle()
             return
 
-        # Teraz pętla zadziała idealnie w każdym przypadku!
-        for df in final_df_list:
+        #Right now it's only 1 dataframe. Need to fix it TODO.
+        for data_dict in data.values():
+
+            df = data_dict['df_data']
+            slope = data_dict['slope']
+            r_val = data_dict['r_value']
+
             # 1. Rysujemy punkty pomiarowe (Scanrate vs Difference)
             self.ax_cdl.plot(
                 df['Scanrate [V/s]'], 
                 df['Difference [A]'], 
                 'o', 
-                label='Experimental $\Delta I$'
+                **kwargs
             )
             # 2. Rysujemy dopasowaną prostą regresji
             self.ax_cdl.plot(
-                df['Line x [V/s]'], 
-                df['Line y [A]'], 
+                df['Scanrate [V/s]'], 
+                df['Line fit [A]'], 
                 '--', 
-                label='Linear Fit'
+                label=f'{sample}\nSlope: {slope:.2e}, r$^2$ = {r_val**2:.2f}',
+                **kwargs
             )
 
         self.ax_cdl.set_xlabel("Scan rate [V/s]")

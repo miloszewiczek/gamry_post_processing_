@@ -26,50 +26,50 @@ def calculate_ECSA_from_slope(ECSA_experiments: list[ECSA], potential_list:list,
     - `results`: a list of linear slopes, representing the CDL.
     """
 
-    if isinstance(potential_list, float) or isinstance(potential_list, int):
+    if isinstance(potential_list, (float, int)):
         potential_list = [potential_list]
 
-    difference_list = []
-    results = []
+
+    results = {}
 
     for potential in potential_list:
+        # FIX: Czyszczenie listy dla każdego potencjału
+        difference_list = []
 
         for experiment in ECSA_experiments:
-            if not hasattr(experiment,'data_list'):
+            if not hasattr(experiment, 'data_list'):
                 experiment.load_all()
                 experiment.process_data()
             
-            # difference and integral are mean values of all curves in an experiment. Need to let user know!
-            difference = experiment.calculate_difference_at_potential(potential, index = index)
-            integral = experiment.calculate_CDL_integral(index = index)
-            scanrate = experiment.meta_data['SCANRATE'] / 1000
+            difference = experiment.calculate_difference_at_potential(potential, index=index)
+            integral = experiment.calculate_CDL_integral(index=index)
+            scanrate = experiment.meta_data['SCANRATE'] / 1000  # mV -> V/s
             
-            difference_list.append((scanrate, difference, integral))
+            difference_list.append({
+                'Scanrate [V/s]': scanrate, 
+                'Difference [A]': difference, 
+                'Integral [A]': integral
+            })
         
-        # this needs to be changed into results with concat
-        tmp_df1 = pd.DataFrame(difference_list, columns = ['Scanrate [V/s]', 'Difference [A]', 'Difference Integrate [A]'])
-        tmp_df1 = tmp_df1.sort_values(by = ['Scanrate [V/s]'])
-        tmp_df1.reset_index(drop = True, inplace = True)
+        # Czysty DataFrame z punktami pomiarowymi
+        df_data = pd.DataFrame(difference_list).sort_values(by='Scanrate [V/s]').reset_index(drop=True)
         
-
-        slope1, intercept1, r_value1, p_value1, std_err1 = linregress(tmp_df1.iloc[:,0], tmp_df1.iloc[:,1])
-        slope2, intercept2, r_value2, p_value2, std_err2 = linregress(tmp_df1.iloc[:,0], tmp_df1.iloc[:,2])
-        line_x = tmp_df1.iloc[[0, -1]]['Scanrate [V/s]']
-
-        # for plotting/copying the line used for linear regression
-        line_y = line_x * slope1 + intercept1
-        line_y_int = line_x * slope2 + intercept2
-        tmp_df2 = pd.DataFrame({'Line x [V/s]': line_x, 'Line y [A]': line_y, 'Line y Integrate [A]': line_y_int})
-        tmp_df2.reset_index(drop = True, inplace = True)
-
-        # joining the dataframes so that it first 3 columns are scanrate/difference/difference_integrate
-        # and the other 3 are for plotting the line        
-        final_df = pd.concat([tmp_df1, tmp_df2], axis = 1)
+        # Regresje liniowe
+        res_line = linregress(df_data['Scanrate [V/s]'], df_data['Difference [A]'])
+        res_line_integrate = linregress(df_data['Scanrate [V/s]'], df_data['Difference [A]'])
         
-        results.append(final_df)
+        df_data['Line fit [A]'] = df_data['Scanrate [V/s]'] * res_line.slope + res_line.intercept
+        df_data['Integrate fit [A]'] = df_data['Scanrate [V/s]'] * res_line_integrate.slope + res_line_integrate.intercept
         
-    return (slope1, intercept1, r_value1), (slope2, intercept2, r_value2), final_df
-
+        # Pakujemy wszystko do czystego słownika per potencjał
+        results[potential] = {
+            "slope": res_line.slope,
+            "intercept": res_line.intercept,
+            "r_value": res_line.rvalue,
+            "df_data": df_data  # Tylko czyste punkty pomiarowe
+        }
+        
+    return results
 
 def calculate_slopes(data, start_potential, step, overlap, normal_mode = True):
     """Calculate Tafel slopes over segments of the data."""

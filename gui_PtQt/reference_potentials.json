@@ -1,12 +1,18 @@
 {
     "AgCl/Ag (3M KCl)": {
         "AM": {
+            "2025-06-30 16:10:50": {
+                "filepath": "D:/!UNI/!sci_materials/!doktorat/!wyniki/!TM3Se4/seria_3/CATALYSIS/PELLETS/SERIA_2/FN2_PELLET_STRONA_2_POMIAR_1_AM_REDOXME_30_06_2025/OCP.DTA",
+                "time at offset [s]": 599.76,
+                "calibration offset [V]": 0.424399,
+                "notes": null
+            },
             "2025-07-01 13:47:48": {
                 "filepath": "D:/!UNI/!sci_materials/!doktorat/!wyniki/!TM3Se4/seria_3/CATALYSIS/PELLETS/SERIA_2/F2N_PELLET_STRONA_2_POMIAR_1_AM_REDOXME_01_07_2025/OCP.DTA",
-                "time at offset [s]": 3.06,
-                "calibration offset [V]": 0.362796,
+                "time at offset [s]": 151.98,
+                "calibration offset [V]": 0.414184,
                 "notes": null,
-                "last_calibration_date": 305
+                "last_calibration_date": 333
             }
         }
     },
@@ -18,7 +24,7 @@
                 "time at offset [s]": 349.35,
                 "calibration offset [V]": 0.429587,
                 "notes": null,
-                "last_calibration_date": 305
+                "last_calibration_date": 333
             }
         }
     }

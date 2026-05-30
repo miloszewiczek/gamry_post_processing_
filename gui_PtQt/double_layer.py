@@ -5,6 +5,7 @@ from experiments import Voltammetry, ECSA
 from gui.small_widgets import TreeSelectorWithCheckboxes, SimpleDoubleSpinBox, Selector, SelectorWithSample
 from gui_PtQt.plotting_area import DoubleLayerCanvas
 from functions.functions import calculate_ECSA_from_slope
+import matplotlib.cm as cm
 
 
 class DoubleLayer(QDialog):
@@ -14,10 +15,11 @@ class DoubleLayer(QDialog):
         self.resize(1100, 600)  # Szeroki, panoramiczny layout pod dwa wykresy i drzewo
         
         self.experiments = []
-        print(selected_indices)
         
         # 1. Wstępne ładowanie i procesowanie surowych danych (Bootstrap)
         self._bootstrap_data(selected_indices)
+        num_samples = len(selected_indices.keys())
+        self.cmap = cm.get_cmap('Set1', num_samples)   
 
         # 2. Inicjalizacja komponentów interfejsu
         # Przekazujemy model nadrzędny i indeksy bezpośrednio do selektora z checkboxami
@@ -44,13 +46,15 @@ class DoubleLayer(QDialog):
 
     def _bootstrap_data(self, selected_indices):
         """Wstępne ładowanie i procesowanie danych na bazie zaznaczonych indeksów."""
-        for ECSA_experiment in selected_indices.items():
+        for sample, experiments in selected_indices.items():
             
+            for ECSA_experiment in experiments:
             # Jeśli w drzewie zaznaczono bezpośrednio obiekt typu ECSA lub Voltammetry, sprawdzamy go
-            if isinstance(ECSA_experiment, (ECSA, Voltammetry)):
-                if not (hasattr(ECSA_experiment, "data_list") and hasattr(ECSA_experiment, "processed_data")):
-                    ECSA_experiment.load_all()
-                    ECSA_experiment.process_data()
+                if isinstance(ECSA_experiment, (ECSA, Voltammetry)):
+                    if not hasattr(ECSA_experiment, "data_list"):
+                        ECSA_experiment.load_all()
+                    if not hasattr(ECSA_experiment, 'processed_data'):
+                        ECSA_experiment.process_data()
 
 
     def init_gui(self):
@@ -96,8 +100,6 @@ class DoubleLayer(QDialog):
         experiments = self.experiments_dict.values()
         self.experiments = [exp for exp_list in self.experiments_dict.values() for exp in exp_list]
 
-
-        
         if not self.experiments:
             with self.signals_blocked(self.curve_combobox):
                 self.curve_combobox.clear()
@@ -131,11 +133,15 @@ class DoubleLayer(QDialog):
 
     def replotted_selected_curve(self):
         """Odświeża tylko lewy wykres (Krzywe CV)."""
+        self.canvas.clear_except_line()
+
         raw_text = self.curve_combobox.currentText()
         if raw_text and raw_text.isdigit() and self.experiments_dict:
             selected_curve = [int(raw_text)]
-            for sample, experiments in self.experiments_dict.items():
-                self.canvas.plot_cv_curves(experiments, curves=selected_curve, label = sample.sample_name)
+            for i, (sample, experiments) in enumerate(self.experiments_dict.items()):
+                
+                data_to_plot = {experiment: experiment.get_plot_data(selected_curve) for experiment in experiments}
+                self.canvas.plot_cv_curves(data_to_plot, color = self.cmap(i))
 
     def get_current_indexes(self):
         raw_text = self.curve_combobox.currentText()
@@ -154,22 +160,23 @@ class DoubleLayer(QDialog):
         """Pobiera parametry, liczy nachylenie i rysuje prawy wykres."""
         if not self.experiments:
             return
-            
+
+        self.canvas.ax_cdl.clear()            
         chosen_potential = self.potential_spinbox.value()
         current_index = self.get_current_indexes()
         if current_index is None:
             return
         
-        # Uruchamiamy poprawioną funkcję matematyczną (z bezpiecznym zerowaniem listy punktów)
-        fit_data_1, fit_data_2, results_dfs = calculate_ECSA_from_slope(
-            ECSA_experiments=self.experiments, 
-            potential_list=[chosen_potential], 
-            index=current_index
-        )
-        
+        results_dfs = {}
+        for i, (sample, experiments) in enumerate(self.experiments_dict.items()):
+            results_dict = calculate_ECSA_from_slope(
+                ECSA_experiments=experiments, 
+                potential_list=[chosen_potential], 
+                index=current_index
+        )        
+            
         # Rysujemy proste dopasowania CDL na prawej połówce DoubleLayerCanvas
-        self.canvas.plot_cdl_fit(results_dfs)
+            self.canvas.plot_cdl_fit(sample.short_name, results_dict, color = self.cmap(i))
+
         
         # Wyświetlenie wyznaczonej pojemności w terminalu diagnostycznym
-        slope1, intercept1, r_value1 = fit_data_1
-        print(f"Wyznaczona pojemność C_dl (z różnicy prądów): {slope1} F, R^2 = {r_value1**2}")

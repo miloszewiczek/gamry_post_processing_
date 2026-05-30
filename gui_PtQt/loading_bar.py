@@ -4,7 +4,7 @@ from PyQt5.QtWidgets import (QTreeWidget, QWidget, QLayout, QPushButton, QHBoxLa
                              QFormLayout, QDialogButtonBox, QTableView,
                              QComboBox, QMenu, QTextBrowser, QShortcut, QInputDialog, QDoubleSpinBox)
 from PyQt5.QtGui import QStandardItemModel, QStandardItem, QColor, QIcon, QKeySequence, QBrush
-from PyQt5.QtCore import Qt, QAbstractTableModel, QItemSelection, QItemSelectionModel, QPersistentModelIndex, pyqtSignal
+from PyQt5.QtCore import Qt, QAbstractTableModel, QItemSelection, QItemSelectionModel, QPersistentModelIndex, pyqtSignal, QModelIndex
 from core import ExperimentLoader, ExperimentManager, Experiment
 from pathlib import Path
 from functions.gui_functions import open_file_in_system_editor, open_folder_in_explorer
@@ -195,10 +195,9 @@ class ExperimentPanel(QWidget):
         btn_delete_shortcut.setContext(Qt.ShortcutContext.WidgetShortcut)
         btn_delete_shortcut.activated.connect(self.delete_item)  
 
-        btn_select_shortcut = QShortcut(QKeySequence("Ctrl+A"), self.tree_view)
-        btn_select_shortcut.setContext(Qt.ShortcutContext.WidgetShortcut)
-        btn_select_shortcut.activated.connect(self.select_all)
-        self.selected_all = False
+        btn_select_all_shortcut = QShortcut(QKeySequence("Ctrl+A"), self.tree_view)
+        btn_select_all_shortcut.setContext(Qt.ShortcutContext.WidgetShortcut)
+        btn_select_all_shortcut.activated.connect(self.expand_selection_automatically)
 
         # 2.1 UI - Icons
         self.btn_load_dialog.setIcon(QIcon(icon_path + 'document--plus.png'))
@@ -234,7 +233,8 @@ class ExperimentPanel(QWidget):
         from gui_PtQt.double_layer import DoubleLayer
 
         selected_experiments = self.get_selected_experiments()
-        sample_experiment_tree = self.manager.construct_tree(selected_experiments)
+        filtered = self.manager.filter(selected_experiments, object_type = 'ECSA')
+        sample_experiment_tree = self.manager.construct_tree(filtered)
 
         x = DoubleLayer(sample_experiment_tree)
         if x.exec() == QDialog.accepted:
@@ -445,6 +445,19 @@ class ExperimentPanel(QWidget):
         
         # Pobieramy obiekt (Sample lub Experiment) przypisany do klikniętego wiersza
         node_type = self.identify_selection(index)
+
+        is_parent_in_there = self.verify(targets)
+        
+        if is_parent_in_there:
+            # Pobieramy dzieci dla zaznaczonych elementów
+            all_children = self.get_children(targets, type='index')
+            
+            # Pobieramy model odpowiedzialny za zaznaczenia w naszym TreeView
+            selection_model = self.tree_view.selectionModel()
+            
+            # Zaznaczamy każde dziecko, nie ruszając dotychczasowego zaznaczenia
+            for child_index in all_children:
+                selection_model.select(child_index, QItemSelectionModel.Select)
         
         # Budujemy i od razu wyświetlamy menu
         menu = self._build_context_menu(node_type, targets)
@@ -548,14 +561,24 @@ class ExperimentPanel(QWidget):
                 
             dialog.save_to_settings()
 
-    def get_children(self, parent_indexes, type = 'index'):
+
+    def get_children(self, parent_indexes, type='index'):
+        all_indexes = []
+        
+        # Iterujemy po wszystkich przekazanych rodzicach
         for parent_index in parent_indexes:
-            children = self.model.rowCount(parent_index)
-            indexes = [self.model.index(child, 0, parent_index) for child in range(children)]
+            children_count = self.model.rowCount(parent_index)
+            
+            # Zbieramy indeksy dzieci dla TEGO rodzica i dorzucamy do głównej listy
+            for child_row in range(children_count):
+                child_index = self.model.index(child_row, 0, parent_index)
+                all_indexes.append(child_index)
+                
+        # Zwracamy odpowiedni typ danych
         if type == 'index':
-            return indexes
-        elif type =='item':
-            return [self.model.itemFromIndex(index) for index in indexes]
+            return all_indexes
+        elif type == 'item':
+            return [self.model.itemFromIndex(idx) for idx in all_indexes]
 
 
     def verify_parent_children_relationship(self, targets):
@@ -593,21 +616,18 @@ class ExperimentPanel(QWidget):
         
         for index in indexes:
             data = index.data(Qt.UserRole)
-            if isinstance(data, Sample):
-                reply = QMessageBox.question(self, 'Select all?', 
-                        f'You have selected a Sample node {data.sample_name}. Select all of its experiments?', 
-                        QMessageBox.Yes | QMessageBox.No)
-                if reply == QMessageBox.Yes:
-                    data_list.extend(data.experiments)
-            elif isinstance(data, Experiment):
-                data_list.append(data)
+            # if isinstance(data, Sample):
+            #     reply = QMessageBox.question(self, 'Select all?', 
+            #             f'You have selected a Sample node {data.sample_name}. Select all of its experiments?', 
+            #             QMessageBox.Yes | QMessageBox.No)
+            #     if reply == QMessageBox.Yes:
+            #         data_list.extend(data.experiments)
+            # elif isinstance(data, Experiment):
+            data_list.append(data)
         
         #removing duplicates
         data_set = set(data_list)
         return data_set
-
-                
-        
     
     def get_selected_indices(self):
         indices = self.tree_view.selectionModel().selectedRows()
@@ -617,6 +637,83 @@ class ExperimentPanel(QWidget):
         indices = self.tree_view.selectionModel().selectedRows()
         return self.experimentFromIndex(indices)
         
-    def select_all(self):
-        pass
-    
+    def select_all_samples(self):
+        """Scenariusz: Zaznacza absolutnie wszystkie węzły typu Sample (poziom 0)."""
+        selection_model = self.tree_view.selectionModel()
+        root_count = self.model.rowCount(QModelIndex())
+        
+        for row in range(root_count):
+            sample_index = self.model.index(row, 0, QModelIndex())
+            selection_model.select(sample_index, QItemSelectionModel.Select | QItemSelectionModel.Rows)
+
+    def select_experiment_siblings(self, experiment_index: QModelIndex):
+        """Scenariusz: Zaznacza wszystkie eksperymenty należące do TEGO SAMEGO rodzica."""
+        if not experiment_index.parent().isValid():
+            return # Na wypadek, gdyby przekazano Sample zamiast eksperymentu
+            
+        selection_model = self.tree_view.selectionModel()
+        parent = experiment_index.parent()
+        siblings_count = self.model.rowCount(parent)
+        
+        for row in range(siblings_count):
+            sibling_index = self.model.index(row, 0, parent)
+            selection_model.select(sibling_index, QItemSelectionModel.Select| QItemSelectionModel.Rows)
+
+    def select_all_experiments_globally(self):
+        """Scenariusz: Przeszukuje całe drzewo i zaznacza każdy eksperyment u każdego rodzica."""
+        selection_model = self.tree_view.selectionModel()
+        root_count = self.model.rowCount(QModelIndex())
+        
+        for s_row in range(root_count):
+            sample_index = self.model.index(s_row, 0, QModelIndex())
+            exp_count = self.model.rowCount(sample_index)
+            
+            for e_row in range(exp_count):
+                global_exp_index = self.model.index(e_row, 0, sample_index)
+                selection_model.select(global_exp_index, QItemSelectionModel.Select| QItemSelectionModel.Rows)
+        self.tree_view.expandAll()
+
+
+    def expand_selection_automatically(self):
+        """Funkcja automatyczna - decyduje za użytkownika na podstawie kliknięcia."""
+        selected = self.tree_view.selectedIndexes()
+        if not selected:
+            return
+
+        first_index = selected[0]
+        
+        # Jeśli kliknięto Sample (brak ważnego rodzica)
+        if not first_index.parent().isValid():
+            self.select_all_samples()
+            
+        # Jeśli kliknięto Eksperyment
+        else:
+            # Pobieramy wszystkie dzieci tego rodzica (lokalne rodzeństwo)
+            local_children = self.get_children([first_index.parent()], type='index')
+            
+            # POPRAWIONY WARUNEK: Sprawdzamy, czy liczba aktualnie zaznaczonych elementów 
+            # jest równa liczbie wszystkich dzieci tego rodzica.
+            if len(selected) >= len(local_children):
+                # Krok 2: Skoro cała próbka jest już zaznaczona, zaznaczamy wszystko globalnie
+                self.select_all_experiments_globally()
+            else:
+                # Krok 1: Zaznaczamy najpierw całe lokalne rodzeństwo
+                self.select_experiment_siblings(first_index)
+
+
+
+    def verify(self, indexes) -> bool:
+        parents = {index.parent() for index in indexes if index.parent().isValid()}
+        
+        if any(p in indexes for p in parents):
+            reply = QMessageBox.question(
+                self, 
+                'Select all?', 
+                'You have selected a Sample node. Select all of its experiments?', 
+                QMessageBox.Yes | QMessageBox.No
+            )
+            
+            if reply == QMessageBox.Yes:
+                return True
+                
+        return False # Jawny return, jeśli warunek nie został spełniony lub kliknięto "No"

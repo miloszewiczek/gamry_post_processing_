@@ -145,6 +145,7 @@ class Selector(BaseDataDialog):
         # Połączenia
         self.btn_add.clicked.connect(self.move_selected_to_dest)
         self.btn_remove.clicked.connect(self.move_selected_to_source)
+   
         
         self.populate(items)
 
@@ -230,6 +231,10 @@ class SelectorWithSample(Selector):
         self.source_view.expandAll()
         self.dest_view.expandAll()
 
+        self.btn_add_all.clicked.connect(self._move_all_to_right)
+        self.btn_remove_all.clicked.connect(self._move_all_to_left)
+
+
     def populate(self, items: dict[Sample, list[Experiment]]):
         # Czyścimy domyślne zachowanie z klasy bazowej
         self.source_model.clear()
@@ -251,6 +256,7 @@ class SelectorWithSample(Selector):
     def _toggle_selection(self, view, proxy_model, target_state: bool):
         """Poprawiona wersja odporna na znikanie elementów w trakcie pętli"""
         # 1. Pobieramy wszystkie zaznaczone indeksy
+
         proxy_indices = view.selectedIndexes()
         
         # 2. Mapujemy je na oryginalny model i odfiltrowujemy:
@@ -279,6 +285,18 @@ class SelectorWithSample(Selector):
         self.source_view.expandAll()
         self.dest_view.expandAll()
 
+    def _move_all_to_right(self):
+        
+        self.source_view.selectAll()
+        self._toggle_selection(self.source_view, self.left_proxy, target_state = True)
+        self.item_changed.emit(self.get_experiments_to_analysis())
+
+    def _move_all_to_left(self):
+        
+        self.dest_view.selectAll()
+        self._toggle_selection(self.dest_view, self.right_proxy, target_state = False)
+        self.item_changed.emit(self.get_experiments_to_analysis())
+
     def move_selected_to_dest(self):
         self._toggle_selection(self.source_view, self.left_proxy, target_state=True)
         self.item_changed.emit(self.get_experiments_to_analysis())
@@ -287,7 +305,8 @@ class SelectorWithSample(Selector):
         self._toggle_selection(self.dest_view, self.right_proxy, target_state=False)
         self.item_changed.emit(self.get_experiments_to_analysis())
 
-    def get_experiments_to_analysis(self) -> dict[Sample, Experiment]:
+
+    def get_experiments_to_analysis(self) -> dict[Sample, list[Experiment]]:
         """Pobranie danych staje się banalne – przeglądamy tylko jeden model"""
         from collections import defaultdict
         experiments_dict = defaultdict(list)

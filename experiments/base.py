@@ -160,8 +160,10 @@ class Experiment():
             return data 
         elif isinstance(index, int):
             return [data[index]]
+        elif isinstance(index, str) and index.isdigit():
+            return [data[int(index)]]
         else:
-            return [self.processed_data[i] for i in index]
+            return [data[i] for i in index]
     
     def get_all_data(self):
         return {'data_list': self.data_list,
@@ -243,8 +245,9 @@ class Experiment():
                 return
         self.reference_potential = potential
 
-    def plot(self, ax, curves:list[int] = None, color=None, x=None, y=None, **kwargs):
-        # Automatyczne ładowanie i procesowanie, jeśli zapomniano to zrobić wcześniej
+
+    def get_plot_data(self, curves:list[int] = None, x = None, y = None):
+                # Automatyczne ładowanie i procesowanie, jeśli zapomniano to zrobić wcześniej
         if not hasattr(self, 'processed_data'):
             self.process_data()
 
@@ -257,13 +260,27 @@ class Experiment():
         if x is None or y is None:
             x, y = self.get_default_columns('both')
 
+
+        data_to_plot = []
+        
         for df in curves_to_plot:
             # Sprawdzamy czy kolumny istnieją, żeby uniknąć KeyError
             if x in df.columns and y in df.columns:
-                ax.plot(df[x], df[y], color=color, **kwargs)
+
+                clean_df =  df[[x,y]].reset_index(drop=True)
+                data_to_plot.append(clean_df)
             else:
                 print(f"Błąd: Brak kolumn {x} lub {y} w eksperymencie {self.id}")
+        
+        return data_to_plot
 
+    def plot(self, ax, data_to_plot = None, color = None, **kwargs):
 
+        if data_to_plot == None:
+            data_to_plot = self.get_plot_data()
+
+        for data in data_to_plot:
+            ax.plot(data.iloc[:, 0], data.iloc[:, 1], color = color, **kwargs)
+        
     def __repr__(self):
         return f"Experiment(id={self.id}, tag='{self.tag}', cycle={self.cycle}, file='{self.file_name}')"

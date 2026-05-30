@@ -1,8 +1,12 @@
 from experiments.base import Experiment
+from os.path import basename
 
 class   Sample():
     def __init__(self, sample_name: str):
-        self.sample_name = sample_name
+        
+        self.sample_path = sample_name
+        self.sample_name = basename(sample_name)
+        self.short_name = self.sample_name[0:15]
         self.experiments:list[Experiment] = []
 
     def add_experiment(self, experiment:Experiment):
