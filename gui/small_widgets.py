@@ -460,3 +460,30 @@ class TreeSelectorWithCheckboxes(QWidget):
                             selected_experiments.append(exp)
                             
         return selected_experiments
+    
+
+class TreeFilterProxyModel(QSortFilterProxyModel):
+    """
+    Własny proxy model, który dba o to, aby dzieci pasujących elementów 
+    oraz rodzice pasujących elementów byli widoczni.
+        """
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        # Ignorujemy wielkość liter przy wyszukiwaniu
+        self.setFilterCaseSensitivity(Qt.CaseSensitivity.CaseInsensitive)
+
+    def filterAcceptsRow(self, source_row, source_parent):
+        # Jeśli domyślny filtr akceptuje ten wiersz, to super
+        if super().filterAcceptsRow(source_row, source_parent):
+            return True
+
+        # Jeśli sam wiersz nie pasuje, sprawdzamy czy któreś z jego dzieci pasuje
+        source_model = self.sourceModel()
+        source_index = source_model.index(source_row, 0, source_parent)
+        
+        if source_model.hasChildren(source_index):
+            for i in range(source_model.rowCount(source_index)):
+                if self.filterAcceptsRow(i, source_index):
+                    return True
+                    
+        return False

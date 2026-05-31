@@ -1,17 +1,20 @@
+import sys
+from pathlib import Path
 from PyQt5.QtWidgets import (QTreeWidget, QWidget, QLayout, QPushButton, QHBoxLayout, 
                              QVBoxLayout, QTreeView, QFileDialog, QMessageBox, 
                              QAbstractItemView, QDialog, QLabel, 
                              QFormLayout, QDialogButtonBox, QTableView,
-                             QComboBox, QMenu, QTextBrowser, QShortcut, QInputDialog, QDoubleSpinBox)
+                             QComboBox, QMenu, QTextBrowser, QShortcut, QInputDialog, QDoubleSpinBox, QLineEdit)
 from PyQt5.QtGui import QStandardItemModel, QStandardItem, QColor, QIcon, QKeySequence, QBrush
 from PyQt5.QtCore import Qt, QAbstractTableModel, QItemSelection, QItemSelectionModel, QPersistentModelIndex, pyqtSignal, QModelIndex
+
 from core import ExperimentLoader, ExperimentManager, Experiment
-from pathlib import Path
 from functions.gui_functions import open_file_in_system_editor, open_folder_in_explorer
 from functions.gui_functions import load_data, load_files, load_folder
 from gui.calculate_diameter import AreaDialogBox, AreaDialog
 from gui_PtQt.config import icon_path
 from experiments.sample import Sample
+from gui.small_widgets import TreeFilterProxyModel
 
 
 class PandasModel(QAbstractTableModel):
@@ -154,23 +157,31 @@ class ExperimentInfoDialog(QDialog):
     def open_with(self):
         open_file_in_system_editor(self.experiment.file_path)
 
+
+
+
 class ExperimentPanel(QWidget):
 
     itemsExported = pyqtSignal(list)
     plotRequested = pyqtSignal(list)
 
-    def __init__(self, loader:ExperimentLoader, manager:ExperimentManager, parent=None, settings = None):
+    def __init__(self, loader: ExperimentLoader, manager: ExperimentManager, parent=None, settings=None):
         super().__init__(parent)
 
         self.loader = loader
         self.manager = manager
         self.settings = settings
+        self.expanded_all = False
         
         # 1. Inicjalizacja Modelu i Widoku
         self.tree_view = QTreeView()
         self.model = QStandardItemModel()
         self.model.setHorizontalHeaderLabels(['Experiment', 'Class', 'ID'])
-        self.tree_view.setModel(self.model)
+
+        self.proxy_model = TreeFilterProxyModel()
+        self.proxy_model.setSourceModel(self.model)
+
+        self.tree_view.setModel(self.proxy_model)
         self.tree_view.setColumnWidth(0, 300)
         self.tree_view.setColumnWidth(1, 150)
         self.tree_view.setColumnWidth(2, 10)
@@ -183,27 +194,50 @@ class ExperimentPanel(QWidget):
         self.btn_load_folder_dialog = QPushButton()
         self.btn_delete = QPushButton()
         self.btn_copy = QPushButton()
+        self.btn_expand_all = QPushButton()
+        self.btn_select_all_samples = QPushButton()
+        self.btn_select_all_experiments = QPushButton()
+
+
+        self.search_input = QLineEdit()
+        self.search_input.setPlaceholderText("Type to search")
 
         self.btn_load_dialog.setShortcut('Ctrl+O')
         self.btn_load_folder_dialog.setShortcut('Ctrl+Shift+O')
 
+        # 2.1 Skróty klawiszowe (Zmapowane na czyste metody akcji)
         btn_copy_shortcut = QShortcut(QKeySequence("Ctrl+C"), self.tree_view)
         btn_copy_shortcut.setContext(Qt.ShortcutContext.WidgetShortcut)
-        btn_copy_shortcut.activated.connect(self.copy_item)
+        btn_copy_shortcut.activated.connect(self.copy_selected_items)
 
         btn_delete_shortcut = QShortcut(QKeySequence("Delete"), self.tree_view)
         btn_delete_shortcut.setContext(Qt.ShortcutContext.WidgetShortcut)
-        btn_delete_shortcut.activated.connect(self.delete_item)  
+        btn_delete_shortcut.activated.connect(self.delete_selected_items)  
 
         btn_select_all_shortcut = QShortcut(QKeySequence("Ctrl+A"), self.tree_view)
         btn_select_all_shortcut.setContext(Qt.ShortcutContext.WidgetShortcut)
         btn_select_all_shortcut.activated.connect(self.expand_selection_automatically)
 
-        # 2.1 UI - Icons
+        btn_expand_all_shortcut = QShortcut(QKeySequence("Ctrl+E"), self.tree_view)
+        btn_expand_all_shortcut.setContext(Qt.ShortcutContext.WidgetShortcut)
+        btn_expand_all_shortcut.activated.connect(self.toggle_expand)
+
+        btn_select_all_samples_shortcut = QShortcut(QKeySequence("Ctrl+Shift+S"), self.tree_view)
+        btn_select_all_samples_shortcut.setContext(Qt.ShortcutContext.WidgetShortcut)
+        btn_select_all_samples_shortcut.activated.connect(self.select_all_samples)
+
+        btn_select_all_experiments_shortcut = QShortcut(QKeySequence("Ctrl+Shift+E"), self.tree_view)
+        btn_select_all_experiments_shortcut.setContext(Qt.ShortcutContext.WidgetShortcut)
+        btn_select_all_experiments_shortcut.activated.connect(self.select_all_experiments_globally)
+
+        # 2.2 Ikony
         self.btn_load_dialog.setIcon(QIcon(icon_path + 'document--plus.png'))
         self.btn_load_folder_dialog.setIcon(QIcon(icon_path + 'folder-open.png'))
         self.btn_delete.setIcon(QIcon(icon_path + 'document--minus.png'))
         self.btn_copy.setIcon(QIcon(icon_path + 'document-copy.png'))
+        self.btn_expand_all.setIcon(QIcon(icon_path + 'arrow-resize-090.png'))
+        self.btn_select_all_samples.setIcon(QIcon(icon_path + 'flask'))
+        self.btn_select_all_experiments.setIcon(QIcon(icon_path + 'scripts-text'))
 
         # 3. Layouty
         button_layout = QHBoxLayout()
@@ -211,509 +245,441 @@ class ExperimentPanel(QWidget):
         button_layout.addWidget(self.btn_load_dialog)
         button_layout.addWidget(self.btn_delete)
         button_layout.addWidget(self.btn_copy)
+
+        tree_view_button_layout = QVBoxLayout()
+        tree_view_button_layout.addWidget(self.btn_expand_all)
+        tree_view_button_layout.addWidget(self.btn_select_all_experiments)
+        tree_view_button_layout.addWidget(self.btn_select_all_samples)
+        
+        treeview_layout = QHBoxLayout()
+        treeview_layout.addLayout(tree_view_button_layout)
+        treeview_layout.addWidget(self.tree_view)
         
         main_layout = QVBoxLayout(self)
         main_layout.addLayout(button_layout)
-        main_layout.addWidget(self.tree_view)
+        main_layout.addWidget(self.search_input)
+        main_layout.addLayout(treeview_layout)
         
-        # 4. Połączenia Sygnałów
+        # 4. Połączenia Sygnałów UI
         self.btn_load_dialog.clicked.connect(self.load_files)
         self.btn_load_folder_dialog.clicked.connect(self.load_folder)
-        self.btn_delete.clicked.connect(self.delete_item)
-        self.btn_copy.clicked.connect(self.copy_item)
-
+        self.btn_delete.clicked.connect(self.delete_selected_items)
+        self.btn_copy.clicked.connect(self.copy_selected_items)
+        self.btn_expand_all.clicked.connect(self.toggle_expand)
+        self.btn_select_all_samples.clicked.connect(self.select_all_samples)
+        self.btn_select_all_experiments.clicked.connect(self.select_all_experiments_globally)
+        self.search_input.textChanged.connect(self.filter_tree)
         self.tree_view.doubleClicked.connect(self.on_double_clicked)
-
 
         open_doublelayer_btn = QPushButton('CDL!')
         open_doublelayer_btn.clicked.connect(self.double_layer)
         main_layout.addWidget(open_doublelayer_btn)
+        self.overpotentials_btn = QPushButton('OVERPOT')
+        self.overpotentials_btn.clicked.connect(self.overpotentials)
+        main_layout.addWidget(self.overpotentials_btn)
+
+    # =========================================================================
+    # TRANSLATOR INDEKSÓW (SERCE ARCHITEKTURY)
+    # =========================================================================
+
+    def _get_business_objects_from_selection(self, clicked_proxy_index=None) -> tuple[str, list]:
+        """
+        Pobiera aktualnie zaznaczone wiersze i bezpiecznie tłumaczy je na 
+        obiekty domenowe. W przypadku zaznaczenia mieszanego (Sample + Experiment),
+        pyta użytkownika za pomocą okna dialogowego, którą grupę chce wybrać.
+        """
+        selection_model = self.tree_view.selectionModel()
+        
+        if clicked_proxy_index is not None and not isinstance(clicked_proxy_index, bool):
+            if not selection_model.isSelected(clicked_proxy_index):
+                proxy_indices = [clicked_proxy_index.siblingAtColumn(0)]
+            else:
+                proxy_indices = selection_model.selectedRows(0)
+        else:
+            proxy_indices = selection_model.selectedRows(0)
+
+        if not proxy_indices:
+            return "NONE", []
+
+        found_samples = []
+        found_experiments = []
+
+        # 1. Segregujemy obiekty z zaznaczenia do odpowiednich list
+        for idx in proxy_indices:
+            source_index = self.proxy_model.mapToSource(idx)
+            obj = source_index.data(Qt.UserRole)
+            
+            if isinstance(obj, Sample):
+                if obj not in found_samples:
+                    found_samples.append(obj)
+            elif isinstance(obj, Experiment):
+                if obj not in found_experiments:
+                    found_experiments.append(obj)
+
+        # 2. LOGIKA DECYZYJNA:
+
+        # Przypadek A: Zaznaczono wyłącznie próbki (Sample)
+        if found_samples and not found_experiments:
+            return "SAMPLE", found_samples
+
+        # Przypadek B: Zaznaczono wyłącznie eksperymenty (Experiment)
+        if found_experiments and not found_samples:
+            return "EXPERIMENT", found_experiments
+
+        # Przypadek C: Zaznaczenie MIESZANE -> Wyświetlamy komunikat dla użytkownika
+        if found_samples and found_experiments:
+            msg_box = QMessageBox(self)
+            msg_box.setWindowTitle("Niejasne zaznaczenie")
+            msg_box.setText("Zaznaczono jednocześnie Próbki (Foldery) oraz Eksperymenty (Pliki).\n"
+                            "Które obiekty chcesz wziąć pod uwagę?")
+            
+            # Dodajemy niestandardowe przyciski z rolami
+            btn_samples = msg_box.addButton("Tylko Próbki", QMessageBox.ButtonRole.YesRole)
+            btn_experiments = msg_box.addButton("Tylko Eksperymenty", QMessageBox.ButtonRole.NoRole)
+            btn_cancel = msg_box.addButton("Anuluj", QMessageBox.ButtonRole.RejectRole)
+            
+            msg_box.exec_()
+            
+            clicked_btn = msg_box.clickedButton()
+            
+            if clicked_btn == btn_samples:
+                return "SAMPLE", found_samples
+            elif clicked_btn == btn_experiments:
+                return "EXPERIMENT", found_experiments
+            else:
+                return "NONE", [] # Użytkownik anulował akcję
+
+        return "NONE", []
+
+    # =========================================================================
+    # MENU KONTEKSTOWE
+    # =========================================================================
+
+    def open_menu(self, position):
+        proxy_index = self.tree_view.indexAt(position)
+        if not proxy_index.isValid():
+            return
+
+        node_type, business_objects = self._get_business_objects_from_selection(proxy_index)
+        if node_type == "NONE" or not business_objects:
+            return
+
+        menu = QMenu(self)
+        if node_type == "SAMPLE":
+            self._build_sample_menu(menu, business_objects)
+        elif node_type == "EXPERIMENT":
+            self._build_experiment_menu(menu, business_objects)
+
+        if not menu.isEmpty():
+            menu.exec(self.tree_view.viewport().mapToGlobal(position))
+
+    def _build_sample_menu(self, menu: QMenu, samples: list[Sample]):
+        all_experiments = []
+        for s in samples:
+            all_experiments.extend(s.experiments)
+
+        batch_act = menu.addAction(f"Batch process all in {len(samples)} Sample(s)")
+        
+        def process_sample_and_ui():
+            self._bulk_process(all_experiments)
+            # Kolorujemy węzły próbek w modelu źródłowym
+            items_to_color = []
+            for sample in samples:
+                for row in range(self.model.rowCount()):
+                    item = self.model.item(row)
+                    if item and item.data(Qt.UserRole) == sample:
+                        items_to_color.append(item)
+            self.color_items(items_to_color, QColor('green'))
+
+        batch_act.triggered.connect(process_sample_and_ui)
+        
+        menu.addSeparator()
+        delete_folder_act = menu.addAction("Delete Selected Sample(s)")
+        delete_folder_act.triggered.connect(lambda: self._delete_samples_logic(samples))
+
+        batch_apply_parameters = menu.addAction("Apply parameters to all experiments")
+        batch_apply_parameters.triggered.connect(lambda: self._open_area_dialog(all_experiments))
+
+    def _build_experiment_menu(self, menu: QMenu, experiments: list[Experiment]):
+        amount = len(experiments)
+
+        info_act = menu.addAction("Show details")
+        info_act.setEnabled(amount == 1)
+        if amount == 1:
+            info_act.triggered.connect(lambda: self._show_experiment_info(experiments[0]))
+
+        note_act = menu.addAction("Open in text editor")
+        note_act.triggered.connect(lambda: [open_file_in_system_editor(e.file_path) for e in experiments])
+
+        menu.addSeparator()
+        proc_act = menu.addAction("Process")
+        proc_act.triggered.connect(lambda: self._bulk_process(experiments))
+
+        param_act = menu.addAction("Set Geometrical Area")
+        param_act.triggered.connect(lambda: self._open_area_dialog(experiments))
+        
+        save_act = menu.addAction('Save to Excel')
+        save_act.triggered.connect(lambda: self.quick_save_logic(experiments))
+
+        plot_act = menu.addAction('Plot')
+        plot_act.triggered.connect(lambda: self.plotRequested.emit(experiments))
+
+        # --- SEKCOWI DEDYKOWANE (Rozbudowa np. pod ECSA) ---
+        ecsa_exps = [e for e in experiments if getattr(e, 'object_type', None) == 'ECSA' or e.__class__.__name__ == 'ECSA']
+        if ecsa_exps:
+            menu.addSeparator()
+            ecsa_menu = menu.addMenu("ECSA Options")
+            ecsa_calc_act = ecsa_menu.addAction(f"Calculate ECSA Capacity ({len(ecsa_exps)})")
+            ecsa_calc_act.triggered.connect(lambda: print(f"ECSA calculation for {len(ecsa_exps)} objects."))
+
+    # =========================================================================
+    # CZYSZCZENIE LOGIKI OPERACYJNEJ (KOPIOWANIE, USUWANIE, ZAPISYWANIE)
+    # =========================================================================
+
+    def copy_selected_items(self):
+        node_type, objects = self._get_business_objects_from_selection()
+        if not objects:
+            return
+
+        if node_type == "SAMPLE":
+            reply = QMessageBox.question(self, 'Copying folder', 'Copy selected folders?', QMessageBox.Yes | QMessageBox.No)
+            if reply == QMessageBox.Yes:
+                for sample in objects:
+                    for experiment in sample.experiments:
+                        new_sample, _ = self.manager.copy_experiment(experiment, new_id=self.loader.get_counter(), sample_name=sample.sample_name + "Copy")
+                        self.loader.update_counter(1)
+                    self.refresh_sample_in_model(new_sample)
+        
+        elif node_type == "EXPERIMENT":
+            for experiment in objects:
+                new_experiment = self.manager.copy_experiment(experiment, new_id=self.loader.get_counter())
+                self.loader.update_counter(1)
+                
+                # Znajdź rodzica tego eksperymentu w modelu źródłowym, aby dodać kopię pod niego
+                for row in range(self.model.rowCount()):
+                    parent_item = self.model.item(row)
+                    sample_obj = parent_item.data(Qt.UserRole)
+                    if sample_obj and experiment in sample_obj.experiments:
+                        self.add_experiment_to_item(parent_item, new_experiment)
+                        break
+
+    def delete_selected_items(self, checked_index=None):
+        node_type, objects = self._get_business_objects_from_selection(checked_index)
+        if not objects:
+            if checked_index is None:
+                QMessageBox.information(self, 'Select node', 'No node selected...')
+            return
+
+        if node_type == "SAMPLE":
+            self._delete_samples_logic(objects)
+        elif node_type == "EXPERIMENT":
+            for exp in objects:
+                self.manager.delete_experiment_by_id(exp.id)
+                
+                # Usuń wiersz bezpośrednio z modelu źródłowego
+                for r in range(self.model.rowCount()):
+                    parent_item = self.model.item(r)
+                    if parent_item:
+                        for child_row in range(parent_item.rowCount()):
+                            child_item = parent_item.child(child_row, 0)
+                            if child_item and child_item.data(Qt.UserRole) == exp:
+                                parent_item.removeRow(child_row)
+                                # Jeśli rodzic został pusty, usuń go również
+                                if parent_item.rowCount() == 0:
+                                    self.model.removeRow(r)
+                                return
+
+    def _delete_samples_logic(self, samples: list[Sample]):
+        reply = QMessageBox.question(self, 'Deleting Folder', f'Delete all {len(samples)} selected samples?', QMessageBox.Yes | QMessageBox.No)
+        if reply == QMessageBox.Yes:
+            for sample in samples:
+                self.manager.delete_sample(sample)
+                for row in range(self.model.rowCount()):
+                    item = self.model.item(row)
+                    if item and item.data(Qt.UserRole) == sample:
+                        self.model.removeRow(row)
+                        break
+
+    def quick_save_logic(self, experiments: list[Experiment]):
+        name, done = QInputDialog.getText(self, 'Save name', 'Enter name of file')
+        if done and name:
+            self.manager.batch_process_selected_experiments(experiments, name, 'tag')
 
     def double_layer(self):
         from gui_PtQt.double_layer import DoubleLayer
-
-        selected_experiments = self.get_selected_experiments()
-        filtered = self.manager.filter(selected_experiments, object_type = 'ECSA')
+        # Pobieramy bezpośrednio listę zaznaczonych obiektów eksperymentów
+        _, selected_experiments = self._get_business_objects_from_selection()
+        filtered = self.manager.filter(selected_experiments, object_type='ECSA')
         sample_experiment_tree = self.manager.construct_tree(filtered)
 
         x = DoubleLayer(sample_experiment_tree)
         if x.exec() == QDialog.accepted:
             print('elo')
 
+    def overpotentials(self):
+        from gui_PtQt.overpotentials import OverpotentialsWindow
+        _, selected_experiments = self._get_business_objects_from_selection()
+        x = OverpotentialsWindow(selected_experiments)
+        if x.exec() == QDialog.accepted:
+            print('naura')
 
+    def on_double_clicked(self, proxy_index):
+        if proxy_index.column() != 0:
+            proxy_index = proxy_index.siblingAtColumn(0)
 
-    def trigger_export(self):
-        selected = self.get_selected_indices()
-        if selected:
-            self.experimentExported.emit(selected)
+        source_index = self.proxy_model.mapToSource(proxy_index)
+        identity = source_index.data(Qt.UserRole)
 
-    def on_double_clicked(self, index):
-        
-        if index.column() != 0:
-            index = index.siblingAtColumn(0)
-
-        identity = self.identify_selection(index)
         if isinstance(identity, Experiment):
-            exp = index.data(Qt.UserRole)
-            dialog = ExperimentInfoDialog(exp, self)
-            dialog.exec()
-
+            self._show_experiment_info(identity)
         elif isinstance(identity, Sample):
             print('DUPA')
-        else:
+
+    def _show_experiment_info(self, experiment: Experiment):
+        dialog = ExperimentInfoDialog(experiment, self)
+        dialog.exec()
+
+    def _bulk_process(self, experiments: list[Experiment]):
+        for exp in experiments:
+            exp.process_data()
+        self.tree_view.update()
+
+    def _open_area_dialog(self, experiments: list[Experiment]):
+        dialog = AreaDialog()
+        dialog.load_from_settings()
+        if dialog.exec() == QDialog.Accepted:
+            data = dialog.get_data()
+            for exp in experiments:
+                exp.set_area(data['geometrical_area'])
+                exp.set_potential(data['reference_potential'])
+                
+                # Aktualizacja tooltipa w UI (szukamy odpowiadającego wiersza w modelu źródłowym)
+                for row in range(self.model.rowCount()):
+                    parent = self.model.item(row)
+                    for child_row in range(parent.rowCount()):
+                        item = parent.child(child_row, 0)
+                        if item and item.data(Qt.UserRole) == exp:
+                            item.setToolTip(f"Area: {data['geometrical_area']}")
+            dialog.save_to_settings()
+
+    def color_items(self, items: list[QStandardItem], color=None):
+        if isinstance(color, QColor):
+            for item in items:
+                item.setBackground(color)
+
+    # =========================================================================
+    # ZAAWANSOWANE OPERACJE NA ZAZNACZENIACH (ZAPOBIEGANIE BŁĘDOM PROXY)
+    # =========================================================================
+
+    def select_all_samples(self):
+        """Zaznacza absolutnie wszystkie węzły typu Sample na poziomie Proxy."""
+        selection_model = self.tree_view.selectionModel()
+        root_count = self.proxy_model.rowCount(QModelIndex())
+        for row in range(root_count):
+            sample_index = self.proxy_model.index(row, 0, QModelIndex())
+            selection_model.select(sample_index, QItemSelectionModel.Select | QItemSelectionModel.Rows)
+
+    def select_experiment_siblings(self, experiment_proxy_index: QModelIndex):
+        """Zaznacza wszystkie eksperymenty należące do tego samego rodzica na poziomie Proxy."""
+        parent = experiment_proxy_index.parent()
+        if not parent.isValid():
+            return 
+        selection_model = self.tree_view.selectionModel()
+        siblings_count = self.proxy_model.rowCount(parent)
+        for row in range(siblings_count):
+            sibling_index = self.proxy_model.index(row, 0, parent)
+            selection_model.select(sibling_index, QItemSelectionModel.Select | QItemSelectionModel.Rows)
+
+    def select_all_experiments_globally(self):
+        """Przeszukuje całe drzewo proxy i zaznacza każdy eksperyment u każdego rodzica."""
+        selection_model = self.tree_view.selectionModel()
+        root_count = self.proxy_model.rowCount(QModelIndex())
+        for s_row in range(root_count):
+            sample_index = self.proxy_model.index(s_row, 0, QModelIndex())
+            exp_count = self.proxy_model.rowCount(sample_index)
+            for e_row in range(exp_count):
+                global_exp_index = self.proxy_model.index(e_row, 0, sample_index)
+                selection_model.select(global_exp_index, QItemSelectionModel.Select | QItemSelectionModel.Rows)
+        self.tree_view.expandAll()
+
+    def expand_selection_automatically(self):
+        """Inteligentny Ctrl+A operujący w całości bezpiecznie na warstwie Proxy."""
+        selected = self.tree_view.selectionModel().selectedRows(0)
+        if not selected:
             return
-        
+
+        first_index = selected[0]
+        if not first_index.parent().isValid():
+            self.select_all_samples()
+        else:
+            parent_proxy_index = first_index.parent()
+            local_children_count = self.proxy_model.rowCount(parent_proxy_index)
+            if len(selected) >= local_children_count:
+                self.select_all_experiments_globally()
+            else:
+                self.select_experiment_siblings(first_index)
+
+    # =========================================================================
+    # POZOSTAŁE METODY POMOCNICZE (WSPARCIE DANYCH)
+    # =========================================================================
+
     def load_folder(self): 
         files = load_folder(self)
-        if files:
-            self.load_data(files)
+        if files: self.load_data(files)
 
     def load_files(self):
         files = load_files(self)
-        if files:
-            self.load_data(files)
+        if files: self.load_data(files)
 
     def load_data(self, files):
         for file in files:
             try:
                 experiment = self.loader.create_experiment(str(file))
-                
-                # Manager teraz zwraca obiekt Sample, do którego trafił eksperyment
-                # Domyślnie grupujemy np. po folderze
                 sample = self.manager.add_experiment(experiment, sample_name=experiment.folder)
-                
-                # Odświeżamy model na poziomie Próbki
                 self.refresh_sample_in_model(sample)
-
             except Exception as e:
                 print(f"Błąd ładowania: {e}")
-    
+
     def refresh_sample_in_model(self, sample):
-        """Aktualizuje lub tworzy węzeł dla danej próbki i jej dzieci."""
-        
-        # 1. Znajdź węzeł próbki (używamy UserRole, by trzymać obiekt Sample, nie tekst)
         parent_item = None
         for row in range(self.model.rowCount()):
             item = self.model.item(row)
-            if item.data(Qt.UserRole) == sample: # Porównujemy obiekty, nie napisy!
+            if item and item.data(Qt.UserRole) == sample:
                 parent_item = item
                 break
         
-        # 2. Jeśli nie ma, stwórz węzeł próbki
         if not parent_item:
             parent_item = QStandardItem(f"Sample: {sample.sample_name}")
-            parent_item.setData(sample, Qt.UserRole) # Kluczowe!
+            parent_item.setData(sample, Qt.UserRole)
             self.model.appendRow(parent_item)
         
-        # 3. Wyczyść dzieci i dodaj je na nowo (najprostsza droga do synchronizacji)
-        # Można to zoptymalizować, sprawdzając tylko brakujące
         parent_item.setRowCount(0)
-        
         for exp in sample.experiments:
             self.add_experiment_to_item(parent_item, exp)
 
     def add_experiment_to_item(self, parent_item, exp):
-        """Dodaje pojedynczy wiersz eksperymentu pod rodzica."""
         child_name = QStandardItem(exp.file_name)
         child_class = QStandardItem(exp.__class__.__name__)
         child_id = QStandardItem(str(exp.id))
-
-        # Przechowujemy cały obiekt w UserRole pierwszego kolumny
         child_name.setData(exp, Qt.UserRole)
-        
         parent_item.appendRow([child_name, child_class, child_id])
 
-    def get_target_indices(self, clicked_index=None):
-        """
-        Zwraca listę indeksów do przetworzenia.
-        Priorytet:
-        1. Jeśli kliknięty prawym przyciskiem indeks nie jest w obecnym zaznaczeniu -> tylko ten indeks.
-        2. Jeśli kliknięty indeks JEST w zaznaczeniu -> całe zaznaczenie.
-        3. Jeśli nie kliknięto w nic konkretnego (np. skrót klawiszowy) -> całe zaznaczenie.
-        """
-        selection_model = self.tree_view.selectionModel()
-        
-        # Przypadek: Wywołanie ze skrótu klawiszowego (clicked_index to None lub bool)
-        if clicked_index is None or isinstance(clicked_index, bool):
-            return selection_model.selectedRows(0)
-
-        # Przypadek: Kliknięcie prawym przyciskiem myszy
-        if selection_model.isSelected(clicked_index):
-            # Jeśli kliknąłeś w coś, co już jest zaznaczone (część grupy)
-            return selection_model.selectedRows(0)
+    def toggle_expand(self):
+        if not self.expanded_all:
+            self.tree_view.expandAll()
+            self.expanded_all = True
         else:
-            # Jeśli kliknąłeś w coś poza zaznaczeniem, traktujemy to jako wybór tylko tego jednego
-            return [clicked_index.siblingAtColumn(0)]
+            self.tree_view.collapseAll()
+            self.expanded_all = False
 
-
-    def identify_selection(self, index):
-        if not index.isValid():
-            return
-        return index.data(Qt.UserRole)
-    
-    def copy_folder(self, parents_indexes):
-        for index in parents_indexes:
-            sample = index.data(Qt.UserRole)
-            parent_item = self.model.itemFromIndex(index)
-            exps_to_copy = []
-            for experiment in sample:
-
-                #copy_experiment returns both sample and experiment if sample_name is specified
-                new_sample, new_experiment = self.manager.copy_experiment(experiment, new_id = self.loader.get_counter(), sample_name = sample.sample_name + "Copy")
-                self.loader.update_counter(1)
-                
-            #refreshing for each sample
-            self.refresh_sample_in_model(new_sample)
-
-
-    def copy_item(self):
-
-        selected_indices = self.tree_view.selectionModel().selectedRows(0)
-
-        #checking if sample in selection:
-        samples = [index for index in selected_indices if isinstance(index.data(Qt.UserRole), Sample)]
-        if samples:
-                reply = QMessageBox.question(self, 'Copying folder', 
-                                        'Copy folder?', 
-                                        QMessageBox.Yes | QMessageBox.No)
-                
-                if reply == QMessageBox.Yes:
-                    self.copy_folder(samples)
-                    return
-                    
-        
-        for index in selected_indices:
-            parent_index = index.parent()
-            parent = self.model.itemFromIndex(parent_index)
-            experiment = index.data(Qt.UserRole)
-            new_experiment = self.manager.copy_experiment(experiment, new_id = self.loader.get_counter())
-            self.loader.update_counter(1)
-            self.add_experiment_to_item(parent_item = parent, exp = new_experiment )
-
-        
-    def delete_item(self, index = None):
-
-        # 1. Pobieramy unikalne wiersze (tylko z pierwszej kolumny)
-        if (index is None) or (isinstance(index, bool)):
-            selected_indices = self.tree_view.selectionModel().selectedRows(0)
+    def filter_tree(self, text):
+        self.proxy_model.setFilterFixedString(text)
+        if text:
+            self.tree_view.expandAll()
         else:
-            selected_indices = [index,]
-        
-
-        if not selected_indices:
-            QMessageBox.information(self, 'Select node', 'No node selected...')
-            return
-
-        # Sortujemy indeksy malejąco (WAŻNE: zapobiega problemom z przesuwaniem się indeksów przy usuwaniu wielu wierszy)
-        selected_indices.sort(key=lambda x: x.row(), reverse=True)
-
-        for index in selected_indices:
-            tipo = self.identify_selection(index)
-
-            if isinstance(tipo, Experiment):
-                exp = index.data(Qt.UserRole)
-                print(exp)
-                parent_index = index.parent()
-                # Usuwamy z logiki (manager/baza)
-                self.manager.delete_experiment_by_id(exp.id)
-                # Usuwamy bezpośrednio z modelu (bez odświeżania całego drzewa)
-                self.model.removeRow(index.row(), index.parent())
-                
-                # deleting the parent
-                if self.model.rowCount(parent_index) == 0:
-                    self.model.removeRow(parent_index.row(), parent_index.parent())
-
-            elif isinstance(tipo, Sample):
-                path_name = index.data(Qt.DisplayRole)
-                reply = QMessageBox.question(self, 'Deleting Folder', 
-                                        'Delete all experiments?', 
-                                        QMessageBox.Yes | QMessageBox.No)
-                
-                if reply == QMessageBox.Yes:
-                    self.manager.delete_by_path(path_name)
-                    # Usuwamy cały folder z widoku
-                    self.model.removeRow(index.row(), index.parent())
-
-
-    def open_menu(self, position):
-        index = self.tree_view.indexAt(position)
-        if not index.isValid():
-            return
-
-        # Pobieramy poprawne indeksy (jeśli kliknięto poza zaznaczeniem, bierzemy tylko kliknięty)
-        targets = self.get_target_indices(index)
-        
-        # Pobieramy obiekt (Sample lub Experiment) przypisany do klikniętego wiersza
-        node_type = self.identify_selection(index)
-
-        is_parent_in_there = self.verify(targets)
-        
-        if is_parent_in_there:
-            # Pobieramy dzieci dla zaznaczonych elementów
-            all_children = self.get_children(targets, type='index')
-            
-            # Pobieramy model odpowiedzialny za zaznaczenia w naszym TreeView
-            selection_model = self.tree_view.selectionModel()
-            
-            # Zaznaczamy każde dziecko, nie ruszając dotychczasowego zaznaczenia
-            for child_index in all_children:
-                selection_model.select(child_index, QItemSelectionModel.Select)
-        
-        # Budujemy i od razu wyświetlamy menu
-        menu = self._build_context_menu(node_type, targets)
-        if menu:
-            menu.exec(self.tree_view.viewport().mapToGlobal(position))
-
-    def _build_context_menu(self, node_type, targets_indices):
-        menu = QMenu()
-        # Wyciągamy obiekty Experiment z wybranych indeksów
-        experiments = self.experimentFromIndex(targets_indices)
-        amount = len(targets_indices)
-
-        if isinstance(node_type, Experiment):
-            # Akcja: Info (tylko dla jednego zaznaczenia)
-            info_act = menu.addAction("Show details")
-            info_act.setEnabled(amount == 1)
-            info_act.triggered.connect(lambda: self.on_double_clicked(targets_indices[0]))
-
-            # Akcja: Notatnik
-            note_act = menu.addAction("Open in text editor")
-            note_act.triggered.connect(lambda: [open_file_in_system_editor(e.file_path) for e in experiments])
-
-            menu.addSeparator()
-
-            # Akcja: Przetwarzanie (wykorzystuje Twoją nową metodę pomocniczą)
-            proc_act = menu.addAction("Process")
-            proc_act.triggered.connect(lambda: self._bulk_process(experiments))
-
-            # Akcja: Zmiana parametrów powierzchni/potencjału
-            param_act = menu.addAction("Set Geometrical Area")
-            param_act.triggered.connect(lambda: self._open_area_dialog(experiments))
-            
-            # Akcja: Zapis (Batch process w managerze)
-            save_act = menu.addAction('Save to Excel')
-            save_act.triggered.connect(self.quick_save)
-
-            # Akcja: wyślij gdzieś eksperyment
-            plot_act = menu.addAction('Plot')
-            plot_act.triggered.connect(lambda: self.plotRequested.emit(experiments))
-
-        elif isinstance(node_type, Sample):
-            # Akcja dla całego kontenera Sample
-            sample_children = self.get_children(targets_indices)
-            print(sample_children)
-            batch_act = menu.addAction("Batch process all in Sample")
-            
-            def process_sample():
-                # node_type jest tutaj obiektem Sample, po którym można iterować
-                x = self.get_children(targets_indices, 'item')
-                self._bulk_process(node_type.experiments)
-                self.color_indexes(x, color = QColor('green'))
-
-            batch_act.triggered.connect(process_sample)
-            
-            menu.addSeparator()
-            delete_folder_act = menu.addAction("Delete Sample")
-            delete_folder_act.triggered.connect(lambda: self.delete_item(targets_indices[0]))
-
-            batch_apply_parameters = menu.addAction("Apply parameters")
-            batch_apply_parameters.triggered.connect(lambda: self._open_area_dialog(sample_children))
-
-        return menu
-    
-    def quick_save(self):
-        indices = self.get_selected_indices()
-        experiments = self.experimentFromIndex(indices)
-        
-        name, done = QInputDialog.getText(self, 'Save name', 'Enter name of file')
-        if done:
-            self.manager.batch_process_selected_experiments(experiments, name, 'tag')
-    
-    def color_indexes(self, indices:list[QStandardItem], color = None):
-        if isinstance(color, QColor):
-            color_to_apply = color
-        elif isinstance(color, str):
-            return
-        for index in indices:
-            index.setBackground(color_to_apply)
-
-    def _bulk_process(self, experiments):
-        for exp in experiments:
-            exp.process_data()
-
-    def _open_area_dialog(self, indices):
-        """Przyjmuje indeksy, bo musi wiedzieć co zaktualizować w UI po zamknięciu dialogu."""
-        dialog = AreaDialog()
-        dialog.load_from_settings()
-        
-        if dialog.exec() == QDialog.Accepted:
-            data = dialog.get_data()
-            
-            for idx in indices:
-                experiment = idx.data(Qt.UserRole)
-                # Logika biznesowa
-                experiment.set_area(data['geometrical_area'])
-                experiment.set_potential(data['reference_potential'])
-                
-                # Logika UI - np. zmień kolor, żeby pokazać, że dane są "dirty" (zmodyfikowane)
-                item = self.model.itemFromIndex(idx)
-                item.setToolTip(f"Area: {data['geometrical_area']}") # Przykład aktualizacji UI
-                
-            dialog.save_to_settings()
-
-
-    def get_children(self, parent_indexes, type='index'):
-        all_indexes = []
-        
-        # Iterujemy po wszystkich przekazanych rodzicach
-        for parent_index in parent_indexes:
-            children_count = self.model.rowCount(parent_index)
-            
-            # Zbieramy indeksy dzieci dla TEGO rodzica i dorzucamy do głównej listy
-            for child_row in range(children_count):
-                child_index = self.model.index(child_row, 0, parent_index)
-                all_indexes.append(child_index)
-                
-        # Zwracamy odpowiedni typ danych
-        if type == 'index':
-            return all_indexes
-        elif type == 'item':
-            return [self.model.itemFromIndex(idx) for idx in all_indexes]
-
-
-    def verify_parent_children_relationship(self, targets):
-
-        parents = [target for target in targets if self.identify_selection(target) == 'PARENT']
-        selected_children = [target for target in targets if self.identify_selection(target) == 'CHILD']
-        selection_model = self.tree_view.selectionModel()
-        selection = QItemSelection()
-        
-        if (len(parents) != 0) and (len(selected_children) > 0):
-            button = QMessageBox.question(self,
-                                 "Multiple selection",
-                                 "It appears you selected both folder and its child(ren). Extend selection to all children?",
-                                 buttons = QMessageBox.StandardButton.Yes
-                                 | QMessageBox.StandardButton.No,
-                                 defaultButton = QMessageBox.StandardButton.No
-                                 )
-            if button == QMessageBox.StandardButton.Yes:
-                for parent in parents:
-                    children = self.get_children(parent)
-                    selected_children += children
-            elif button == QMessageBox.StandardButton.No:
-                selected_children = selected_children
-
-            selected_children = set(selected_children)
-            for idx in selected_children:
-                selection.select(idx, idx)
-            selection_model.select(selection, QItemSelectionModel.SelectionFlag.ClearAndSelect)
-        
-        return selected_children
-                
-    def experimentFromIndex(self, indexes) -> list[Experiment]:
-
-        data_list = []
-        
-        for index in indexes:
-            data = index.data(Qt.UserRole)
-            # if isinstance(data, Sample):
-            #     reply = QMessageBox.question(self, 'Select all?', 
-            #             f'You have selected a Sample node {data.sample_name}. Select all of its experiments?', 
-            #             QMessageBox.Yes | QMessageBox.No)
-            #     if reply == QMessageBox.Yes:
-            #         data_list.extend(data.experiments)
-            # elif isinstance(data, Experiment):
-            data_list.append(data)
-        
-        #removing duplicates
-        data_set = set(data_list)
-        return data_set
-    
-    def get_selected_indices(self):
-        indices = self.tree_view.selectionModel().selectedRows()
-        return indices
+            self.tree_view.collapseAll()
 
     def get_selected_experiments(self):
-        indices = self.tree_view.selectionModel().selectedRows()
-        return self.experimentFromIndex(indices)
-        
-    def select_all_samples(self):
-        """Scenariusz: Zaznacza absolutnie wszystkie węzły typu Sample (poziom 0)."""
-        selection_model = self.tree_view.selectionModel()
-        root_count = self.model.rowCount(QModelIndex())
-        
-        for row in range(root_count):
-            sample_index = self.model.index(row, 0, QModelIndex())
-            selection_model.select(sample_index, QItemSelectionModel.Select | QItemSelectionModel.Rows)
-
-    def select_experiment_siblings(self, experiment_index: QModelIndex):
-        """Scenariusz: Zaznacza wszystkie eksperymenty należące do TEGO SAMEGO rodzica."""
-        if not experiment_index.parent().isValid():
-            return # Na wypadek, gdyby przekazano Sample zamiast eksperymentu
-            
-        selection_model = self.tree_view.selectionModel()
-        parent = experiment_index.parent()
-        siblings_count = self.model.rowCount(parent)
-        
-        for row in range(siblings_count):
-            sibling_index = self.model.index(row, 0, parent)
-            selection_model.select(sibling_index, QItemSelectionModel.Select| QItemSelectionModel.Rows)
-
-    def select_all_experiments_globally(self):
-        """Scenariusz: Przeszukuje całe drzewo i zaznacza każdy eksperyment u każdego rodzica."""
-        selection_model = self.tree_view.selectionModel()
-        root_count = self.model.rowCount(QModelIndex())
-        
-        for s_row in range(root_count):
-            sample_index = self.model.index(s_row, 0, QModelIndex())
-            exp_count = self.model.rowCount(sample_index)
-            
-            for e_row in range(exp_count):
-                global_exp_index = self.model.index(e_row, 0, sample_index)
-                selection_model.select(global_exp_index, QItemSelectionModel.Select| QItemSelectionModel.Rows)
-        self.tree_view.expandAll()
-
-
-    def expand_selection_automatically(self):
-        """Funkcja automatyczna - decyduje za użytkownika na podstawie kliknięcia."""
-        selected = self.tree_view.selectedIndexes()
-        if not selected:
-            return
-
-        first_index = selected[0]
-        
-        # Jeśli kliknięto Sample (brak ważnego rodzica)
-        if not first_index.parent().isValid():
-            self.select_all_samples()
-            
-        # Jeśli kliknięto Eksperyment
-        else:
-            # Pobieramy wszystkie dzieci tego rodzica (lokalne rodzeństwo)
-            local_children = self.get_children([first_index.parent()], type='index')
-            
-            # POPRAWIONY WARUNEK: Sprawdzamy, czy liczba aktualnie zaznaczonych elementów 
-            # jest równa liczbie wszystkich dzieci tego rodzica.
-            if len(selected) >= len(local_children):
-                # Krok 2: Skoro cała próbka jest już zaznaczona, zaznaczamy wszystko globalnie
-                self.select_all_experiments_globally()
-            else:
-                # Krok 1: Zaznaczamy najpierw całe lokalne rodzeństwo
-                self.select_experiment_siblings(first_index)
-
-
-
-    def verify(self, indexes) -> bool:
-        parents = {index.parent() for index in indexes if index.parent().isValid()}
-        
-        if any(p in indexes for p in parents):
-            reply = QMessageBox.question(
-                self, 
-                'Select all?', 
-                'You have selected a Sample node. Select all of its experiments?', 
-                QMessageBox.Yes | QMessageBox.No
-            )
-            
-            if reply == QMessageBox.Yes:
-                return True
-                
-        return False # Jawny return, jeśli warunek nie został spełniony lub kliknięto "No"
+        """Zwraca listę unikalnych obiektów eksperymentów z obecnego zaznaczenia (wsparcie wsteczne)."""
+        _, objects = self._get_business_objects_from_selection()
+        return objects
