@@ -10,7 +10,7 @@ import subprocess
 
 
 
-def calculate_ECSA_from_slope(ECSA_experiments: list[ECSA], potential_list:list, index, *args, **kwargs) -> list:
+def calculate_ECSA_from_slope(ECSA_experiments: list[ECSA], potential:float, index, *args, **kwargs) -> list:
     """Function to perform the calculate_difference_at_potential on
     provided ECSA experiments in different potentials and fit the 
     data to a linear regression model.
@@ -26,48 +26,39 @@ def calculate_ECSA_from_slope(ECSA_experiments: list[ECSA], potential_list:list,
     - `results`: a list of linear slopes, representing the CDL.
     """
 
-    if isinstance(potential_list, (float, int)):
-        potential_list = [potential_list]
-
-
     results = {}
+    data = []
 
-    for potential in potential_list:
-        # FIX: Czyszczenie listy dla każdego potencjału
-        difference_list = []
+    difference_list = []
 
-        for experiment in ECSA_experiments:
-            if not hasattr(experiment, 'data_list'):
-                experiment.load_all()
-                experiment.process_data()
-            
-            difference = experiment.calculate_difference_at_potential(potential, index=index)
-            integral = experiment.calculate_CDL_integral(index=index)
-            scanrate = experiment.meta_data['SCANRATE'] / 1000  # mV -> V/s
-            
-            difference_list.append({
-                'Scanrate [V/s]': scanrate, 
-                'Difference [A]': difference, 
-                'Integral [A]': integral
-            })
+    for experiment in ECSA_experiments:
+        if not hasattr(experiment, 'data_list'):
+            experiment.load_all()
+            experiment.process_data()
         
-        # Czysty DataFrame z punktami pomiarowymi
-        df_data = pd.DataFrame(difference_list).sort_values(by='Scanrate [V/s]').reset_index(drop=True)
+        difference = experiment.calculate_difference_at_potential(potential, index=index)
+        integral = experiment.calculate_CDL_integral(index=index)
+        scanrate = experiment.meta_data['SCANRATE'] / 1000  # mV -> V/s
         
-        # Regresje liniowe
-        res_line = linregress(df_data['Scanrate [V/s]'], df_data['Difference [A]'])
-        res_line_integrate = linregress(df_data['Scanrate [V/s]'], df_data['Difference [A]'])
-        
-        df_data['Line fit [A]'] = df_data['Scanrate [V/s]'] * res_line.slope + res_line.intercept
-        df_data['Integrate fit [A]'] = df_data['Scanrate [V/s]'] * res_line_integrate.slope + res_line_integrate.intercept
-        
-        # Pakujemy wszystko do czystego słownika per potencjał
-        results[potential] = {
-            "slope": res_line.slope,
-            "intercept": res_line.intercept,
-            "r_value": res_line.rvalue,
-            "df_data": df_data  # Tylko czyste punkty pomiarowe
-        }
+        difference_list.append({
+            'Scanrate [V/s]': scanrate, 
+            'Difference [A]': difference, 
+            'Integral [A]': integral
+        })
+    
+    # Czysty DataFrame z punktami pomiarowymi
+    df_data = pd.DataFrame(difference_list).sort_values(by='Scanrate [V/s]').reset_index(drop=True)
+    
+    # Regresje liniowe
+    res_line = linregress(df_data['Scanrate [V/s]'], df_data['Difference [A]'])
+    res_line_integrate = linregress(df_data['Scanrate [V/s]'], df_data['Difference [A]'])
+    
+    df_data['Line fit [A]'] = df_data['Scanrate [V/s]'] * res_line.slope + res_line.intercept
+    df_data['Integrate fit [A]'] = df_data['Scanrate [V/s]'] * res_line_integrate.slope + res_line_integrate.intercept
+    
+    fitting_df = pd.DataFrame([[res_line.slope, res_line.intercept, res_line.rvalue**2]], columns = ['Slope', 'Intercept', 'R^2'], index = [potential])
+    results["df_fitting"] = fitting_df
+    results["df_data"] = df_data
         
     return results
 
@@ -226,11 +217,17 @@ def calc_closest_2D(x_data, y_data, click_x, click_y, ax) -> float | list[float]
         
         # Wybieramy indeks tego, który ma najmniejszy dystans
      
-    
+def convert_to_overpotential_scale(array, potential):
+    return array - potential
+
 
 def calc_first(point, array, n = 1) -> int | list[int]:
     
-    mask = array <= point
+    if point < 0:
+        mask = array <= point
+    elif point > 0:
+        mask = array >= point
+
     array_to_evaluate = array[mask]    
     
     if array.iloc[-1] < array.iloc[0]:
@@ -292,3 +289,5 @@ def calc_closest_value(list_of_points:list[float | int], index_array, value_arra
 #     x_transf['mean'] = x_transf.mean(axis = 1)
 #     x_transf['std'] = x_transf.std(axis = 1)
 #     return x_transf
+
+

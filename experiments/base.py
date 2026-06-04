@@ -14,7 +14,8 @@ DTA_parser = gamry_parser.GamryParser()
 class Experiment():
     def __init__(self, file_path, date_time, id, tag, cycle):
         date_format = "%Y-%m-%d %H:%M:%S"
-        
+
+
         self.file_path = file_path
         self.folder = os.path.dirname(file_path)
         self.file_name = os.path.basename(file_path)
@@ -23,8 +24,8 @@ class Experiment():
         self.tag = tag
         self.custom_parameters = defaultdict()
         self.cycle = cycle
-        self.default_x = 'E vs RHE [V]'
-        self.default_y = 'J_GEO [A/cm2]'
+        self.isLoaded = False
+        self.isProcessed = False
         self.geometrical_area = 1
         self.reference_potential = 0
         self.Ru = 0
@@ -43,11 +44,14 @@ class Experiment():
 
     def load_curves(self):
         
+
         DTA_parser.load(self.file_path)
         self.data_list = DTA_parser.get_curves() 
         if len(self.data_list[-1].index) == 1:
             self.data_list.pop(-1)
             #print(f'Single point curve removed in file {self.file_path}')
+
+        setattr(self, 'isLoaded', True)
         return self.data_list
 
     def get_multiindex_labels(self, columns, curve_index, add_curve_index = True) -> tuple[list[list[str]], list[str]]:
@@ -102,6 +106,7 @@ class Experiment():
             dfs.append(processed_curve)
         
         self.processed_data = dfs
+        setattr(self, 'isProcessed', True)
 
         return self.processed_data
     
@@ -205,6 +210,14 @@ class Experiment():
         else:
             print('Please input the columns')
             return 0
+        
+    def get_xy_data(self, curve_index: int) -> tuple[pd.Series, pd.Series]:
+        """Zwraca domyślne serie X i Y dla wybranej krzywej."""
+        if not self.is_processed:
+            raise RuntimeError("Dane nie zostały jeszcze przeliczone. Wywołaj process_data().")
+        
+        df = self.processed_data[curve_index]
+        return df[self.default_x], df[self.default_y]
 
     def get_meta_data(self) -> dict:
         return self.meta_data
@@ -282,5 +295,27 @@ class Experiment():
         for data in data_to_plot:
             ax.plot(data.iloc[:, 0], data.iloc[:, 1], color = color, **kwargs)
         
+    def is_processed(self):
+        if hasattr(self, 'processed_data'):
+            return
+        else:
+            self.process_data()
+
     def __repr__(self):
         return f"Experiment(id={self.id}, tag='{self.tag}', cycle={self.cycle}, file='{self.file_name}')"
+    
+
+    @property
+    def default_x(self) -> str:
+        """Zwraca domyślną nazwę kolumny X na podstawie stanu Ru."""
+        if self.Ru != 0:
+            return 'E_iR vs RHE [V]'
+        return 'E vs RHE [V]'
+
+    @property
+    def default_y(self) -> str:
+        """Zwraca domyślną nazwę kolumny Y."""
+        if self.geometrical_area != 1:
+            return 'J_GEO [A/cm2]'
+        return 'I [A]'
+    

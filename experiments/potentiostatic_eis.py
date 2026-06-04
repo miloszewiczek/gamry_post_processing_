@@ -3,8 +3,6 @@ from .base import *
 class EIS(Experiment):
     def __init__(self, file_path, date_time, id, tag, cycle):
         super().__init__(file_path, date_time, id, tag, cycle)
-        self.default_x = 'Zreal [Ohm]'
-        self.default_y = '-Zimag [Ohm]'
 
     def process_data(self):
         
@@ -33,3 +31,13 @@ class EIS(Experiment):
         curve['Zimag'] = -curve['Zimag']
         curve.columns = ['Freq [Hz]', 'Zreal [Ohm]', '-Zimag [Ohm]']
         return curve
+    
+    @property
+    def default_x(self) -> str:
+        """Dla EIS osią X jest zawsze Z'."""
+        return 'Zreal [Ohm]'
+
+    @property
+    def default_y(self) -> str:
+        """Dla EIS osią Y jest zawsze -Z"."""
+        return '-Zimag [Ohm]'

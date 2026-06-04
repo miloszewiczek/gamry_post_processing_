@@ -400,27 +400,28 @@ class DoubleLayerCanvas(FigureCanvas):
             return
 
         #Right now it's only 1 dataframe. Need to fix it TODO.
-        for data_dict in data.values():
 
-            df = data_dict['df_data']
-            slope = data_dict['slope']
-            r_val = data_dict['r_value']
 
-            # 1. Rysujemy punkty pomiarowe (Scanrate vs Difference)
-            self.ax_cdl.plot(
-                df['Scanrate [V/s]'], 
-                df['Difference [A]'], 
-                'o', 
-                **kwargs
-            )
-            # 2. Rysujemy dopasowaną prostą regresji
-            self.ax_cdl.plot(
-                df['Scanrate [V/s]'], 
-                df['Line fit [A]'], 
-                '--', 
-                label=f'{sample}\nSlope: {slope:.2e}, r$^2$ = {r_val**2:.2f}',
-                **kwargs
-            )
+        df = data['df_data']
+        fitting_data_df = data['df_fitting']
+        slope = fitting_data_df['Slope'].iloc[0]
+        r_square = fitting_data_df['R^2'].iloc[0]
+
+        # 1. Rysujemy punkty pomiarowe (Scanrate vs Difference)
+        self.ax_cdl.plot(
+            df['Scanrate [V/s]'], 
+            df['Difference [A]'], 
+            'o', 
+            **kwargs
+        )
+        # 2. Rysujemy dopasowaną prostą regresji
+        self.ax_cdl.plot(
+            df['Scanrate [V/s]'], 
+            df['Line fit [A]'], 
+            '--', 
+            label=f'{sample}\nSlope: {slope:.2e}, r$^2$ = {r_square:.2f}',
+            **kwargs
+        )
 
         self.ax_cdl.set_xlabel("Scan rate [V/s]")
         self.ax_cdl.set_ylabel("Current Difference $\Delta I$ [A]")

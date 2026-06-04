@@ -16,6 +16,13 @@ class SimpleDoubleSpinBox(QDoubleSpinBox):
         self.setValue(value)
         if range:
             self.setRange(range[0], range[1])
+    
+    def setValue(self, value):
+        try:
+            float_value = float(value)
+            super().setValue(float_value)
+        except:
+            raise TypeError
 
 
 class BaseDataDialog(QDialog):
@@ -234,9 +241,8 @@ class SelectorWithSample(Selector):
         self.btn_add_all.clicked.connect(self._move_all_to_right)
         self.btn_remove_all.clicked.connect(self._move_all_to_left)
 
-
     def populate(self, items: dict[Sample, list[Experiment]]):
-        # Czyścimy domyślne zachowanie z klasy bazowej
+        """Pierwotna, płaska struktura: Sample -> list[Experiment]"""
         self.source_model.clear()
         self.source_model.setHorizontalHeaderLabels(['Eksperymenty'])
         
@@ -252,17 +258,15 @@ class SelectorWithSample(Selector):
                 sample_item.appendRow(exp_item)
                 
             self.source_model.appendRow(sample_item)
+            
+        self.source_view.expandAll()
+        self.dest_view.expandAll()
 
     def _toggle_selection(self, view, proxy_model, target_state: bool):
-        """Poprawiona wersja odporna na znikanie elementów w trakcie pętli"""
-        # 1. Pobieramy wszystkie zaznaczone indeksy
-
+        """Oryginalna, stabilna wersja dla drzewa dwupoziomowego"""
         proxy_indices = view.selectedIndexes()
-        
-        # 2. Mapujemy je na oryginalny model i odfiltrowujemy:
-        #    - tylko kolumna 0 (żeby uniknąć duplikatów z innych kolumn)
-        #    - tylko elementy posiadające rodzica (czyli Experiment, a nie Sample)
         source_items = []
+        
         for proxy_idx in proxy_indices:
             if proxy_idx.column() == 0:  # Zabezpieczenie przed wieloma kolumnami
                 source_idx = proxy_model.mapToSource(proxy_idx)
@@ -272,29 +276,34 @@ class SelectorWithSample(Selector):
                     item = self.source_model.itemFromIndex(source_idx)
                     if item and item not in source_items:
                         source_items.append(item)
+                else:
+                    # Jeśli kliknięto w węzeł główny (Sample), zaznaczamy wszystkie jego dzieci
+                    parent_item = self.source_model.itemFromIndex(source_idx)
+                    if parent_item:
+                        for row in range(parent_item.rowCount()):
+                            child_item = parent_item.child(row, 0)
+                            if child_item and child_item not in source_items:
+                                source_items.append(child_item)
 
-        # 3. Zmieniamy stan TYLKO na przygotowanej, stabilnej liście obiektów
+        # Zmieniamy stan TYLKO na przygotowanej, stabilnej liście obiektów
         for item in source_items:
             item.setData(target_state, Qt.ItemDataRole.UserRole + 1)
                 
-        # 4. Dopiero na samym końcu, gdy dane są bezpieczne, odświeżamy widoki
+        # Odświeżamy widoki przez proxy
         self.left_proxy.invalidateFilter()
         self.right_proxy.invalidateFilter()
         
-        # Ponownie rozwijamy drzewa
         self.source_view.expandAll()
         self.dest_view.expandAll()
 
     def _move_all_to_right(self):
-        
         self.source_view.selectAll()
-        self._toggle_selection(self.source_view, self.left_proxy, target_state = True)
+        self._toggle_selection(self.source_view, self.left_proxy, target_state=True)
         self.item_changed.emit(self.get_experiments_to_analysis())
 
     def _move_all_to_left(self):
-        
         self.dest_view.selectAll()
-        self._toggle_selection(self.dest_view, self.right_proxy, target_state = False)
+        self._toggle_selection(self.dest_view, self.right_proxy, target_state=False)
         self.item_changed.emit(self.get_experiments_to_analysis())
 
     def move_selected_to_dest(self):
@@ -305,9 +314,8 @@ class SelectorWithSample(Selector):
         self._toggle_selection(self.dest_view, self.right_proxy, target_state=False)
         self.item_changed.emit(self.get_experiments_to_analysis())
 
-
     def get_experiments_to_analysis(self) -> dict[Sample, list[Experiment]]:
-        """Pobranie danych staje się banalne – przeglądamy tylko jeden model"""
+        """Zwraca czystą, płaską strukturę wybranych plików"""
         from collections import defaultdict
         experiments_dict = defaultdict(list)
 
@@ -318,14 +326,27 @@ class SelectorWithSample(Selector):
             if sample_item:
                 for child_row in range(sample_item.rowCount()):
                     exp_item = sample_item.child(child_row, 0)
-                    # Sprawdzamy czy flaga wybrania jest na True
                     if exp_item and exp_item.data(Qt.ItemDataRole.UserRole + 1) == True:
                         exp_obj = exp_item.data(Qt.ItemDataRole.UserRole)
                         experiments_dict[sample_obj].append(exp_obj)
         
-        final_experiments_dict = dict(experiments_dict)
-        return final_experiments_dict
+        return dict(experiments_dict)
+    
+    def get_flat_list(self):
+        experiments_list = []
 
+        for row in range(self.source_model.rowCount()):
+            sample_item = self.source_model.item(row, 0)
+
+            if sample_item:
+                for child_row in range(sample_item.rowCount()):
+                    exp_item = sample_item.child(child_row, 0)
+                    if exp_item and exp_item.data(Qt.ItemDataRole.UserRole + 1) == True:
+                        exp_obj = exp_item.data(Qt.ItemDataRole.UserRole)
+                        experiments_list.append(exp_obj)
+        
+        return experiments_list
+    
 
 class TreeSelectorWithCheckboxes(QWidget):
     # Sygnał wysyłany do okna z wykresem, gdy zmieni się stan jakiegokolwiek checkboxa
@@ -460,6 +481,9 @@ class TreeSelectorWithCheckboxes(QWidget):
                             selected_experiments.append(exp)
                             
         return selected_experiments
+
+
+    
     
 
 class TreeFilterProxyModel(QSortFilterProxyModel):

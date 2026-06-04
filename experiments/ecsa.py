@@ -30,7 +30,7 @@ class ECSA(Voltammetry):
                 print('Potential out of range')
                 return
         
-        if self.processed_data:
+        if self.isProcessed:
             
             data = self.processed_data
             current_column = 'I [A]'
@@ -72,7 +72,7 @@ class ECSA(Voltammetry):
 
         capacitance_list = []
 
-        if self.processed_data:
+        if self.isProcessed:
             data = self.processed_data
             current_column = 'I [A]'
             if self.Ru > 0:

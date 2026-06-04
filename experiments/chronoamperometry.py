@@ -4,8 +4,6 @@ class Chronoamperometry(Experiment):
     def __init__(self, file_path, date_time, id, tag, cycle):
         super().__init__(file_path, date_time, id, tag, cycle)
         self.current = None
-        self.default_x = 'T [s]'
-        self.default_y = 'J_GEO [A/cm2]'
     
     def process_data(self, interactive = False):
 
@@ -136,3 +134,13 @@ class Chronoamperometry(Experiment):
         
         self.get_current_at_time(5)
         self.pick_current()
+
+    @property
+    def default_x(self) -> str:
+        """Dla Chronoamperometrii osią X jest zawsze Czas."""
+        return 'T [s]'
+
+    @property
+    def default_y(self) -> str:
+        """Dla Chronoamperometrii osią Y jest gęstość prądu."""
+        return 'J_GEO [A/cm2]'

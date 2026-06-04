@@ -6,20 +6,22 @@ from gui.small_widgets import TreeSelectorWithCheckboxes, SimpleDoubleSpinBox, S
 from gui_PtQt.plotting_area import DoubleLayerCanvas
 from functions.functions import calculate_ECSA_from_slope
 import matplotlib.cm as cm
+from core import ExperimentManager
 
 
 class DoubleLayer(QDialog):
-    def __init__(self, selected_indices, parent=None):
+    def __init__(self, selected_indices, parent=None, manager: ExperimentManager = None):
         super().__init__(parent)
         self.setWindowTitle("Double Layer Capacity & ECSA Calculation")
         self.resize(1100, 600)  # Szeroki, panoramiczny layout pod dwa wykresy i drzewo
         
+        self.manager = manager
         self.experiments = []
         
         # 1. Wstępne ładowanie i procesowanie surowych danych (Bootstrap)
         self._bootstrap_data(selected_indices)
         num_samples = len(selected_indices.keys())
-        self.cmap = cm.get_cmap('Set1', num_samples)   
+        self.cmap = cm.get_cmap('Set1', num_samples*2)   
 
         # 2. Inicjalizacja komponentów interfejsu
         # Przekazujemy model nadrzędny i indeksy bezpośrednio do selektora z checkboxami
@@ -138,10 +140,13 @@ class DoubleLayer(QDialog):
         raw_text = self.curve_combobox.currentText()
         if raw_text and raw_text.isdigit() and self.experiments_dict:
             selected_curve = [int(raw_text)]
-            for i, (sample, experiments) in enumerate(self.experiments_dict.items()):
-                
-                data_to_plot = {experiment: experiment.get_plot_data(selected_curve) for experiment in experiments}
-                self.canvas.plot_cv_curves(data_to_plot, color = self.cmap(i))
+            flat_experiment_list = self.selector.get_flat_list()
+            cycle_experiment_dict = self.manager.construct_tree_with_cycles(flat_experiment_list)
+            for sample, cycle_dict in cycle_experiment_dict.items():
+                for i, (cycle_num, experiments) in enumerate(cycle_dict.items()):
+                    
+                    data_to_plot = {experiment: experiment.get_plot_data(selected_curve) for experiment in experiments}
+                    self.canvas.plot_cv_curves(data_to_plot, color = self.cmap(i))
 
     def get_current_indexes(self):
         raw_text = self.curve_combobox.currentText()
@@ -167,16 +172,27 @@ class DoubleLayer(QDialog):
         if current_index is None:
             return
         
-        results_dfs = {}
-        for i, (sample, experiments) in enumerate(self.experiments_dict.items()):
-            results_dict = calculate_ECSA_from_slope(
-                ECSA_experiments=experiments, 
-                potential_list=[chosen_potential], 
-                index=current_index
-        )        
-            
-        # Rysujemy proste dopasowania CDL na prawej połówce DoubleLayerCanvas
-            self.canvas.plot_cdl_fit(sample.short_name, results_dict, color = self.cmap(i))
 
-        
-        # Wyświetlenie wyznaczonej pojemności w terminalu diagnostycznym
+        flat_experiment_list = self.selector.get_flat_list()
+        cycle_experiment_dict = self.manager.construct_tree_with_cycles(flat_experiment_list)
+
+        new_dict = {}
+        for sample, cycle_dict in cycle_experiment_dict.items():
+            new_dict[sample] = {}
+
+            for i, (cycle_num, experiments) in enumerate(cycle_dict.items()):
+                new_dict[sample][cycle_num] = {}
+                results_dict = calculate_ECSA_from_slope(
+                    ECSA_experiments = experiments, 
+                    potential =chosen_potential, 
+                    index = current_index
+            )        
+                
+            # Rysujemy proste dopasowania CDL na prawej połówce DoubleLayerCanvas
+                self.canvas.plot_cdl_fit(sample.short_name, results_dict, color = self.cmap(i))
+
+                new_dict[sample][cycle_num]['Experiments'] = experiments
+                new_dict[sample][cycle_num]['Fitting data'] = results_dict['df_fitting']
+                new_dict[sample][cycle_num]['Raw data'] = results_dict['df_data']
+                
+        print(new_dict)

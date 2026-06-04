@@ -512,14 +512,16 @@ class ExperimentPanel(QWidget):
         filtered = self.manager.filter(selected_experiments, object_type='ECSA')
         sample_experiment_tree = self.manager.construct_tree(filtered)
 
-        x = DoubleLayer(sample_experiment_tree)
+        x = DoubleLayer(sample_experiment_tree, manager = self.manager)
         if x.exec() == QDialog.accepted:
             print('elo')
 
     def overpotentials(self):
         from gui_PtQt.overpotentials import OverpotentialsWindow
         _, selected_experiments = self._get_business_objects_from_selection()
-        x = OverpotentialsWindow(selected_experiments)
+        filtered = self.manager.filter(selected_experiments, object_type = 'LinearVoltammetry')
+        sample_experiment_tree = self.manager.construct_tree(filtered)
+        x = OverpotentialsWindow(sample_experiment_tree, manager = self.manager)
         if x.exec() == QDialog.accepted:
             print('naura')
 

@@ -3,8 +3,7 @@ from .base import *
 class OpenCircuit(Experiment):
     def __init__(self, file_path, date_time, id, tag, cycle):
         super().__init__(file_path, date_time, id, tag, cycle)
-        self.default_x = 'T [s]'
-        self.default_y = 'E vs RHE [V]'
+
 
 
     def _add_computed_column(self, curve:pd.DataFrame) -> pd.DataFrame:
@@ -25,3 +24,12 @@ class OpenCircuit(Experiment):
         level_names = ['Path', 'Duration [s]', 'Parameter']
         return level_values, level_names
     
+    @property
+    def default_x(self) -> str:
+        """Dla OCP osią X jest zawsze Czas."""
+        return 'T [s]'
+
+    @property
+    def default_y(self) -> str:
+        """Dla OCP osią Y jest potencjał."""
+        return 'E vs RHE [V]'

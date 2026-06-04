@@ -111,6 +111,30 @@ class ExperimentManager():
         
         return dict(tree)
 
+    def construct_tree_with_cycles(self, experiments: list[Experiment]) -> dict[Sample, dict[int, list[Experiment]]]:
+        """
+        Buduje pełną hierarchię danych z płaskiej listy eksperymentów.
+        Zwraca strukturę: { Sample_Obj: { 1: [Exp1, Exp2], 2: [Exp3] } }
+        """
+        from collections import defaultdict
+
+        # Drzewo zagnieżdżone: domyślną wartością dla nowej próbki 
+        # jest kolejny słownik, którego domyślną wartością jest lista
+        tree = defaultdict(lambda: defaultdict(list))
+        
+        for experiment in experiments:
+            sample_name = experiment.folder
+            sample_obj = self.samples.get(sample_name)
+            
+            if sample_obj:
+                # Wyciągamy numer cyklu (bezpiecznie, z domyślną wartością 1)
+                cycle_num = getattr(experiment, 'cycle', 1)
+                
+                # Dodajemy eksperyment do odpowiedniego cyklu w odpowiedniej próbce
+                tree[sample_obj][cycle_num].append(experiment)
+        
+        # Konwertujemy defaultdict na zwykłe słowniki przed zwróceniem
+        return {sample: dict(cycles) for sample, cycles in tree.items()}
 
  
     def filter_by_id(self, id: int|list[int]) -> list[Experiment] | Experiment: 
@@ -348,3 +372,10 @@ class ExperimentManager():
 
         print(f"Data saved to {save_name}.xlsx")
         return experiment_collectible
+
+    def is_processed(self, experiments):
+        for experiment in experiments:
+            if hasattr(experiment, 'processed_data'):
+                continue
+            else:
+                experiment.process_data()
