@@ -278,6 +278,11 @@ class ExperimentPanel(QWidget):
         self.overpotentials_btn.clicked.connect(self.overpotentials)
         main_layout.addWidget(self.overpotentials_btn)
 
+        open_tafel_btn = QPushButton('Tafel!')
+        open_tafel_btn.clicked.connect(self.tafel_analysis)
+        main_layout.addWidget(open_tafel_btn)
+        
+
     # =========================================================================
     # TRANSLATOR INDEKSÓW (SERCE ARCHITEKTURY)
     # =========================================================================
@@ -524,6 +529,17 @@ class ExperimentPanel(QWidget):
         x = OverpotentialsWindow(sample_experiment_tree, manager = self.manager)
         if x.exec() == QDialog.accepted:
             print('naura')
+
+    def tafel_analysis(self):
+        from gui_PtQt.tafel import TafelAnalysisWindow
+        _, selected_experiments = self._get_business_objects_from_selection()
+        filtered = self.manager.filter(selected_experiments, object_type = 'LinearVoltammetry')
+        sample_experiment_tree = self.manager.construct_tree(filtered)
+        x = TafelAnalysisWindow(sample_experiment_tree, manager = self.manager)
+        if x.exec() == QDialog.accepted:
+            print('elo')
+
+
 
     def on_double_clicked(self, proxy_index):
         if proxy_index.column() != 0:

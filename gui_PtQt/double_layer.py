@@ -7,6 +7,7 @@ from gui_PtQt.plotting_area import DoubleLayerCanvas
 from functions.functions import calculate_ECSA_from_slope
 import matplotlib.cm as cm
 from core import ExperimentManager
+from experiments.analysis import DoubleLayerAnalysis
 
 
 class DoubleLayer(QDialog):
@@ -191,8 +192,11 @@ class DoubleLayer(QDialog):
             # Rysujemy proste dopasowania CDL na prawej połówce DoubleLayerCanvas
                 self.canvas.plot_cdl_fit(sample.short_name, results_dict, color = self.cmap(i))
 
-                new_dict[sample][cycle_num]['Experiments'] = experiments
-                new_dict[sample][cycle_num]['Fitting data'] = results_dict['df_fitting']
-                new_dict[sample][cycle_num]['Raw data'] = results_dict['df_data']
-                
-        print(new_dict)
+
+                x = DoubleLayerAnalysis(name = sample.sample_name, 
+                                        cycle = cycle_num,
+                                        experiments = experiments,
+                                        fitting_data = results_dict['df_fitting'],
+                                        raw_data = results_dict['df_data'],
+                                        potential = chosen_potential)
+        

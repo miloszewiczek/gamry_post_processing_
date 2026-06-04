@@ -9,6 +9,7 @@ import pandas as pd
 import matplotlib.dates as mdates
 from functions.functions import calc_closest_2D
 from experiments import Experiment
+from matplotlib.widgets import SpanSelector
 
 ColorRole = Qt.UserRole + 1
 
@@ -442,3 +443,66 @@ class DoubleLayerCanvas(FigureCanvas):
         except:
             return
 
+
+class TafelCanvas(FigureCanvas):
+    data_requested = pyqtSignal(list)
+    range_selected = pyqtSignal(float, float)
+
+    def __init__(self):
+        self.fig = Figure(figsize=(10, 6), dpi=100) # Zwiększyłem trochę wysokość pod 2 wykresy pionowo
+        super().__init__(self.fig)
+        
+        # Tworzymy pierwszy wykres (górny)
+        self.tafel_cv = self.fig.add_subplot(2, 1, 1)
+        
+        # Tworzymy drugi wykres (dolny) i łączymy oś X z górnym
+        self.tafel_derivative = self.fig.add_subplot(2, 1, 2, sharex=self.tafel_cv)
+        self.bottom_highlight = None
+        # Opcjonalnie: ukrywa powtarzające się etykiety osi X na górnym wykresie
+        # dzięki czemu wykresy ładniej do siebie przylegają
+        self.tafel_cv.tick_params(labelbottom=False)
+        # Będzie działał na osi X wykresu tafel_cv
+        self.current_range = None  # Tu będziemy trzymać krotkę (xmin, xmax)
+        self.span_selector = SpanSelector(
+            ax=self.tafel_cv,
+            onselect=self._on_span_select,
+            direction="horizontal",
+            useblit=True,
+            props=dict(alpha=0.3, facecolor="orange"),
+            interactive=True
+        )
+    def _on_span_select(self, xmin: float, xmax: float):
+        # 1. Odświeżamy prostokąt na dolnym wykresie (tak jak ostatnio ustaliliśmy)
+        if self.bottom_highlight is not None:
+            self.bottom_highlight.remove()
+        self.bottom_highlight = self.tafel_derivative.axvspan(xmin, xmax, facecolor="orange", alpha=0.3)
+        self.draw_idle()
+        
+        # 2. ZAPISUJEMY wybrany zakres do pamięci zamiast od razu emitować sygnał analizy
+        self.current_range = (xmin, xmax)
+
+    def plot_tafel(self, x, y):
+        self.tafel_cv.plot(x, y)
+        self.draw_idle()
+
+    def plot_derivative(self, x, dy_dx):
+        # Mnożymy przez 1e6, żeby przejść z amperów na mikroampery
+        
+        print(dy_dx)
+        self.tafel_derivative.plot(x, dy_dx)
+        self.tafel_derivative.set_ylim(-1, 1)
+        self.draw_idle()
+
+
+    def clear_only_lines(self):
+        """Usuwa z obu wykresów tylko narysowane linie (wykresy), pozostawiając tło i prostokąty."""
+        # Usuwamy linie z górnego wykresu
+        while self.tafel_cv.lines:
+            self.tafel_cv.lines[0].remove()
+            
+        # Usuwamy linie z dolnego wykresu
+        while self.tafel_derivative.lines:
+            self.tafel_derivative.lines[0].remove()
+            
+        # Odświeżamy widok, żeby stare linie zniknęły
+        self.draw_idle()

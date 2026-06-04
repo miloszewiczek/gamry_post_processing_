@@ -17,9 +17,10 @@ class BaseAnalysis():
 
 
 # Definiujemy unikalny typ dla poziomów Twojego MultiIndexu
-IndexLevel = Literal['Sample', 'Cycle', 'Experiment']
+
 
 class OverpotentialAnalysis(BaseAnalysis):
+    IndexLevel = Literal['Sample', 'Cycle', 'Experiment']
     def __init__(self, name: str, experiments: list, data: pd.DataFrame, **kwargs):
         super().__init__(name, experiments, data, **kwargs)
 
@@ -35,5 +36,13 @@ class OverpotentialAnalysis(BaseAnalysis):
         summary_stats = grouped.agg(['mean', 'std'])
         return summary_stats
     
-
-def create_multiindex_analysis(index_names: list[str], data):
+class DoubleLayerAnalysis(BaseAnalysis):
+    def __init__(self, name: str, cycle:int, experiments: list, fitting_data: pd.DataFrame, raw_data: pd.DataFrame, potential:float, **kwargs):
+        # Przekazujemy fitting_data jako główny "data" do bazy, albo odwrotnie - zależnie od preferencji.
+        # Umówmy się, że głównym 'data' będą punkty surowe, a fitting_data przypiszemy jawnie.
+        super().__init__(name, experiments, data=raw_data, **kwargs)
+        
+        self.fitting_data = fitting_data
+        self.cycle = cycle
+        # Dzięki kwargs, jeśli podasz `potential=chosen_potential`, 
+        # automatycznie w klasie bazowej zrobi się self.potential = chosen_potential

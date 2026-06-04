@@ -187,3 +187,23 @@ class LinearVoltammetry(Experiment):
     def perform_postprocessing(self, **kwargs):
         
         return self.calculate_overpotentials(**kwargs)
+    
+    @property
+    def tafel_x(self):
+        if self.tafel_curves:
+            return 'log10 J_GEO [A/cm2]'
+        
+    @property
+    def tafel_y(self):
+        if self.Ru != 0 and self.tafel_curves:
+            return 'E_iR vs RHE [V]'
+        elif self.Ru == 0 and self.tafel_curves:
+            return 'E vs RHE [V]'
+
+    
+    def get_xy_tafel_data(self, curve_index: int) -> tuple[pd.Series, pd.Series]:
+        if not self.is_processed:
+            raise RuntimeError("Dane nie zostały jeszcze przeliczone. Wywołaj process_data().")
+        
+        df = self.tafel_curves[curve_index]
+        return df[self.tafel_x], df[self.tafel_y]

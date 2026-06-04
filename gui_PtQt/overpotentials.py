@@ -187,8 +187,6 @@ class OverpotentialsWindow(QDialog):
 
         x = OverpotentialAnalysis('Analysis 1', experiments = sample_experiments_dict, data = overpotentials_vs_reference)
 
-
-
     def strip(self):
         
         data_string = self.line_edit.text()
