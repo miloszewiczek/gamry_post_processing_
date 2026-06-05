@@ -46,8 +46,8 @@ class PlottingCanvas(FigureCanvas):
                 exp.plot(ax=self.axes, color=color)
             
             # Dodatki estetyczne, o których Experiment nie musi wiedzieć
-            self.axes.set_xlabel(experiments_list[0][0].default_x)
-            self.axes.set_ylabel(experiments_list[0][0].default_y)
+            self.axes.set_xlabel(experiments_list[0][0].default_x_plot)
+            self.axes.set_ylabel(experiments_list[0][0].default_y_plot)
             self.axes.grid(True, alpha=0.3)
             # self.axes.legend() # Opcjonalnie
 
@@ -61,16 +61,12 @@ class PlottingCanvas(FigureCanvas):
                 exp.plot(ax=self.axes, curves = curves)
             
             # Dodatki estetyczne, o których Experiment nie musi wiedzieć
-            self.axes.set_xlabel(experiments_list[0].default_x)
-            self.axes.set_ylabel(experiments_list[0].default_y)
+            self.axes.set_xlabel(experiments_list[0].default_x_plot)
+            self.axes.set_ylabel(experiments_list[0].default_y_plot)
             self.axes.grid(True, alpha=0.3)
             # self.axes.legend() # Opcjonalnie
 
         self.draw_idle()
-        
-    def plot(self, x, y):
-        self.axes.plot(x, y)
-        self.draw()
 
     def clear(self):
         self.axes.clear()
@@ -235,7 +231,7 @@ class PlotManagerPanel(QWidget):
 
         self.my_layout.addWidget(QLabel("Active Plots"))
         self.my_layout.addWidget(self.list_widget)
-        btn =QPushButton("Delete")
+        btn = QPushButton("Delete")
 
         btn.clicked.connect(self.delete_plot)
         btn = self.my_layout.addWidget(btn)
@@ -320,11 +316,7 @@ class PlottingArea(QWidget):
 
     def get_canvas(self):
         return self.Canvas
-
-    def plot(self, df):     
-        self.Canvas.plot(df)
     
-
 
 class DoubleLayerCanvas(FigureCanvas):
     data_requested = pyqtSignal(list)

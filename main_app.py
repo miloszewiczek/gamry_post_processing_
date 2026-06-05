@@ -34,8 +34,8 @@ class MainWindow(QMainWindow):
 
         self.draw_panel = PlottingArea()
         self.plot_manager = PlotManagerPanel()
-        self.plot_manager.plotsUpdated.connect(self.draw_panel.Canvas.plot_experiments)
         self.experiment_panel.plotRequested.connect(self.plot_manager.add_plots)
+        self.plot_manager.plotsUpdated.connect(self.draw_panel.Canvas.plot_experiments)
         
         splitter.addWidget(self.experiment_panel)
         splitter.addWidget(self.draw_panel)

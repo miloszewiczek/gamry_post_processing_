@@ -32,6 +32,21 @@ class EIS(Experiment):
         curve.columns = ['Freq [Hz]', 'Zreal [Ohm]', '-Zimag [Ohm]']
         return curve
     
+    def get_Ru(self):
+
+        if not self.isProcessed:
+            self.process_data()
+        
+        z_real, z_imag = self.get_xy_data(0)
+        
+        # first ten values to include only high-frequency measurement points
+        number_of_points = len(z_imag)
+        high_frequency_number_of_points = int(round(number_of_points/4, 0 ))
+        imag_value = z_imag[0:high_frequency_number_of_points].idxmin()
+        Ru_val = z_real[imag_value]
+        return Ru_val
+            
+    
     @property
     def default_x(self) -> str:
         """Dla EIS osią X jest zawsze Z'."""
@@ -41,3 +56,13 @@ class EIS(Experiment):
     def default_y(self) -> str:
         """Dla EIS osią Y jest zawsze -Z"."""
         return '-Zimag [Ohm]'
+
+    @property
+    def default_x_plot(self) -> str:
+        """Dla EIS osią X jest zawsze Z'."""
+        return 'Z\' [Ω]'
+
+    @property
+    def default_y_plot(self) -> str:
+        """Dla EIS osią Y jest zawsze -Z"."""
+        return '-Z" [Ω]'

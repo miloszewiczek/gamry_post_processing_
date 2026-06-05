@@ -110,6 +110,15 @@ class ExperimentManager():
                 tree[sample_obj].append(experiment)
         
         return dict(tree)
+    
+    def find_sample(self, experiment:Experiment):
+        
+        for sample in self.samples.values():
+            print(sample)
+            if experiment in sample:
+                return sample
+            else:
+                continue
 
     def construct_tree_with_cycles(self, experiments: list[Experiment]) -> dict[Sample, dict[int, list[Experiment]]]:
         """

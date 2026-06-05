@@ -441,6 +441,23 @@ class ExperimentPanel(QWidget):
             ecsa_calc_act = ecsa_menu.addAction(f"Calculate ECSA Capacity ({len(ecsa_exps)})")
             ecsa_calc_act.triggered.connect(lambda: print(f"ECSA calculation for {len(ecsa_exps)} objects."))
 
+        eis_exps = [e for e in experiments if getattr(e, 'object_type', None) == 'EIS' or e.__class__.__name__ == 'EIS']
+        if eis_exps:
+            from experiments import EIS
+            eis_exps: list[EIS]
+            menu.addSeparator()
+            eis_menu = menu.addMenu("EIS Options")
+            eis_ru_act = eis_menu.addAction(f"Get Ru value")
+
+            print(eis_exps[0])
+            eis_ru_act.triggered.connect(lambda: self.get_and_set_Ru(eis_exps[0]))
+            
+
+    def get_and_set_Ru(self, experiment):
+            x = self.manager.find_sample(experiment)
+            Ru_val = experiment.get_Ru()
+            for exp in x:
+                exp.set_Ru(Ru_val)
     # =========================================================================
     # CZYSZCZENIE LOGIKI OPERACYJNEJ (KOPIOWANIE, USUWANIE, ZAPISYWANIE)
     # =========================================================================
@@ -577,6 +594,7 @@ class ExperimentPanel(QWidget):
     def _open_area_dialog(self, experiments: list[Experiment]):
         dialog = AreaDialog()
         dialog.load_from_settings()
+
         if dialog.exec() == QDialog.Accepted:
             data = dialog.get_data()
             for exp in experiments:
@@ -612,14 +630,23 @@ class ExperimentPanel(QWidget):
 
     def select_experiment_siblings(self, experiment_proxy_index: QModelIndex):
         """Zaznacza wszystkie eksperymenty należące do tego samego rodzica na poziomie Proxy."""
+        siblings = self.get_siblings(experiment_proxy_index)
+        selection_model = self.tree_view.selectionModel()
+
+        for sibling in siblings:
+            selection_model.select(sibling, QItemSelectionModel.Select | QItemSelectionModel.Rows)
+
+    def get_siblinigs(self, experiment_proxy_index):
+        """Zaznacza wszystkie eksperymenty należące do tego samego rodzica na poziomie Proxy."""
         parent = experiment_proxy_index.parent()
+        siblings = []
         if not parent.isValid():
             return 
-        selection_model = self.tree_view.selectionModel()
         siblings_count = self.proxy_model.rowCount(parent)
         for row in range(siblings_count):
             sibling_index = self.proxy_model.index(row, 0, parent)
-            selection_model.select(sibling_index, QItemSelectionModel.Select | QItemSelectionModel.Rows)
+            siblings.append(sibling_index)
+        return siblings
 
     def select_all_experiments_globally(self):
         """Przeszukuje całe drzewo proxy i zaznacza każdy eksperyment u każdego rodzica."""

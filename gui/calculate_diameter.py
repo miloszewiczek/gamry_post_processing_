@@ -135,6 +135,8 @@ class AreaDialog(BaseDataDialog):
             'pH': self.pH_DoubleBox,
             'Ru': self.Ru_box
         }
+    def get_fields(self):
+        return self.fields
 
     def get_data(self):
         """Returns the following dict:\n
