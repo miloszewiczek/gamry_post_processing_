@@ -19,6 +19,9 @@ from experiments import LinearVoltammetry
 from gui_PtQt.plotting_area import TafelCanvas
 from numpy import gradient
 from matplotlib.backends.backend_qt5agg import NavigationToolbar2QT as NavigationToolbar
+from functions.functions import calc_closest_value
+from scipy.stats import linregress
+
 
 
 class TafelAnalysisWindow(QDialog):
@@ -26,7 +29,7 @@ class TafelAnalysisWindow(QDialog):
     def __init__(self, selected_indices, parent=None, manager=None):
         super().__init__(parent)
         self.setWindowTitle("Tafel Analysis")
-        self.resize(1100, 600)
+        self.resize(1400, 600)
         
         self.manager = manager
         
@@ -49,7 +52,7 @@ class TafelAnalysisWindow(QDialog):
     def build_ui(self):
         main_layout = QHBoxLayout()
         config_layout = QVBoxLayout()
-        config_layout.addWidget(self.selector)
+        config_layout.addWidget(self.selector, stretch = 2)
         config_layout.addWidget(self.plot_btn)
 
         main_layout.addLayout(config_layout)
@@ -59,7 +62,7 @@ class TafelAnalysisWindow(QDialog):
         plot_layout.addWidget(self.toolbar)
         plot_layout.addWidget(self.canvas)
         
-        main_layout.addLayout(plot_layout)
+        main_layout.addLayout(plot_layout, stretch = 3)
         self.setLayout(main_layout)
 
     def _bootstrap_data(self, selected_indices):
@@ -100,25 +103,31 @@ class TafelAnalysisWindow(QDialog):
         sample, cycle_num, exp = self.experiment_queue[self.current_exp_index]
         
         self.setWindowTitle(f"Tafel Analysis - [{sample.sample_name}] Cykl {cycle_num} ({self.current_exp_index + 1}/{len(self.experiment_queue)})")
+        self.get_data_from_experiment(exp)
+        self.plot_on_canvas()
+        self.setFocus()
 
-        x, y = exp.get_xy_tafel_data(0)
-        dy_dx = gradient(y, x)
+    def get_data_from_experiment(self, experiment:LinearVoltammetry):
 
+        self.current_x, self.current_y = experiment.get_xy_tafel_data(0)
+        self.current_dy_dx = gradient(self.current_y, self.current_x)
+
+
+    def plot_on_canvas(self):
+        
         # --- KLUCZOWA ZMIANA ---
         # Zamiast self.canvas.tafel_cv.clear(), używamy selektywnego czyszczenia:
         self.canvas.clear_only_lines()
 
         # Rysujemy nowe dane na tych samych osiach
-        self.canvas.plot_tafel(x, y)
-        self.canvas.plot_derivative(x, dy_dx)
+        self.canvas.plot_tafel(self.current_x, self.current_y)
+        self.canvas.plot_derivative(self.current_x, self.current_dy_dx)
         
         # Wymuszamy automatyczne przeskalowanie osi do NOWYCH danych, 
         # bo bez .clear() Matplotlib mógłby pamiętać stare limity osi Y
         self.canvas.tafel_cv.relim()
         self.canvas.tafel_cv.autoscale_view(True, scalex=True, scaley=True)
         
-        # Oddajemy focus do okna
-        self.setFocus()
 
     # --- KLUCZOWA ZMIANA: NADPISANIE OBSŁUGI KLAWIATURY ---
     def keyPressEvent(self, event):
@@ -136,14 +145,13 @@ class TafelAnalysisWindow(QDialog):
                 return
 
             # Pobieramy zapamiętane granice z canvasu
-            xmin, xmax = self.canvas.current_range
+
+
             sample, cycle_num, exp = self.experiment_queue[self.current_exp_index]
+            data = self.canvas.get_data()
 
-            # --- TUTAJ ROZPOCZYNA SIĘ TWOJA ANALIZA REZULTATÓW ---
-            print(f"Wykonuję analizę dla: {sample.sample_name}, Cykl: {cycle_num} w zakresie {xmin:.3f} - {xmax:.3f}")
-            # Przykładowo: self.analysis_results[(sample, cycle_num)] = ...
 
-            # Przejście do kolejnego kroku
+            # moving on to next experiment
             self.current_exp_index += 1
             self.load_current_experiment()
             

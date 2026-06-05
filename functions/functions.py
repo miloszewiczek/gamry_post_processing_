@@ -203,7 +203,7 @@ def calc_closest(point, array, n = 1) -> int | list[int]:
     elif n > 1:
         return indices[:n]
     
-def calc_closest_2D(x_data, y_data, click_x, click_y, ax) -> float | list[float]:
+def calc_closest_2D(x_data, y_data, click_x, click_y, ax) -> tuple[float,float]:
     # Pobieramy aktualne limity osi
         xlim = ax.get_xlim()
         ylim = ax.get_ylim()

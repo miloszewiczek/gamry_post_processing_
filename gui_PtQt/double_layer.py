@@ -132,7 +132,9 @@ class DoubleLayer(QDialog):
         
         # AUTOMATYKA: Ustawia spinbox na optymalną wartość środkową (half potential) pierwszej krzywej
         if hasattr(self.experiments[0], 'get_half_potential'):
-            self.potential_spinbox.setValue(self.experiments[0].get_half_potential())
+            x = self.experiments[0].get_half_potential()
+            print(x)
+            self.potential_spinbox.setValue(x)
 
     def replotted_selected_curve(self):
         """Odświeża tylko lewy wykres (Krzywe CV)."""

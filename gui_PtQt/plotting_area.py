@@ -10,6 +10,8 @@ import matplotlib.dates as mdates
 from functions.functions import calc_closest_2D
 from experiments import Experiment
 from matplotlib.widgets import SpanSelector
+from scipy.stats import linregress
+
 
 ColorRole = Qt.UserRole + 1
 
@@ -282,7 +284,6 @@ class PlotManagerPanel(QWidget):
             self.update_canvas()
     
     def delete_plot(self):
-            print('elo')
             selected_items = self.list_widget.selectedItems()
             if not selected_items:
                 return
@@ -365,8 +366,8 @@ class DoubleLayerCanvas(FigureCanvas):
         self.ax_cv.grid(True, alpha=0.3)
 
         first_exp = list(experiments_dict.keys())[0]
-        self.ax_cv.set_xlabel(first_exp.default_x)
-        self.ax_cv.set_ylabel(first_exp.default_y)
+        self.ax_cv.set_xlabel(first_exp.default_x_plot)
+        self.ax_cv.set_ylabel(first_exp.default_y_plot)
 
         if experiments_dict:
             for experiment, data in experiments_dict.items():
@@ -432,11 +433,10 @@ class DoubleLayerCanvas(FigureCanvas):
         self.draw_idle()
 
     def move_vline(self, position):
+
         if self.v_line is None:
             return
         
-        print(position)
-
         try:
             self.v_line.set_xdata([position, position])
             self.draw_idle()
@@ -454,6 +454,7 @@ class TafelCanvas(FigureCanvas):
         
         # Tworzymy pierwszy wykres (górny)
         self.tafel_cv = self.fig.add_subplot(2, 1, 1)
+        self.regression_line = None
         
         # Tworzymy drugi wykres (dolny) i łączymy oś X z górnym
         self.tafel_derivative = self.fig.add_subplot(2, 1, 2, sharex=self.tafel_cv)
@@ -480,16 +481,33 @@ class TafelCanvas(FigureCanvas):
         
         # 2. ZAPISUJEMY wybrany zakres do pamięci zamiast od razu emitować sygnał analizy
         self.current_range = (xmin, xmax)
+        to_tafel_range = (self.current_x >= xmin) & (self.current_x <= xmax)
+        self.selected_x = self.current_x[to_tafel_range]
+        self.selected_y = self.current_y[to_tafel_range]
+        regression = linregress(self.selected_x, self.selected_y)
+        self.current_slope = abs(regression.slope)
+        self.tafel_cv.set_title(f'Calculated slope: {round(self.current_slope * 1000, 0)} mV/dec')
+
+        if self.regression_line is not None:
+            self.regression_line.remove()
+        self.regression_line_data = self.selected_x * regression.slope + regression.intercept
+        self.regression_line, = self.tafel_cv.plot(self.selected_x, self.regression_line_data, linewidth = 5, color = 'red')
 
     def plot_tafel(self, x, y):
-        self.tafel_cv.plot(x, y)
+        
+        self.tafel_cv.set_title('Select data')
+        self.current_x = x
+        self.current_y = y
+
+        self.tafel_cv.plot(x, y, color = 'blue')
         self.draw_idle()
+        return x, y
 
     def plot_derivative(self, x, dy_dx):
         # Mnożymy przez 1e6, żeby przejść z amperów na mikroampery
-        
-        print(dy_dx)
-        self.tafel_derivative.plot(x, dy_dx)
+        self.current_dy_dx = dy_dx
+
+        self.tafel_derivative.plot(x, dy_dx, color = 'blue')
         self.tafel_derivative.set_ylim(-1, 1)
         self.draw_idle()
 
@@ -504,5 +522,69 @@ class TafelCanvas(FigureCanvas):
         while self.tafel_derivative.lines:
             self.tafel_derivative.lines[0].remove()
             
+        self.regression_line = None
         # Odświeżamy widok, żeby stare linie zniknęły
         self.draw_idle()
+
+    def get_data(self):
+        return {'Slope': self.current_slope,
+                'Selected xy': (self.selected_x,self.selected_y),
+                'Raw xy': (self.current_x, self.current_y),
+                'Regression line': (self.current_x, self.regression_line_data)}
+    
+
+class ChronopointCanvas(FigureCanvas):
+    def __init__(self):
+        self.fig = Figure(figsize=(10, 6), dpi=100) # Zwiększyłem trochę wysokość pod 2 wykresy pionowo
+        self.ax = self.fig.add_subplot(1,1,1)
+        self.ax.set_xlabel('T [s]')
+        self.ax.set_ylabel('$j_{GEO}$ [A/cm²]')
+
+        super().__init__(self.fig)
+        self.selected_point = None
+        self.fig.canvas.mpl_connect('button_release_event', self.on_click)
+    
+    def plot_chrono(self, x,y):
+
+        self.clear_lines(self.ax)
+
+        self.ax.set_title('Select a point and click Enter')
+        self.ax.plot(x,y, color = 'blue')
+        self.ax.relim()
+        self.fig.tight_layout()
+
+        self.current_x = x
+        self.current_y = y
+        self.draw_idle()
+
+    def on_click(self, event):
+        
+        if event.inaxes != self.ax:
+            return
+        if self.selected_point:
+            self.selected_point.remove()
+        
+        x = event.xdata
+        y = event.ydata
+        self.selected_x, self.selected_y = calc_closest_2D(self.current_x, self.current_y, x, y, self.ax)
+        self.selected_point, = self.ax.plot([self.selected_x], [self.selected_y], 'ro', markersize = 8)
+        self.ax.set_title(f'Time: {self.selected_x}   Current density: {round(self.selected_y*1000, 2)} [mA/cm²]')
+
+        self.draw_idle()
+
+
+    def clear_lines(self, ax):
+    # Usuwamy linie z dolnego wykresu
+        while ax.lines:
+            ax.lines[0].remove()
+        self.selected_point = None
+
+    @property
+    def hasResult(self):
+        if self.selected_point:
+            return True
+        else:
+            return False
+
+    def get_data(self):
+        return self.selected_x, self.selected_y

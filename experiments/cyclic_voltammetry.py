@@ -23,6 +23,7 @@ class Voltammetry(Experiment):
     def process_data(self) -> pd.DataFrame:
         
         result = super().process_data()
+        self.update_meta_data_potentials()
 
         return result
 
@@ -38,6 +39,16 @@ class Voltammetry(Experiment):
     
     def get_half_potential(self) -> float:
 
-        half_potential = (self.meta_data['VLIMIT1'] + self.meta_data['VLIMIT2']) / 2
+        try:
+            half_potential = (self.meta_data['VLIMIT1_ADJUSTED'] + self.meta_data['VLIMIT2_ADJUSTED']) / 2
+        except:
+            half_potential = (self.meta_data['VLIMIT1'] + self.meta_data['VLIMIT2']) / 2
+
         self.half_potential = half_potential
         return half_potential
+    
+    def update_meta_data_potentials(self):
+
+        if self.reference_potential:
+            self.meta_data['VLIMIT1_ADJUSTED'] = self.meta_data['VLIMIT1'] + self.reference_potential
+            self.meta_data['VLIMIT2_ADJUSTED'] = self.meta_data['VLIMIT2'] + self.reference_potential

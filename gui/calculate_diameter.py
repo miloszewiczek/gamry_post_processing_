@@ -17,7 +17,7 @@ class AreaDialog(BaseDataDialog):
 
         settings = QSettings()
         layout = QVBoxLayout()
-        label = QLabel('Geometrical Area [cm2]')
+        label = QLabel('Geometrical Area [cm²]')
         self.value_box = QDoubleSpinBox()
         self.value_box.setRange(0, 1000)
         self.value_box.setDecimals(3)
@@ -75,6 +75,9 @@ class AreaDialog(BaseDataDialog):
         final_potential_label = QLabel('Final E')
         final_potential_label.setToolTip('Final E = Standard E + Offset E + 0.059*pH')
 
+        Ru_label = QLabel('Uncompensated resistance [Ω]')
+        Ru_label.setToolTip('Derived from Get Ru method or EIS measurements. You can right click on EIS experiment and get the Ru value.')
+
         self.standard_potential_layout = QGridLayout()
         self.standard_potential_layout.addWidget(standard_label, 0, 0)
         self.standard_potential_layout.addWidget(offset_label, 0, 1)
@@ -87,10 +90,12 @@ class AreaDialog(BaseDataDialog):
         self.pH_DoubleBox = SimpleDoubleSpinBox(0, (0,14))
         self.final_potential = SimpleDoubleSpinBox(0)
         self.final_potential.setDisabled(True)
+        self.Ru_box = SimpleDoubleSpinBox(0)
 
         self.potentials_list = (self.standard_potential_DoubleBox, self.offset_DoubleBox, self.pH_DoubleBox)
         for component in self.potentials_list:
             component.valueChanged.connect(self.calculate_final_potential)
+
 
         self.standard_potential_layout.addWidget(self.standard_potential_DoubleBox, 1, 0)
         self.standard_potential_layout.addWidget(self.offset_DoubleBox, 1, 1)
@@ -105,6 +110,11 @@ class AreaDialog(BaseDataDialog):
         self.ref_box_define_layout.addWidget(self.ref_box)
         self.ref_box_define_layout.addWidget(self.define_ref_btn)
 
+        self.Ru_layout = QGridLayout()
+        self.Ru_layout.addWidget(self.Ru_box, 1, 0)
+        self.Ru_layout.addWidget(Ru_label, 0,0)
+
+
 
         layout.addWidget(label)
         layout.addLayout(self.area_layout)
@@ -112,6 +122,8 @@ class AreaDialog(BaseDataDialog):
         layout.addWidget(label_ref)
         layout.addLayout(self.ref_box_define_layout)
         layout.addLayout(self.standard_potential_layout)
+        layout.addLayout(self.Ru_layout)
+
         layout.addLayout(bottom_layout)
 
         self.fields = {
@@ -120,7 +132,8 @@ class AreaDialog(BaseDataDialog):
             'reference_potential': self.final_potential,
             'standard_potential': self.standard_potential_DoubleBox,
             'offset_potential': self.offset_DoubleBox,
-            'pH': self.pH_DoubleBox
+            'pH': self.pH_DoubleBox,
+            'Ru': self.Ru_box
         }
 
     def get_data(self):
@@ -131,6 +144,7 @@ class AreaDialog(BaseDataDialog):
         standard_potential\n
         offset_potential\n
         pH\n
+        Ru\n
         """
         return super().get_data()
 
@@ -196,6 +210,8 @@ class AreaDialog(BaseDataDialog):
             self.ref_box.blockSignals(False)
             self.ref_box.setCurrentIndex(index)
         #Need to block the signals for changing
+
+    
         
 
 class AreaDialogBox(QDialog):

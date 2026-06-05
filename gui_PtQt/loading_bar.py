@@ -282,6 +282,10 @@ class ExperimentPanel(QWidget):
         open_tafel_btn.clicked.connect(self.tafel_analysis)
         main_layout.addWidget(open_tafel_btn)
         
+        open_chrono_btn = QPushButton('Chrono!')
+        open_chrono_btn.clicked.connect(self.chronopoint_analysis)
+        main_layout.addWidget(open_chrono_btn)
+        
 
     # =========================================================================
     # TRANSLATOR INDEKSÓW (SERCE ARCHITEKTURY)
@@ -540,6 +544,14 @@ class ExperimentPanel(QWidget):
             print('elo')
 
 
+    def chronopoint_analysis(self):
+        from gui_PtQt.chronopoints import ChronopointsWindow
+        _, selected_experiments = self._get_business_objects_from_selection()
+        filtered = self.manager.filter(selected_experiments, object_type = 'Chronoamperometry')
+        sample_experiment_tree = self.manager.construct_tree(filtered)
+        x = ChronopointsWindow(sample_experiment_tree, manager = self.manager)
+        if x.exec() == QDialog.accepted:
+            print('elo')
 
     def on_double_clicked(self, proxy_index):
         if proxy_index.column() != 0:
@@ -570,6 +582,7 @@ class ExperimentPanel(QWidget):
             for exp in experiments:
                 exp.set_area(data['geometrical_area'])
                 exp.set_potential(data['reference_potential'])
+                exp.set_Ru(data['Ru'])
                 
                 # Aktualizacja tooltipa w UI (szukamy odpowiadającego wiersza w modelu źródłowym)
                 for row in range(self.model.rowCount()):

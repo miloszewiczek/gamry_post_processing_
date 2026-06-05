@@ -69,7 +69,6 @@ class Experiment():
 
 
     def set_Ru(self, Ru_value):
-        print(self.__class__.__name__, 'set Ru of ', str(Ru_value))
         self.Ru = Ru_value
     
     def _add_computed_column(self, curve:pd.DataFrame) -> pd.DataFrame:
@@ -80,7 +79,6 @@ class Experiment():
         curve = curve.reset_index(drop=True)
 
         if self.Ru != 0:
-            self.default_x = 'E_iR vs RHE [V]'
             curve['E_iR vs RHE [V]'] = curve['Vf'] + self.reference_potential - self.Ru * curve['Im']
             return curve[['E vs RHE [V]', 'I [A]', 'E_iR vs RHE [V]', 'J_GEO [A/cm2]']]
 
@@ -106,8 +104,8 @@ class Experiment():
             dfs.append(processed_curve)
         
         self.processed_data = dfs
-        setattr(self, 'isProcessed', True)
 
+        setattr(self, 'isProcessed', True)
         return self.processed_data
     
     def make_multiindex(self, data):
@@ -311,11 +309,26 @@ class Experiment():
         if self.Ru != 0:
             return 'E_iR vs RHE [V]'
         return 'E vs RHE [V]'
+    
+    @property
+    def default_x_plot(self) -> str:
+        """Zwraca domyślną nazwę kolumny X na podstawie stanu Ru."""
+        if self.Ru != 0:
+            return 'E$_{iR}$ vs RHE [V]'
+        return 'E vs RHE [V]'
+
 
     @property
     def default_y(self) -> str:
         """Zwraca domyślną nazwę kolumny Y."""
         if self.geometrical_area != 1:
             return 'J_GEO [A/cm2]'
+        return 'I [A]'
+    
+    @property
+    def default_y_plot(self) -> str:
+        """Zwraca domyślną nazwę kolumny Y."""
+        if self.geometrical_area != 1:
+            return 'j$_{GEO}$ [A/cm²]'
         return 'I [A]'
     
