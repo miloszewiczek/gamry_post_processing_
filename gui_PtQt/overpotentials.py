@@ -111,8 +111,7 @@ class OverpotentialsWindow(QDialog):
 
     def bootstrap_data(self, sample_dict):
         for sample, experiments in sample_dict.items():
-            self.manager.is_processed(experiments)
-
+            self.manager.are_processed(experiments)
 
     def calculate_overpotentials3(self):
 

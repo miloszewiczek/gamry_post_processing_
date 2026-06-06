@@ -12,9 +12,14 @@ from datetime import datetime
 DTA_parser = gamry_parser.GamryParser()
 
 class Experiment():
+    """
+    A base class containing experimental metadata and data.
+
+    Each experiment subtype e.g. LinearVoltametry is based on this superclass.
+    Each subclass has its own process_data function as well as _add_computed_column
+    """
     def __init__(self, file_path, date_time, id, tag, cycle):
         date_format = "%Y-%m-%d %H:%M:%S"
-
 
         self.file_path = file_path
         self.folder = os.path.dirname(file_path)
@@ -31,19 +36,37 @@ class Experiment():
         self.Ru = 0
 
     def load_all(self):
+        """
+        Load both data curves as well as meta_data stored in meta_data and data_list, respecitvely.
+        """
+
         self.load_curves()
         self.load_meta_data()
         return self.meta_data, self.data_list
 
     def load_meta_data(self):
-        
+        """
+        Load only meta_data. Useful to setup further processing and or initial viewing of the experiments structure.
+
+        Returns:
+            self.meta_data (dict): Dictionary containing meta data of the experiment.
+        """
+
         DTA_parser.load(self.file_path)
         self.meta_data = DTA_parser.get_header()
         self.TAG = self.meta_data['TAG']
         return self.meta_data
 
     def load_curves(self):
-        
+        """
+        Load only experimental curves as pandas DataFrames and store them in data_list attribute.
+        Also deletes curves which only have 1 measurement point. This is especially the case in 
+        cyclic voltammetry, when First and Last potentials are set to be the same as VLIMIT1 and 
+        VLIMIT2.
+
+        Returns:
+            self.data_list (list[DataFrame]) 
+        """
 
         DTA_parser.load(self.file_path)
         self.data_list = DTA_parser.get_curves() 
@@ -68,10 +91,20 @@ class Experiment():
         return level_values, level_names
 
 
-    def set_Ru(self, Ru_value):
-        self.Ru = Ru_value
+
     
     def _add_computed_column(self, curve:pd.DataFrame) -> pd.DataFrame:
+        """
+        A function that modifies the curve DataFrame so that it has more detailed info e.g. current density 
+        and iR-compensated potential. Other Experiment subclasses have either additional (Voltammetry) or 
+        different (EIS) modifications to the DataFrame.
+        
+        Args:
+            curve (pd.DataFrame): DataFrame to modify.
+
+        Returns:
+            processed_df (pd.DataFrame): Modified DataFrame.
+        """
 
         curve['J_GEO [A/cm2]'] = curve['Im']/self.geometrical_area
         curve['I [A]'] = curve['Im']
@@ -82,13 +115,20 @@ class Experiment():
             curve['E_iR vs RHE [V]'] = curve['Vf'] + self.reference_potential - self.Ru * curve['Im']
             return curve[['E vs RHE [V]', 'I [A]', 'E_iR vs RHE [V]', 'J_GEO [A/cm2]']]
 
-        return curve[['E vs RHE [V]', 'I [A]', 'J_GEO [A/cm2]']]
+        processed_df = curve[['E vs RHE [V]', 'I [A]', 'J_GEO [A/cm2]']] 
+
+        return processed_df
 
     def process_data(self, **kwargs) -> list[pd.DataFrame]:
+        """
+        Function that takes all curves from data_list attribute and processes them
+        according to the _add_computed_column method.
+        
+        Returns:
+            self.processed_data (list[DataFrame]): List of processed DataFrames"""
         
         if not hasattr(self, 'data_list'):
-            self.load_curves()
-            self.load_meta_data()
+            self.load_all()
 
         print(messages.processing_messages['processing_data_fp_id_len'].format(
             file_path = self.file_path,
@@ -105,11 +145,21 @@ class Experiment():
         
         self.processed_data = dfs
 
+        # Telling the Experiment that it's processed.
         setattr(self, 'isProcessed', True)
         return self.processed_data
     
-    def make_multiindex(self, data):
-
+    def make_multiindex(self, data: list[pd.DataFrame]):
+        """
+        Make a MultiIndex DataFrame based on labels from get_multiindex_labels function. 
+        
+        Args:
+            data (list[DataFrame]): list od DataFrames (curves).
+        
+        Returns:
+            multiindex_df (pd.MultiIndex): Pandas MultiIndex made from data.
+        """
+        
         dfs = []
         
         if len(data) > 1:
@@ -123,7 +173,8 @@ class Experiment():
             curve_copy.columns = pd.MultiIndex.from_product(level_values, names = level_names)
             dfs.append(curve_copy)
 
-        return pd.concat(dfs, axis=1)
+        multiindex_df = pd.concat(dfs, axis=1)
+        return multiindex_df
 
     def get_tree_structure(self) -> dict:
         """Return a nested dictionary representing the file → [curve or potential] → custom_parameters tree.defaultdict()   Supports both 2- and 3-level MultiIndex DataFrames."""
@@ -210,12 +261,25 @@ class Experiment():
             return 0
         
     def get_xy_data(self, curve_index: int) -> tuple[pd.Series, pd.Series]:
-        """Zwraca domyślne serie X i Y dla wybranej krzywej."""
-        if not self.is_processed:
-            raise RuntimeError("Dane nie zostały jeszcze przeliczone. Wywołaj process_data().")
+        """
+        Get default x and y columns of a particular curve defined by its index.
+        The data is from processed_data!
+
+        Args:
+            curve_index (int): Index of curve.
+
+        Returns:
+            xy_tuple (tuple[pd.Series, pd.Series]): Tuple contaning two pandas Series
+            corresponding to x and y data, respectively.
+        
+        """
+        if not self.isProcessed:
+            raise RuntimeError("Data not yet processed. Use process_data().")
         
         df = self.processed_data[curve_index]
-        return df[self.default_x], df[self.default_y]
+        xy_tuple = df[self.default_x], df[self.default_y]
+        
+        return xy_tuple
 
     def get_meta_data(self) -> dict:
         return self.meta_data
@@ -245,16 +309,52 @@ class Experiment():
     def set_parameter(self, parameter:str, value):
         self.custom_parameters[parameter] = value
 
+    def set_Ru(self, Ru_value):
+        """
+        Simple function to set Ru (uncompensated resistance) of the experiment. 
+        
+        Args:
+            Ru_value (float): Uncompensated resistance value to set.
+            
+        Returns:
+            None
+        """
+
+        self.Ru = Ru_value
+        return
+
     def set_area(self, area: float):
+        """
+        Set geometrical area in cm2. 
+        
+        Args:
+            args (float): Area to set in cm2.
+        
+        Returns:
+            None
+        """
+        
         self.geometrical_area = area
+        return
 
     def set_potential(self, potential: float):
+        """
+        Set potential vs RHE in [V]
+        
+        Args:
+            potential (float): Potential to set [V].
+            
+        Returns:
+            None"""
+
         if not isinstance(potential, float):
             try:
                 potential = float(potential)
             except:
                 return
+        
         self.reference_potential = potential
+        return
 
 
     def get_plot_data(self, curves:list[int] = None, x = None, y = None):
@@ -292,12 +392,6 @@ class Experiment():
 
         for data in data_to_plot:
             ax.plot(data.iloc[:, 0], data.iloc[:, 1], color = color, **kwargs)
-        
-    def is_processed(self):
-        if hasattr(self, 'processed_data'):
-            return
-        else:
-            self.process_data()
 
     def __repr__(self):
         return f"Experiment(id={self.id}, tag='{self.tag}', cycle={self.cycle}, file='{self.file_name}')"

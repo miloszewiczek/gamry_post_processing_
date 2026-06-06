@@ -636,7 +636,7 @@ class ExperimentPanel(QWidget):
         for sibling in siblings:
             selection_model.select(sibling, QItemSelectionModel.Select | QItemSelectionModel.Rows)
 
-    def get_siblinigs(self, experiment_proxy_index):
+    def get_siblings(self, experiment_proxy_index):
         """Zaznacza wszystkie eksperymenty należące do tego samego rodzica na poziomie Proxy."""
         parent = experiment_proxy_index.parent()
         siblings = []

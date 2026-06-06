@@ -1,7 +1,14 @@
 from experiments.base import Experiment
 from os.path import basename
 
-class   Sample():
+class  Sample():
+    """Simple container class for experiment objects.
+    
+    The Sample object is defined at first by the folder name in loader/manager
+    combination, however it can be anything. Iterating over the Sample object
+    yields the experiments. 
+    """
+    
     def __init__(self, sample_name: str):
         
         self.sample_path = sample_name

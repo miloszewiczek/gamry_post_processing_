@@ -7,6 +7,7 @@ class OpenCircuit(Experiment):
 
 
     def _add_computed_column(self, curve:pd.DataFrame) -> pd.DataFrame:
+        
         curve['E vs RHE [V]'] = curve['Vf'] + self.reference_potential
         curve['T [s]'] = curve['T']
         return curve[['T [s]', 'E vs RHE [V]']] 

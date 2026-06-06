@@ -87,43 +87,75 @@ class ExperimentManager():
                 self.filtered = [exp for exp in experiments if any(f(exp) for f in active_filters)] #THE LAST LOGIC APPLIES THE FUNCTIONS ON THE exp AND CHECKS IF ANY ARE TRUE
         return self.filtered
 
-    def filter_samples(self):
+    def filter_samples(self,
+        name: str | list[str] = None,
+        cycle: int | list[int] = None,
+        object_type: type | str | list[type | str] = None,
+        inclusive:bool = True 
+        ):
+        """
+        Function to filter the sample objects based on the filtering criterion from filter function.
+
+        Args:
+            name: single name or list of substrings to match in file_path
+            cycle: int or list of ints
+            object_type: class, class name, or list of either
+
+        Returns:
+            sample_dict (dict): Dict of Sample:Experiment objects matching all filters.
+        """
         
         sample_dict = {}
         for sample in self.samples.values():
-            filtered = self.filter(sample.experiments, object_type = ECSA)
+            filtered = self.filter(sample.experiments, name, cycle, object_type, inclusive)
             if filtered:
                 sample_dict[sample] = filtered
         
         return sample_dict
     
-    def construct_tree(self, experiments: list[Experiment]):
+    def construct_tree(self, experiments: list[Experiment]) -> dict[Sample, list[Experiment]]:
+        """
+        Construct a tree of experiments based on a flat list of experiments.
+        
+        It is a less nested dictionary. To get a dictionary with cycle numbers, see
+        coonstruct_tree_with_cycles function.
+        
+        Args:
+            experiments (list[Experiment]): Flat list of experiments to construct the tree from.
+            
+        Returns:
+            final_dict (dict[Sample, list[Experiment]]): Generated dictionary.
+            """
+        
         from collections import defaultdict
 
+        # Defining the defaultdict
         tree = defaultdict(list)
         
+        # looping through the experiments
         for experiment in experiments:
-            sample_name = experiment.folder
 
+            #can also call the ExperimentManager.find_sample function
+            sample_name = experiment.folder
             sample_obj = self.samples.get(sample_name)
+
             if sample_obj:
                 tree[sample_obj].append(experiment)
         
-        return dict(tree)
+        final_dict = dict(tree)
+        return final_dict
     
-    def find_sample(self, experiment:Experiment):
-        
-        for sample in self.samples.values():
-            print(sample)
-            if experiment in sample:
-                return sample
-            else:
-                continue
-
     def construct_tree_with_cycles(self, experiments: list[Experiment]) -> dict[Sample, dict[int, list[Experiment]]]:
         """
-        Buduje pełną hierarchię danych z płaskiej listy eksperymentów.
-        Zwraca strukturę: { Sample_Obj: { 1: [Exp1, Exp2], 2: [Exp3] } }
+        Build a nested dicionary of hierarchy Sample:Cycle:Experiments based on flat list of experiments.
+        
+        First level is based on the sample name, second - the cycle (int) and third: list of experiments.
+
+        Args:
+            experiments (list[Experiment]): Flat list of experiments to build the dict from.
+
+        Returns:
+            final_dict (dict[dict[list[Experiment]]]): Created nested dictionary.
         """
         from collections import defaultdict
 
@@ -132,6 +164,8 @@ class ExperimentManager():
         tree = defaultdict(lambda: defaultdict(list))
         
         for experiment in experiments:
+
+            # could also do self.manager.find_sample(experiment)
             sample_name = experiment.folder
             sample_obj = self.samples.get(sample_name)
             
@@ -142,29 +176,70 @@ class ExperimentManager():
                 # Dodajemy eksperyment do odpowiedniego cyklu w odpowiedniej próbce
                 tree[sample_obj][cycle_num].append(experiment)
         
-        # Konwertujemy defaultdict na zwykłe słowniki przed zwróceniem
-        return {sample: dict(cycles) for sample, cycles in tree.items()}
+        # this is a neat dictionary oneliner
+        final_dict = {sample: dict(cycles) for sample, cycles in tree.items()}
+        
+        return final_dict
+    
+    def find_sample(self, experiment:Experiment) -> Sample | None:
+        """
+        A function that takes an experiment and returns its corresponding Sample object.
+        
+        Args:
+            experiment (Experiment): Child Experiment object.
+            
+        Returns:
+            sample_obj (Sample): Parent Sample object.
+        """
+
+        for sample_obj in self.sample_objs.values():
+            print(sample_obj)
+            if experiment in sample_obj:
+                return sample_obj
+            else:
+                continue
+        return None
+
 
  
-    def filter_by_id(self, id: int|list[int]) -> list[Experiment] | Experiment: 
+    def filter_by_id(self, id: int|list[int]) -> list[Experiment]:
+        """
+        Filter experiments by ther identification number (id).
+
+        Args:
+            id (int | list[int]): Test ID or list of IDs to filter by.
+
+        Returns:
+            filtered_list (list[Expeirment]): List of filtered Experiments.
+        """ 
         
         if not isinstance(id, list):
             id = [id]
             
         id = [int(id) for id in id]
-        tmp = []
+        filtered_list = []
 
         for experiment in self.dict_of_experiments:
             if experiment.id in id:
-                tmp.append(experiment)
+                filtered_list.append(experiment)
 
-        if len(tmp) == 1:
-            return tmp[0]
-
-        return tmp
+        return filtered_list
         
 
-    def add_experiment(self, experiment: Experiment, sample_name: str):
+    def add_experiment(self, experiment: Experiment, sample_name: str) -> Sample:
+        """
+        Function that takes an Experiment object and sample_name and:
+        1) creates a sample if no Sample with sample_name exist
+        2) adds the experiment to the Sample
+
+        Args:
+            experiment (Experiment): Object to add.
+            sample_name (str): Name of the sample.
+        
+        Returns:
+            Sample: Sample to which experiment was added
+        """
+
         if sample_name not in self.samples:
             self.samples[sample_name] = Sample(sample_name)
         
@@ -382,9 +457,16 @@ class ExperimentManager():
         print(f"Data saved to {save_name}.xlsx")
         return experiment_collectible
 
-    def is_processed(self, experiments):
+    def are_processed(self, experiments: list[Experiment]):
+        """
+        Quickly check if the specified experiments were processed.
+        
+        Args:
+            experiments (list[Experiment]): Experiment list to check.
+            
+        Returns:
+            None
+        """
         for experiment in experiments:
-            if hasattr(experiment, 'processed_data'):
-                continue
-            else:
+            if not experiment.isProcessed:
                 experiment.process_data()

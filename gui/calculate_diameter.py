@@ -39,8 +39,6 @@ class AreaDialog(BaseDataDialog):
         self.area_layout.addWidget(self.defaults_box)
         self.area_layout.addWidget(calculate_from_diameter_btn)
 
-
-
         ok_button = QPushButton('OK')
         ok_button.clicked.connect(self.accept)
 

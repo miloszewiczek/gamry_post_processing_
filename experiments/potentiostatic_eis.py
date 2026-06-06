@@ -33,6 +33,16 @@ class EIS(Experiment):
         return curve
     
     def get_Ru(self):
+        """
+        Quick function to grab the high frequency real impedance part 
+        which is most of the time realted to uncompenasted resistance (Ru).
+        
+        Args:
+            self (EIS): EIS object.
+        
+        Returns:
+            Ru_val (float): Uncompenasted resistance taken from the first quarter 
+            of measurement points (to not get values from low frequency range)."""
 
         if not self.isProcessed:
             self.process_data()

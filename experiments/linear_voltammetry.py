@@ -202,7 +202,7 @@ class LinearVoltammetry(Experiment):
 
     
     def get_xy_tafel_data(self, curve_index: int) -> tuple[pd.Series, pd.Series]:
-        if not self.is_processed:
+        if not self.isProcessed:
             raise RuntimeError("Dane nie zostały jeszcze przeliczone. Wywołaj process_data().")
         
         df = self.tafel_curves[curve_index]

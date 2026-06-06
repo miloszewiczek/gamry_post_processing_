@@ -63,7 +63,6 @@ class ReferenceManagerWindow(BaseDataDialog):
         self.references_combobox = QComboBox()
         self.references_combobox.currentTextChanged.connect(self.update_reference_info)
 
-
         add_new_electrode_button = QPushButton('Add')
         add_new_electrode_button.setIcon(QIcon(icon_path + 'plus'))
         add_new_electrode_button.clicked.connect(self.create_new_reference_electrode)
@@ -77,8 +76,6 @@ class ReferenceManagerWindow(BaseDataDialog):
 
         left_layout.addLayout(left_upper_layout)
         left_layout.addLayout(left_down_layout)
-
-        
 
         entry_point_groupbox = QGroupBox('3. Adding entries')
         ocp_layout = QVBoxLayout()
@@ -183,7 +180,7 @@ class ReferenceManagerWindow(BaseDataDialog):
         return
 
 
-    def plot_calibration_potentials(self, dataframe = DataFrame):
+    def plot_calibration_potentials(self, dataframe: DataFrame):
         if dataframe is None:
             electrodes = references.get_electrode(all = True, group = False)
             electrodes_df = references.get_electrodes_data(electrodes)
