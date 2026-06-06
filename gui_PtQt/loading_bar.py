@@ -532,13 +532,13 @@ class ExperimentPanel(QWidget):
             self.manager.batch_process_selected_experiments(experiments, name, 'tag')
 
     def double_layer(self):
-        from gui_PtQt.double_layer import DoubleLayer
+        from gui_PtQt.double_layer import DoubleLayerDialog
         # Pobieramy bezpośrednio listę zaznaczonych obiektów eksperymentów
         _, selected_experiments = self._get_business_objects_from_selection()
         filtered = self.manager.filter(selected_experiments, object_type='ECSA')
         sample_experiment_tree = self.manager.construct_tree(filtered)
 
-        x = DoubleLayer(sample_experiment_tree, manager = self.manager)
+        x = DoubleLayerDialog(sample_experiment_tree, manager = self.manager)
         if x.exec() == QDialog.accepted:
             print('elo')
 

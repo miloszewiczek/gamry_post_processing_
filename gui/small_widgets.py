@@ -33,7 +33,9 @@ class BaseDataDialog(QDialog):
         self.settings_key = settings_key
 
     def get_data(self):
-        """Automatycznie zbiera dane z widgetów zarejestrowanych w self.fields."""
+        """
+        Automatically collect data from widgets present in self.fields.
+        """
         data = {}
         for key, widget in self.fields.items():
             if isinstance(widget, QDoubleSpinBox) or isinstance(widget, QSpinBox):

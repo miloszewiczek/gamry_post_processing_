@@ -1,6 +1,6 @@
 from PyQt5.QtWidgets import (QDialog, QDoubleSpinBox, QPushButton, QHBoxLayout, QVBoxLayout, 
                              QDialog, QComboBox, QLabel, QLineEdit, QRadioButton, QButtonGroup,
-                            QFormLayout, QGridLayout)
+                            QFormLayout, QGridLayout, QWidget)
 
 from gui.small_widgets import SimpleDoubleSpinBox, BaseDataDialog
 from PyQt5.QtCore import QSettings
@@ -149,6 +149,10 @@ class AreaDialog(BaseDataDialog):
         return super().get_data()
 
     def calculate_final_potential(self):
+        """
+        Calculate potential needed to convert the potential from reference to RHE. Value in [V].
+        """
+
         standard, offset, pH = [component.value() for component in self.potentials_list]
         final_value = standard + offset + 0.059* pH
         self.final_potential_value = round(final_value, 3)
@@ -156,19 +160,33 @@ class AreaDialog(BaseDataDialog):
         return self.final_potential_value
     
     def place_input(self):
-        standard_potential, offset_potential = self.ref_box.currentData()
+        """
+        Grab the data from self.ref_box and place it into the Float DoubleBoxes.
+        """
+
+        try: # grab the data
+            standard_potential, offset_potential = self.ref_box.currentData()
+
+        except: # if the ReferenceManager does not yield appropriate ReferenceElectrode label and offset potential don't do anything
+            return
         self.standard_potential_DoubleBox.setValue(standard_potential)
         self.offset_DoubleBox.setValue(offset_potential)
 
-
     def populate_electrodes(self):
-        self.ref_box.clear()
-        add_category(self.ref_box, 'Standard')
+        """
+        Populate the self.ref_box with all electrode types and labels.
+        """
+
+        self.ref_box.clear() # clear all the data
+        add_category(self.ref_box, 'Standard') #this function gives nice looking separators between electrode types
+
+        # First, standard electrodes are populated from file settings.json
         reference_potentials = self.defaults.get('reference_electrode')
         for standard_electrode, potential in reference_potentials.items():
             self.ref_box.addItem(standard_electrode, (potential,0))
 
-        custom_electrodes = references.get_electrode(all = True, group = True)
+        # Custom electrodes, get them all
+        custom_electrodes = references.get_electrode(all = True, group = True)  #this returns a dictionary, because group = True
         if custom_electrodes:
             for electrode_type, electrodes in custom_electrodes.items():
                 add_category(self.ref_box, electrode_type)
@@ -176,8 +194,8 @@ class AreaDialog(BaseDataDialog):
                     self.ref_box.addItem(electrode.label, (defaults.get('reference_electrode')[electrode.type], electrode.get_calibration_offset()))
 
 
-    def set_data(self, data):
-            """Ustawia wartości pól na podstawie słownika."""
+    def set_data(self, data: dict[str: QWidget]):
+            """Set the widget values based on data from data dictionary."""
             self.blockSignals(True) # Opcjonalnie wycisz całe okno na czas ładowania
             for key, value in data.items():
                 widget = self.fields.get(key)
@@ -203,91 +221,126 @@ class AreaDialog(BaseDataDialog):
     def init_reference_manager(self):
         reference_window = ReferenceManagerWindow()
         if reference_window.exec() == QDialog.Accepted:
-            electrode_label, offset = reference_window.get_data()
+            data = reference_window.get_data()
+            electrode_label = data['electrode_label']
+            calibration_offset = data['calibration_offset']
+
             self.ref_box.blockSignals(True)
             self.populate_electrodes()
             index = self.ref_box.findText(electrode_label)
             self.ref_box.blockSignals(False)
             self.ref_box.setCurrentIndex(index)
-        #Need to block the signals for changing
 
-    
-        
 
 class AreaDialogBox(QDialog):
+    """
+    A simple QDialog class that gets and sets most common parameters such as 
+    geometric area, uncompensated resistance (Ru) or reference potential.
+    """
     def __init__(self):
         super().__init__()
+        self.setWindowTitle("Calculate Area")
+        
+        # 1. Wywołanie posegregowanych etapów budowania okna
+        self.init_ui()
+        self.setup_layouts()
+        self.connect_signals()
+        
+        # Uruchomienie początkowego stanu (opcjonalnie na koniec)
+        self.build_ui() 
 
-        self.layout = QVBoxLayout(self)
-        label = QLabel('Area type')
+    def init_ui(self):
+        """KROK 1: Definicje i konfiguracja wszystkich widgetów i struktur danych."""
+        self.main_layout = QVBoxLayout(self)
+        
+        self.label_units = QLabel('Area type')
         self.units = QComboBox()
         self.units.addItems(['cm', 'mm', 'm'])
         
-        self.layout.addWidget(label)
-        self.layout.addWidget(self.units)
-        
-        self.circle_layout = QHBoxLayout()
+        # Pola wprowadzania danych
         self.circle_diameter = QLineEdit()
-        self.circle_diameter.textChanged.connect(self.calculate_circle_area)
-        self.circle_layout.addWidget(self.circle_diameter)
-
-        self.square_layout = QHBoxLayout()
         self.square_length = QLineEdit()
-        self.square_length.textChanged.connect(self.calculate_square_area)
         self.square_length.setDisabled(True)
-        self.square_layout.addWidget(self.square_length)
-
-        self.rectangle_layout = QHBoxLayout()
         self.rectangle_a = QLineEdit()
         self.rectangle_b = QLineEdit() 
-        self.rectangle_a.textChanged.connect(self.calculate_rectangle_area)
-        self.rectangle_b.textChanged.connect(self.calculate_rectangle_area)
         self.rectangle_a.setDisabled(True)
         self.rectangle_b.setDisabled(True)
 
-        self.rectangle_layout.addWidget(self.rectangle_a)
-        self.rectangle_layout.addWidget(self.rectangle_b)
-
+        # Radio buttony
         self.circle_radio = QRadioButton('Circle')
         self.circle_radio.setChecked(True)
         self.square_radio = QRadioButton('Square')
         self.rectangle_radio = QRadioButton('Rectangle')
+        
         self.radio_group = QButtonGroup()
         self.radio_group.addButton(self.circle_radio)
         self.radio_group.addButton(self.square_radio)
         self.radio_group.addButton(self.rectangle_radio)
-        self.radio_group.buttonClicked.connect(self.on_button_clicked)
 
-        self.ok_button = QPushButton('OK')
-        self.ok_button.clicked.connect(self.accept)
-
-        self.layout.addWidget(self.circle_radio)
-        self.layout.addLayout(self.circle_layout)
-        self.layout.addWidget(self.square_radio)
-        self.layout.addLayout(self.square_layout)
-        self.layout.addWidget(self.rectangle_radio)
-        self.layout.addLayout(self.rectangle_layout)
-        
-
-        self.result_layout = QHBoxLayout()
+        # Widgety wynikowe i przyciski akcji
         self.result_string = QLabel('Calculated Area: ')
         self.result_value = QLabel('0')
+        self.ok_button = QPushButton('OK')
+
+        # Słowniki mapujące (Logika biznesowa UI)
+        self.widget_dict = {
+            self.circle_radio: (self.circle_diameter,),
+            self.square_radio: (self.square_length,),
+            self.rectangle_radio: (self.rectangle_a, self.rectangle_b)
+        }
+        self.method_dict = {
+            self.circle_radio: self.calculate_circle_area,
+            self.square_radio: self.calculate_square_area,
+            self.rectangle_radio: self.calculate_rectangle_area
+        }
+
+    def setup_layouts(self):
+        """KROK 2: Budowanie struktury layoutów (Wszystkie addWidget w jednym miejscu)."""
+        self.main_layout.addWidget(self.label_units)
+        self.main_layout.addWidget(self.units)
+        
+        # Kontenery/Layouty dla poszczególnych figur
+        self.circle_layout = QHBoxLayout()
+        self.circle_layout.addWidget(self.circle_diameter)
+        
+        self.square_layout = QHBoxLayout()
+        self.square_layout.addWidget(self.square_length)
+        
+        self.rectangle_layout = QHBoxLayout()
+        self.rectangle_layout.addWidget(self.rectangle_a)
+        self.rectangle_layout.addWidget(self.rectangle_b)
+
+        # Łączenie sekcji figur w głównym layoucie
+        self.main_layout.addWidget(self.circle_radio)
+        self.main_layout.addLayout(self.circle_layout)
+        
+        self.main_layout.addWidget(self.square_radio)
+        self.main_layout.addLayout(self.square_layout)
+        
+        self.main_layout.addWidget(self.rectangle_radio)
+        self.main_layout.addLayout(self.rectangle_layout)
+
+        # Sekcja wyniku
+        self.result_layout = QHBoxLayout()
         self.result_layout.addWidget(self.result_string)
         self.result_layout.addWidget(self.result_value)
-        self.layout.addLayout(self.result_layout)
+        self.main_layout.addLayout(self.result_layout)
         
-        self.layout.addWidget(self.ok_button)
+        # Dół okna
+        self.main_layout.addWidget(self.ok_button)
 
-        self.widget_dict = {self.circle_radio: (self.circle_diameter,),
-                            self.square_radio: (self.square_length,),
-                            self.rectangle_radio: (self.rectangle_a, self.rectangle_b)
-        }
-        self.method_dict = {self.circle_radio: self.calculate_circle_area,
-                    self.square_radio: self.calculate_square_area,
-                    self.rectangle_radio: self.calculate_rectangle_area
-        }
-
-
+    def connect_signals(self):
+        """KROK 3: Połączenia sygnałów ze slotami."""
+        self.circle_diameter.textChanged.connect(self.calculate_circle_area)
+        self.square_length.textChanged.connect(self.calculate_square_area)
+        self.rectangle_a.textChanged.connect(self.calculate_rectangle_area)
+        self.rectangle_b.textChanged.connect(self.calculate_rectangle_area)
+        
+        self.radio_group.buttonClicked.connect(self.on_button_clicked)
+        self.ok_button.clicked.connect(self.accept)
+        
+        # Zmiana jednostki też powinna przeliczyć widok na żywo!
+        self.units.currentTextChanged.connect(self.recalculate_current)
 
     def on_button_clicked(self, clicked_button):
         # Iterujemy po słowniku tylko raz

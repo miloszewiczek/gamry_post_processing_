@@ -124,13 +124,28 @@ class ReferenceManagerWindow(BaseDataDialog):
         self.plot_calibration_potentials(None)
 
 
+    def get_data(self):
+        """
+        Get selected electrode label and its calibration offset
+        
+        Returns:
+            results_dict (dict): Dictionary of results.
+        """
+
+        try:
+            electrode_label = self.electrode_name.text()
+            calibration_offset = float(self.last_calibration_offset.text())
+        except:
+            calibration_offset = None
+            electrode_label = None
+
+        results_dict = {'electrode_label': electrode_label,
+                       'calibration_offset': calibration_offset}
+        return results_dict
 
     def accept(self):
         references.save()
         super().accept()
-
-    def get_data(self):
-        return self.electrode_name.text(), float(self.last_calibration_offset.text())
 
     def select_point(self, event):
         self.OCP_plotting_area.activate(event, self.select_btn, callback = self.add_measurement)

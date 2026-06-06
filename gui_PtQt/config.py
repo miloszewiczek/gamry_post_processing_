@@ -89,10 +89,12 @@ class ReferenceManager(JsonManager):
         return new_electrode
     
     def save(self):
+        """
+        Save data to path given by self.file path, in this case - gui_PtQt/reference_potentials.json"""
         
         electrode_dict = {
             electrode_type: {
-                    electrode_label: electrode.get_dict() # upewnij się, czy to funkcja (), czy właściwość
+                    electrode_label: electrode.get_dict()
             for electrode_label, electrode in electrodes.items()
             } 
         for electrode_type, electrodes in self.electrodes.items()
