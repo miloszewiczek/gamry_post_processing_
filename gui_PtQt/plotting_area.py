@@ -35,6 +35,7 @@ class PlottingCanvas(FigureCanvas):
     def __init__(self):
         self.fig = Figure(figsize = (5, 4), dpi=100)
         self.axes = self.fig.add_subplot(111)
+
         super().__init__(self.fig)
 
     def plot_experiments(self, experiments_list: list[tuple[Experiment, QColor]] = None):
@@ -70,6 +71,14 @@ class PlottingCanvas(FigureCanvas):
 
     def clear(self):
         self.axes.clear()
+
+    def remove_lines(self):
+        current_lines = self.axes.lines
+        legend = self.axes.get_legend()
+        if legend:
+            legend.remove()
+        while current_lines:
+            current_lines[0].remove()
 
 class OCPPlot(FigureCanvas):
     def __init__(self, figsize = (3,4), dpi = 100, label = None):

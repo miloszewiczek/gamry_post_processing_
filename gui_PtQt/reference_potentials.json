@@ -12,7 +12,7 @@
                 "time at offset [s]": 151.98,
                 "calibration offset [V]": 0.414184,
                 "notes": null,
-                "last_calibration_date": 333
+                "last_calibration_date": 340
             }
         }
     },
@@ -24,7 +24,7 @@
                 "time at offset [s]": 349.35,
                 "calibration offset [V]": 0.429587,
                 "notes": null,
-                "last_calibration_date": 333
+                "last_calibration_date": 340
             }
         }
     }

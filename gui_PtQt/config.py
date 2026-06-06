@@ -34,8 +34,8 @@ class ReferenceManager(JsonManager):
 
 
         self.electrodes = {}
-        self.construct_from_json()
         self.isEmpty = True
+        self.construct_from_json()
 
     def get_electrode(self, label = None, electrode_type = None, all = False, group = False) -> list[ReferenceElectrode] | dict[str:ReferenceElectrode]:
         """Function to retrieve ReferenceElectrode objects based on query. You can search electrdoes
@@ -74,9 +74,8 @@ class ReferenceManager(JsonManager):
                 if electrode_measurements:
                     electrode = ReferenceElectrode(electrode_type, electrode_label, electrode_measurements)
                     category[electrode_label] = electrode
-                    
-                    # first initialization
-                    self.isEmpty = False
+
+        self.isEmpty = False
 
     def get_electrodes_data(self, electrodes: list[ReferenceElectrode]) -> pd.DataFrame:
         if electrodes:

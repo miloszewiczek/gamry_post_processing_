@@ -61,6 +61,7 @@ class ReferenceManagerWindow(BaseDataDialog):
 
         # defined electrodes, a "child" of electrode type
         self.references_combobox = QComboBox()
+        self.references_combobox.setPlaceholderText('Add a new electrode')
         self.references_combobox.currentTextChanged.connect(self.update_reference_info)
 
         add_new_electrode_button = QPushButton('Add')
@@ -96,6 +97,11 @@ class ReferenceManagerWindow(BaseDataDialog):
 
 
         self.reference_plotting_area = PlottingCanvas()
+        self.reference_plotting_area.axes.set_title('Offset potential of Reference electrodes')
+        self.reference_plotting_area.axes.set_xlabel('Date Time ')
+        self.reference_plotting_area.axes.set_ylabel('Offset Potential [V]')
+        
+
         figures_layout.addWidget(entry_point_groupbox)
         figures_layout.addWidget(self.reference_plotting_area)
 
@@ -116,6 +122,8 @@ class ReferenceManagerWindow(BaseDataDialog):
         # initializing
         self.update_combobox(None)
         self.plot_calibration_potentials(None)
+
+
 
     def accept(self):
         references.save()
@@ -164,18 +172,24 @@ class ReferenceManagerWindow(BaseDataDialog):
             current_electrodes = references.get_electrode(all = True, group = False)
         else:
             current_electrodes = references.get_electrode(electrode_type = self.references_types.currentText())
+
         if current_electrodes:
             current_electrodes_labels = [electrode.label for electrode in current_electrodes]
             self.references_combobox.clear()
             self.references_combobox.addItems(current_electrodes_labels)
-            if references.isEmpty == False:
-                dataframe = references.get_electrodes_data(current_electrodes)
-                self.plot_calibration_potentials(dataframe = dataframe)
+            
+            dataframe = references.get_electrodes_data(current_electrodes)
+            self.plot_calibration_potentials(dataframe = dataframe)
+
             self.references_combobox.setEnabled(True)
+            self.references_combobox.setCurrentIndex(0)
             return
         
+        
+        # -1 index so that the placeholder text appears
         self.references_combobox.setEnabled(False)
-        self.reference_plotting_area.axes.clear()
+        self.references_combobox.setCurrentIndex(-1)
+        self.reference_plotting_area.remove_lines()
         self.reference_plotting_area.draw_idle()
         return
 
@@ -188,7 +202,9 @@ class ReferenceManagerWindow(BaseDataDialog):
                 return
         else:
             electrodes_df = dataframe
-        self.reference_plotting_area.clear()
+
+        # removing data
+        self.reference_plotting_area.remove_lines()
         electrodes_df.plot(ax = self.reference_plotting_area.axes, marker = 'o', markersize = '5')
         self.reference_plotting_area.draw_idle()
 
