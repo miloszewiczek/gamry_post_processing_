@@ -11,6 +11,11 @@ class BaseAnalysis():
         self.data = data
         for karg in kwargs:
             setattr(self, karg, kwargs[karg])
+
+    def get_dictionary(self):
+        return {'Name': self.name,
+                'Experiments': self.experiments,
+                'Data': self.data}
     
     def __repr__(self):
         return f'Analysis name: {self.name}\nList of experiments: {self.experiments}\n'

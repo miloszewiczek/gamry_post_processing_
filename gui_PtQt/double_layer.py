@@ -6,7 +6,7 @@ from gui.small_widgets import TreeSelectorWithCheckboxes, SimpleDoubleSpinBox, S
 from gui_PtQt.plotting_area import DoubleLayerCanvas
 from functions.functions import calculate_ECSA_from_slope
 import matplotlib.cm as cm
-from core import ExperimentManager
+from core import ExperimentManager, analysis_manager
 from experiments.analysis import DoubleLayerAnalysis
 
 
@@ -88,7 +88,6 @@ class DoubleLayerCoreWidget(QWidget):
         self.curve_combobox.currentIndexChanged.connect(self.replot_selected_curve)
         self.calculate_btn.clicked.connect(self.run_cdl_calculation)
         self.potential_spinbox.valueChanged.connect(self.canvas.move_vline)
-
 
     def set_experiments(self, experiments):
         self.experiments = experiments
@@ -191,7 +190,7 @@ class DoubleLayerCoreWidget(QWidget):
                 self.canvas.plot_cdl_fit(sample.short_name, results_dict, color=self.cmap(i))
 
                 # Tworzymy obiekt analizy (np. do zapisu w historii)
-                x = DoubleLayerAnalysis(
+                cdl_analysis = DoubleLayerAnalysis(
                     name=sample.sample_name, 
                     cycle=cycle_num,
                     experiments=experiments,
@@ -199,3 +198,4 @@ class DoubleLayerCoreWidget(QWidget):
                     raw_data=results_dict['df_data'],
                     potential=chosen_potential
                 )   
+                analysis_manager.add_analysis(cdl_analysis)

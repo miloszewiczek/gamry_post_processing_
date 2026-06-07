@@ -1,4 +1,4 @@
-from core import ExperimentLoader, ExperimentManager
+from core import ExperimentLoader, ExperimentManager, analysis_manager
 from gui_PtQt.loading_bar import ExperimentPanel
 from gui_PtQt.plotting_area import PlottingArea, PlotManagerPanel
 from experiments import *
@@ -6,7 +6,7 @@ from PyQt5.Qt import QApplication, QMainWindow, QWidget, QHBoxLayout, QSplitter
 from PyQt5.QtCore import Qt, QCoreApplication
 from sys import argv
 from gui_PtQt.config import defaults
-
+from core import AnalysisWindow
 
 # Ustawiamy metadane aplikacji raz na samym początku
 
@@ -19,6 +19,7 @@ class MainWindow(QMainWindow):
       
         self.loader = ExperimentLoader()
         self.manager = ExperimentManager(self.loader.load_testing(5))        
+        self.analysis_manager = analysis_manager
 
         self.setWindowTitle('Milosz PyQt App!')
         self.setMinimumHeight(500)
@@ -30,7 +31,7 @@ class MainWindow(QMainWindow):
         
 
         self.experiment_panel = ExperimentPanel(self.loader, self.manager)
-
+        self.analysis_window = AnalysisWindow()
 
         self.draw_panel = PlottingArea()
         self.plot_manager = PlotManagerPanel()
@@ -40,6 +41,7 @@ class MainWindow(QMainWindow):
         splitter.addWidget(self.experiment_panel)
         splitter.addWidget(self.draw_panel)
         splitter.addWidget(self.plot_manager)
+        splitter.addWidget(self.analysis_window)
 
         myLayout.addWidget(splitter)
         tmp_Qwidget.setLayout(myLayout)
@@ -59,6 +61,7 @@ class MainWindow(QMainWindow):
 
 
 if __name__ == '__main__':
+
     QCoreApplication.setOrganizationName("MyChemistryLab")
     QCoreApplication.setApplicationName("ElectrodeAnalyzer")
 

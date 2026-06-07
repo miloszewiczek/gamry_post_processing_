@@ -11,7 +11,7 @@ from experiments.sample import Sample
 from experiments import Experiment 
 import pandas as pd
 from experiments.analysis import OverpotentialAnalysis
-from core import ExperimentManager
+from core import ExperimentManager, analysis_manager
 
 
 class OverpotentialsWindow(QDialog):
@@ -184,7 +184,8 @@ class OverpotentialsWindow(QDialog):
         overpotentials_vs_reference = full_df - self.reference_potential_line_edit.value()
         
 
-        x = OverpotentialAnalysis('Analysis 1', experiments = sample_experiments_dict, data = overpotentials_vs_reference)
+        overpotential_analysis = OverpotentialAnalysis('Analysis 1', experiments = sample_experiments_dict, data = overpotentials_vs_reference)
+        analysis_manager.add_analysis(overpotential_analysis)
 
     def strip(self):
         
