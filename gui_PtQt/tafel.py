@@ -21,6 +21,7 @@ from numpy import gradient
 from matplotlib.backends.backend_qt5agg import NavigationToolbar2QT as NavigationToolbar
 from functions.functions import calc_closest_value
 from scipy.stats import linregress
+from core import ExperimentManager
 
 
 
@@ -34,54 +35,79 @@ class TafelAnalysisWindow(QDialog):
         self.manager = manager
         
         # 1. Wstępne ładowanie i procesowanie surowych danych
-        self._bootstrap_data(selected_indices)
         self.selector = SelectorWithSample(selected_indices)
-        self.canvas = TafelCanvas()
-        self.plot_btn = QPushButton('Start Analysis Queue')
-        self.plot_btn.clicked.connect(self.start_analysis_queue)
-        self.toolbar = NavigationToolbar(self.canvas, self)
-        
+        self.tafel_analyzer = TafelCoreWidget(manager = manager, parent = None)
+        self.selector.flat_list_signal.connect(self.tafel_analyzer.set_experiments)
+        # self.selector.item_changed.connect(self.tafel_analyzer.set_experiments)
+
         # Struktury do obsługi kolejki
         self.experiment_queue = []
         self.current_exp_index = 0
         self.analysis_results = {} # Tu zapiszemy wyniki dopasowań Tafel dla potomnych
 
 
+        self._bootstrap_data(selected_indices)
         self.build_ui()
-
-    def build_ui(self):
-        main_layout = QHBoxLayout()
-        config_layout = QVBoxLayout()
-        config_layout.addWidget(self.selector, stretch = 2)
-        config_layout.addWidget(self.plot_btn)
-
-        main_layout.addLayout(config_layout)
-        
-        # Wykres i toolbar pakujemy w jeden pionowy layout
-        plot_layout = QVBoxLayout()
-        plot_layout.addWidget(self.toolbar)
-        plot_layout.addWidget(self.canvas)
-        
-        main_layout.addLayout(plot_layout, stretch = 3)
-        self.setLayout(main_layout)
 
     def _bootstrap_data(self, selected_indices):
         """Wstępne ładowanie i procesowanie danych na bazie zaznaczonych indeksów."""
         for sample, experiments in selected_indices.items():
-            for ECSA_experiment in experiments:
-                if isinstance(ECSA_experiment, LinearVoltammetry):
-                    if not hasattr(ECSA_experiment, "data_list"):
-                        ECSA_experiment.load_all()
-                    if not hasattr(ECSA_experiment, 'processed_data'):
-                        ECSA_experiment.process_data()
+            for LSV_experiment in experiments:
+                if isinstance(LSV_experiment, LinearVoltammetry):
+                    if not hasattr(LSV_experiment, "data_list"):
+                        LSV_experiment.load_all()
+                    if not hasattr(LSV_experiment, 'processed_data'):
+                        LSV_experiment.process_data()
+
+    def build_ui(self):
+
+        main_layout = QHBoxLayout()
+        main_layout.addWidget(self.selector, stretch = 2)
+        main_layout.addWidget(self.tafel_analyzer)
+        self.setLayout(main_layout)
+
+
+class TafelCoreWidget(QWidget):
+
+    def __init__(self, manager:ExperimentManager, parent = None):
+        # Wykres i toolbar pakujemy w jeden pionowy layout
+        super().__init__(parent)
+
+        self.manager = manager
+        self.parent = parent
+        self.canvas = TafelCanvas()
+
+        self.plot_btn = QPushButton('Start Analysis Queue')
+        self.plot_btn.clicked.connect(self.start_analysis_queue)
+        self.toolbar = NavigationToolbar(self.canvas, self)
+        
+        self.experiments_dict = {}
+        self.experiments = []
+        self.current_exp_index = 0
+        self.experiment_queue = []
+
+        self.build_ui()
+
+
+    def set_experiments(self, experiments):
+        self.experiments = experiments
+        self.experiments_dict = self.manager.construct_tree_with_cycles(experiments)
+        
+    def build_ui(self):
+        
+        plot_layout = QVBoxLayout()
+        plot_layout.addWidget(self.canvas)
+        plot_layout.addWidget(self.toolbar)
+        plot_layout.addWidget(self.plot_btn)
+        self.setLayout(plot_layout)
+
+
 
     def start_analysis_queue(self):
         """Buduje płaską kolejkę eksperymentów do analizy krok po kroku."""
-        experiments = self.selector.get_flat_list()
-        experiments_dict = self.manager.construct_tree_with_cycles(experiments)
-        
+
         self.experiment_queue = []
-        for sample, cycle_dict in experiments_dict.items():
+        for sample, cycle_dict in self.experiments_dict.items():
             for cycle_num, exps in cycle_dict.items():
                 for exp in exps:
                     # Zapisujemy tuple z obiektem i jego metadanymi
@@ -111,7 +137,6 @@ class TafelAnalysisWindow(QDialog):
 
         self.current_x, self.current_y = experiment.get_xy_tafel_data(0)
         self.current_dy_dx = gradient(self.current_y, self.current_x)
-
 
     def plot_on_canvas(self):
         
@@ -171,4 +196,3 @@ class TafelAnalysisWindow(QDialog):
         else:
             # Ignorujemy wszystkie inne klawisze, żeby przypadkowe kliknięcia nic nie popsuły
             super().keyPressEvent(event)
-

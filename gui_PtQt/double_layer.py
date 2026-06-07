@@ -32,28 +32,18 @@ class DoubleLayerDialog(QDialog):
         layout.addWidget(self.analysis_widget, stretch=4)
         
         # Łączenie: Zmiana w selektorze pcha dane do rdzenia
-        self.selector.item_changed.connect(self.update_analysis_data)
+        self.selector.flat_list_signal.connect(self.analysis_widget.set_experiments)
         
-        # Pierwsze załadowanie danych
-        self.update_analysis_data()
-
-    def update_analysis_data(self):
-        # Pobieramy słownik z selektora i przekazujemy "głębiej"
-        data = self.selector.get_experiments_to_analysis()
-        self.analysis_widget.set_experiments(data)
- 
-
-
 
 class DoubleLayerCoreWidget(QWidget):
     """
     Serce analizy. Nie posiada selektora danych. 
     Wymaga podania gotowego słownika z eksperymentami przez metodę 'set_experiments'.
     """
-    def __init__(self, manager, parent=None):
+    def __init__(self, manager: ExperimentManager, parent=None):
         super().__init__(parent)
         self.manager = manager
-        self.experiments_dict = {}
+        self.experiment_dict = {}
         self.experiments = []
         self.cmap = None
         
@@ -95,17 +85,17 @@ class DoubleLayerCoreWidget(QWidget):
         main_layout.addWidget(self.canvas, stretch=3)
 
     def connect_signals(self):
-        self.curve_combobox.currentIndexChanged.connect(self.replotted_selected_curve)
+        self.curve_combobox.currentIndexChanged.connect(self.replot_selected_curve)
         self.calculate_btn.clicked.connect(self.run_cdl_calculation)
         self.potential_spinbox.valueChanged.connect(self.canvas.move_vline)
 
-    def set_experiments(self, experiments_dict):
-        """Metoda wejściowa dla danych z zewnątrz (Wizarda lub Selektora)."""
-        self.experiments_dict = experiments_dict if experiments_dict else {}
-        self.experiments = [exp for exp_list in self.experiments_dict.values() for exp in exp_list]
+
+    def set_experiments(self, experiments):
+        self.experiments = experiments
+        self.experiment_dict = self.manager.construct_tree_with_cycles(experiments)
         
         # Dynamiczne ustawienie colormapy na bazie wstrzykniętych danych
-        num_samples = len(self.experiments_dict.keys())
+        num_samples = len(self.experiment_dict.keys())
         self.cmap = cm.get_cmap('Set1', max(num_samples * 2, 1))
         
         # Uruchomienie oryginalnej logiki odświeżania UI
@@ -138,7 +128,7 @@ class DoubleLayerCoreWidget(QWidget):
             elif available_curves:
                 self.curve_combobox.setCurrentIndex(0)
                 
-        self.replotted_selected_curve()
+        self.replot_selected_curve()
         
         # AUTOMATYKA: Bezpieczne ustawienie spinboxa bez wywoływania przedwczesnych sygnałów rysowania
         if hasattr(self.experiments[0], 'get_half_potential'):
@@ -148,19 +138,15 @@ class DoubleLayerCoreWidget(QWidget):
             # Ręcznie przesuwamy kreskę na wykresie po bezpiecznej zmianie wartości
             self.canvas.move_vline(x)
 
-    def replotted_selected_curve(self):
+    def replot_selected_curve(self):
         """Odświeża tylko lewy wykres (Krzywe CV)."""
         self.canvas.clear_except_line()
 
         raw_text = self.curve_combobox.currentText()
-        if raw_text and raw_text.isdigit() and self.experiments_dict:
+        if raw_text and raw_text.isdigit() and self.experiment_dict:
             selected_curve = [int(raw_text)]
             
-            # POPRAWKA: Słownik nie ma metody get_flat_list(), spłaszczamy go ręcznie:
-            flat_experiment_list = [exp for exp_list in self.experiments_dict.values() for exp in exp_list]
-            
-            cycle_experiment_dict = self.manager.construct_tree_with_cycles(flat_experiment_list)
-            for sample, cycle_dict in cycle_experiment_dict.items():
+            for sample, cycle_dict in self.experiment_dict.items():
                 for i, (cycle_num, experiments) in enumerate(cycle_dict.items()):
                     data_to_plot = {experiment: experiment.get_plot_data(selected_curve) for experiment in experiments}
                     self.canvas.plot_cv_curves(data_to_plot, color=self.cmap(i))
@@ -188,14 +174,9 @@ class DoubleLayerCoreWidget(QWidget):
         current_index = self.get_current_indexes()
         if current_index is None:
             return
-        
-        # POPRAWKA: Słownik nie ma metody get_flat_list(), spłaszczamy go ręcznie:
-        flat_experiment_list = [exp for exp_list in self.experiments_dict.values() for exp in exp_list]
-        
-        cycle_experiment_dict = self.manager.construct_tree_with_cycles(flat_experiment_list)
 
         new_dict = {}
-        for sample, cycle_dict in cycle_experiment_dict.items():
+        for sample, cycle_dict in self.experiment_dict.items():
             new_dict[sample] = {}
 
             for i, (cycle_num, experiments) in enumerate(cycle_dict.items()):
@@ -217,4 +198,4 @@ class DoubleLayerCoreWidget(QWidget):
                     fitting_data=results_dict['df_fitting'],
                     raw_data=results_dict['df_data'],
                     potential=chosen_potential
-                )
+                )   

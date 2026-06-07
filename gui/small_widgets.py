@@ -221,6 +221,9 @@ class ExperimentFilterProxy(QSortFilterProxyModel):
 
 
 class SelectorWithSample(Selector):
+
+    flat_list_signal = pyqtSignal(list)
+
     def __init__(self, items):
         # Inicjalizujemy bazę, ale zaraz podmienimy modele widoków na proxy
         super().__init__(items)
@@ -301,20 +304,38 @@ class SelectorWithSample(Selector):
     def _move_all_to_right(self):
         self.source_view.selectAll()
         self._toggle_selection(self.source_view, self.left_proxy, target_state=True)
-        self.item_changed.emit(self.get_experiments_to_analysis())
+        self.flat_list_signal.emit(self.get_flat())
 
     def _move_all_to_left(self):
         self.dest_view.selectAll()
         self._toggle_selection(self.dest_view, self.right_proxy, target_state=False)
-        self.item_changed.emit(self.get_experiments_to_analysis())
+        self.flat_list_signal.emit(self.get_flat())
+
 
     def move_selected_to_dest(self):
         self._toggle_selection(self.source_view, self.left_proxy, target_state=True)
-        self.item_changed.emit(self.get_experiments_to_analysis())
+        self.flat_list_signal.emit(self.get_flat())
 
     def move_selected_to_source(self):
         self._toggle_selection(self.dest_view, self.right_proxy, target_state=False)
-        self.item_changed.emit(self.get_experiments_to_analysis())
+        self.flat_list_signal.emit(self.get_flat())
+
+
+    def get_flat(self):
+        result = []
+        for row in range(self.source_model.rowCount()):
+            sample_item = self.source_model.item(row, 0)
+            sample_obj = sample_item.data(Qt.UserRole)
+
+            if sample_item:
+                for child_row in range(sample_item.rowCount()):
+                    exp_item = sample_item.child(child_row, 0)
+                    if exp_item and exp_item.data(Qt.ItemDataRole.UserRole + 1) == True:
+                        exp_obj = exp_item.data(Qt.ItemDataRole.UserRole)
+                        
+                        result.append(exp_obj)
+
+        return result
 
     def get_experiments_to_analysis(self) -> dict[Sample, list[Experiment]]:
         """Zwraca czystą, płaską strukturę wybranych plików"""
