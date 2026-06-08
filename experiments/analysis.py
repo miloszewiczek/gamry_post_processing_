@@ -4,18 +4,23 @@ from typing import List, Literal, Union, Dict, Any
 import pandas as pd
 
 class BaseAnalysis():
-    def __init__(self, name, experiments, data, **kwargs):
+    def __init__(self, name, experiments, data, image = None, **kwargs):
         
         self.name = name
         self.experiments = experiments
         self.data = data
+        self.image = image
+
         for karg in kwargs:
             setattr(self, karg, kwargs[karg])
 
+        self.dictionary = {'Name': self.name,
+                           'Experiments': self.experiments,
+                           'Data': self.data,
+                           'Image': self.image}
+
     def get_dictionary(self):
-        return {'Name': self.name,
-                'Experiments': self.experiments,
-                'Data': self.data}
+        return self.dictionary
     
     def __repr__(self):
         return f'Analysis name: {self.name}\nList of experiments: {self.experiments}\n'
@@ -42,12 +47,14 @@ class OverpotentialAnalysis(BaseAnalysis):
         return summary_stats
     
 class DoubleLayerAnalysis(BaseAnalysis):
-    def __init__(self, name: str, cycle:int, experiments: list, fitting_data: pd.DataFrame, raw_data: pd.DataFrame, potential:float, **kwargs):
+    def __init__(self, name: str, experiments: list, fitting_data: pd.DataFrame, raw_data: pd.DataFrame, **kwargs):
         # Przekazujemy fitting_data jako główny "data" do bazy, albo odwrotnie - zależnie od preferencji.
         # Umówmy się, że głównym 'data' będą punkty surowe, a fitting_data przypiszemy jawnie.
         super().__init__(name, experiments, data=raw_data, **kwargs)
         
-        self.fitting_data = fitting_data
-        self.cycle = cycle
+
         # Dzięki kwargs, jeśli podasz `potential=chosen_potential`, 
         # automatycznie w klasie bazowej zrobi się self.potential = chosen_potential
+
+        self.fitting_data = fitting_data
+        self.dictionary['Fitting data'] = self.fitting_data

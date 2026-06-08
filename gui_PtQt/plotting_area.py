@@ -529,7 +529,7 @@ class TafelCanvas(FigureCanvas):
 
     def get_data(self):
         return {'Slope': self.current_slope,
-                'Selected xy': (self.selected_x,self.selected_y),
+                'Selected xy': (self.selected_x, self.selected_y),
                 'Raw xy': (self.current_x, self.current_y),
                 'Regression line': (self.current_x, self.regression_line_data)}
     

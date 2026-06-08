@@ -174,6 +174,12 @@ class DoubleLayerCoreWidget(QWidget):
         if current_index is None:
             return
 
+        multi_index_tuples = []
+        fitting_data = []
+        data = []
+        
+        import pandas as pd
+
         new_dict = {}
         for sample, cycle_dict in self.experiment_dict.items():
             new_dict[sample] = {}
@@ -190,12 +196,25 @@ class DoubleLayerCoreWidget(QWidget):
                 self.canvas.plot_cdl_fit(sample.short_name, results_dict, color=self.cmap(i))
 
                 # Tworzymy obiekt analizy (np. do zapisu w historii)
-                cdl_analysis = DoubleLayerAnalysis(
-                    name=sample.sample_name, 
-                    cycle=cycle_num,
-                    experiments=experiments,
-                    fitting_data=results_dict['df_fitting'],
-                    raw_data=results_dict['df_data'],
-                    potential=chosen_potential
-                )   
-                analysis_manager.add_analysis(cdl_analysis)
+
+
+                mi_tuple = (sample, cycle_num, chosen_potential)
+
+                multi_index_tuples.append(mi_tuple)
+                fitting_data.append(results_dict['df_fitting'])
+                data.append(results_dict['df_data'])
+        
+        df_final = pd.concat(fitting_data, axis = 0, keys = multi_index_tuples)
+        df_final2 = pd.concat(data, axis = 1, keys = multi_index_tuples)
+        print(df_final)
+        print(df_final2)
+
+        df_final2.to_clipboard()
+
+        cdl_analysis = DoubleLayerAnalysis(
+        name='CDL Analysis 1', 
+        experiments=experiments,
+        fitting_data=df_final,
+        raw_data=df_final2,
+    )   
+        analysis_manager.add_analysis(cdl_analysis)
