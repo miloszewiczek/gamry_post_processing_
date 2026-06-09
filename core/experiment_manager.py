@@ -87,7 +87,7 @@ class ExperimentManager():
                 self.filtered = [exp for exp in experiments if any(f(exp) for f in active_filters)] #THE LAST LOGIC APPLIES THE FUNCTIONS ON THE exp AND CHECKS IF ANY ARE TRUE
         return self.filtered
 
-    def filter_samples(self,
+    def filter_samples(self, samples:list[Sample] = None,
         name: str | list[str] = None,
         cycle: int | list[int] = None,
         object_type: type | str | list[type | str] = None,
@@ -106,7 +106,9 @@ class ExperimentManager():
         """
         
         sample_dict = {}
-        for sample in self.samples.values():
+        if samples is None:
+            samples = self.samples.values()
+        for sample in samples:
             filtered = self.filter(sample.experiments, name, cycle, object_type, inclusive)
             if filtered:
                 sample_dict[sample] = filtered

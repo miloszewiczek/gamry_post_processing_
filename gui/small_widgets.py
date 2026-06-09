@@ -534,3 +534,40 @@ class TreeFilterProxyModel(QSortFilterProxyModel):
                     return True
                     
         return False
+
+
+class ExperimentSelector(QDialog):
+    from core import ExperimentManager
+    def __init__(self, manager:ExperimentManager,
+                 experiments = None, 
+                 samples = None,  
+                 sample_experiment_dict:dict = None, 
+                 name = None, 
+                 cycle = None, 
+                 object_type = None):
+        
+
+        super().__init__()
+        self.sample_experiment_dict = sample_experiment_dict
+        self.sample_combobox = QComboBox()
+        self.manager = manager
+    
+        if sample_experiment_dict:
+            sample_objects = sample_experiment_dict.keys()
+        elif experiments:
+            sample_objects = self.manager.construct_tree(experiments)
+        elif samples:
+            sample_objects = samples
+
+        sample_filtered = self.manager.filter_samples(samples = sample_objects,
+                                             name = name,
+                                            cycle = cycle,
+                                            object_type = object_type)
+        
+        print(sample_filtered)
+        self.exec()
+
+
+
+    def populate_samples(self, samples):
+        pass

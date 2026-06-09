@@ -346,6 +346,7 @@ class ExperimentPanel(QWidget):
         eis_exps = [e for e in experiments if getattr(e, 'object_type', None) == 'EIS' or e.__class__.__name__ == 'EIS']
         if eis_exps:
             from experiments import EIS
+            from gui.small_widgets import ExperimentSelector
             eis_exps: list[EIS]
             menu.addSeparator()
             eis_menu = menu.addMenu("EIS Options")
@@ -353,6 +354,19 @@ class ExperimentPanel(QWidget):
 
             print(eis_exps[0])
             eis_ru_act.triggered.connect(lambda: self.get_and_set_Ru(eis_exps[0]))
+
+            test_menu = menu.addMenu("TEST_DIALOG")
+            
+
+            x = self.manager.construct_tree(experiments)
+            test_menu_act1 = test_menu.addAction('Exp')
+            test_menu_act2 = test_menu.addAction('Dict')
+            test_menu_act3 = test_menu.addAction('Keys')
+
+            test_menu_act1.triggered.connect(lambda: ExperimentSelector(self.manager, experiments = experiments, object_type = EIS))
+            test_menu_act2.triggered.connect(lambda: ExperimentSelector(self.manager, sample_experiment_dict = x, object_type = EIS))
+            test_menu_act3.triggered.connect(lambda: ExperimentSelector(self.manager, samples = x.keys(), object_type = EIS))
+
             
 
     def get_and_set_Ru(self, experiment):
