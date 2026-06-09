@@ -8,6 +8,7 @@ from functions.functions import calculate_ECSA_from_slope
 import matplotlib.cm as cm
 from core import ExperimentManager, analysis_manager
 from experiments.analysis import DoubleLayerAnalysis
+from gui_PtQt.tafel import TafelCoreWidget
 
 
 class DoubleLayerDialog(QDialog):
@@ -35,37 +36,35 @@ class DoubleLayerDialog(QDialog):
         self.selector.flat_list_signal.connect(self.analysis_widget.set_experiments)
         
 
-class DoubleLayerCoreWidget(QWidget):
+class DoubleLayerCoreWidget(TafelCoreWidget):
     """
     Serce analizy. Nie posiada selektora danych. 
     Wymaga podania gotowego słownika z eksperymentami przez metodę 'set_experiments'.
     """
+
     def __init__(self, manager: ExperimentManager, parent=None):
-        super().__init__(parent)
-        self.manager = manager
-        self.experiment_dict = {}
-        self.experiments = []
-        self.cmap = None
+        # 1. Wywołujemy konstruktor bazy z odpowiednim Canvasem
+        # Konstruktor bazy na końcu wywoła setup_ui(), który w tym przypadku
+        # zostanie uruchomiony z TEJ klasy (polimorfizm).
+        super().__init__(manager, parent, canvas_type=DoubleLayerCanvas)
         
-        # Inicjalizacja czystego interfejsu (bez selektora)
-        self.canvas = DoubleLayerCanvas()
+        # 2. Nadpisujemy specyficzne zmienne dla CDL
+        self.default_analysis_prefix = 'CDL'
+        self.cmap = None
+        self.experiment_dict = {}
+
+    def setup_ui(self):
+        """Nadpisujemy całkowicie wygląd widżetu bazowego."""
+        # Inicjalizacja kontrolek specyficznych TYLKO dla CDL
         self.potential_spinbox = SimpleDoubleSpinBox(0, None)
         self.curve_combobox = QComboBox()
         self.calculate_btn = QPushButton("Calculate CDL")
-        
-        self.init_gui()
+        self.save_analysis_btn = QPushButton('Save analysis')
+
+        # Łączymy sygnały
         self.connect_signals()
 
-    @contextmanager
-    def signals_blocked(self, widget):
-        """Bezpieczny menedżer kontekstu do blokowania sygnałów."""
-        widget.blockSignals(True)
-        try:
-            yield
-        finally:
-            widget.blockSignals(False)
-
-    def init_gui(self):
+        # Budujemy nowy układ (HBoxLayout zamiast bazowego VBoxLayout)
         main_layout = QHBoxLayout(self)
         control_layout = QVBoxLayout()
         
@@ -78,11 +77,36 @@ class DoubleLayerCoreWidget(QWidget):
         settings_layout.addWidget(self.potential_spinbox)
         settings_layout.addWidget(self.calculate_btn)
         
+        self.save_analysis_btn.clicked.connect(self.create_analysis)
+        settings_layout.addWidget(self.save_analysis_btn)
+
         control_layout.addWidget(settings_group)
-        control_layout.addStretch() # Spycha kontrolki do góry
+        control_layout.addStretch()
         
-        main_layout.addLayout(control_layout, stretch=2)
-        main_layout.addWidget(self.canvas, stretch=3)
+        # Kompozycja główna: Panel kontrolny po lewej, wykres po prawej
+        canvas_layout = QVBoxLayout()
+        canvas_layout.addWidget(self.canvas)
+        canvas_layout.addWidget(self.canvas.toolbar)
+
+        main_layout.addLayout(control_layout, stretch=1)
+        main_layout.addLayout(canvas_layout, stretch=3)
+        
+        # Ponieważ w bazie i w potomku bazujemy na self.canvas, 
+        # toolbar i plot_btn z bazy po prostu "wiszą" w próżni i nie są wyświetlane.
+
+    def connect_signals(self):
+        self.curve_combobox.currentIndexChanged.connect(self.replot_selected_curve)
+        self.calculate_btn.clicked.connect(self.run_cdl_calculation)
+        self.potential_spinbox.valueChanged.connect(self.canvas.move_vline)
+
+    @contextmanager
+    def signals_blocked(self, widget):
+        """Bezpieczny menedżer kontekstu do blokowania sygnałów."""
+        widget.blockSignals(True)
+        try:
+            yield
+        finally:
+            widget.blockSignals(False)
 
     def connect_signals(self):
         self.curve_combobox.currentIndexChanged.connect(self.replot_selected_curve)
@@ -198,23 +222,27 @@ class DoubleLayerCoreWidget(QWidget):
                 # Tworzymy obiekt analizy (np. do zapisu w historii)
 
 
-                mi_tuple = (sample, cycle_num, chosen_potential)
+                mi_tuple = (sample.sample_name, cycle_num, chosen_potential)
 
                 multi_index_tuples.append(mi_tuple)
                 fitting_data.append(results_dict['df_fitting'])
                 data.append(results_dict['df_data'])
         
-        df_final = pd.concat(fitting_data, axis = 0, keys = multi_index_tuples)
-        df_final2 = pd.concat(data, axis = 1, keys = multi_index_tuples)
-        print(df_final)
-        print(df_final2)
+        names = ('Sample', 'Cycle', 'Potential [V]')
+        self.fitting_data = pd.concat(fitting_data, axis = 0, keys = multi_index_tuples, names = names)
+        self.raw_data = pd.concat(data, axis = 1, keys = multi_index_tuples, names = names)
 
-        df_final2.to_clipboard()
+    def keyPressEvent():
+        pass
+    
+    def create_analysis(self):
 
-        cdl_analysis = DoubleLayerAnalysis(
-        name='CDL Analysis 1', 
-        experiments=experiments,
-        fitting_data=df_final,
-        raw_data=df_final2,
-    )   
-        analysis_manager.add_analysis(cdl_analysis)
+        name = self.ask_for_analysis_name()
+        if (name) and (hasattr(self, 'fitting_data')): # it only exists once we make a CDL_calculation!
+            cdl_analysis = DoubleLayerAnalysis(
+                                                name=name, 
+                                                experiments=self.experiments,
+                                                fitting_data=self.fitting_data,
+                                                raw_data=self.raw_data,
+                                                )   
+            analysis_manager.add_analysis(cdl_analysis)

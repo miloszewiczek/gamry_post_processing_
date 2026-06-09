@@ -18,9 +18,16 @@ class BaseAnalysis():
                            'Experiments': self.experiments,
                            'Data': self.data,
                            'Image': self.image}
+        
+        for karg in kwargs:
+            self.dictionary[karg] = kwargs[karg]
 
-    def get_dictionary(self):
+    def get_dictionary(self) -> dict:
         return self.dictionary
+    
+    def get_data(self) -> dict:
+        return {f'{self.name}_data': self.data}
+
     
     def __repr__(self):
         return f'Analysis name: {self.name}\nList of experiments: {self.experiments}\n'
@@ -44,7 +51,10 @@ class OverpotentialAnalysis(BaseAnalysis):
         # Używamy self.data (zakładam, że tak nazywa się zmienna w klasie bazowej)
         grouped = self.data.groupby(level=level)
         summary_stats = grouped.agg(['mean', 'std'])
-        return summary_stats
+        return summary_stats    
+    
+    def get_data(self):
+        return {f'{self.name}_OVERPOTENTIALS': self.data}
     
 class DoubleLayerAnalysis(BaseAnalysis):
     def __init__(self, name: str, experiments: list, fitting_data: pd.DataFrame, raw_data: pd.DataFrame, **kwargs):
@@ -58,3 +68,25 @@ class DoubleLayerAnalysis(BaseAnalysis):
 
         self.fitting_data = fitting_data
         self.dictionary['Fitting data'] = self.fitting_data
+        
+    def get_data(self):
+        return {f'{self.name}_CDL_Fit': self.fitting_data,
+                f'{self.name}_CDL_Parameters': self.data}
+    
+
+class ChronopointAnalysis(BaseAnalysis):
+    def __init__(self, name: str, experiments: list, data: pd.DataFrame, **kwargs):
+        super().__init__(name, experiments, data, **kwargs)
+
+    def get_data(self):
+        return {f'{self.name}_CHRONOPOINTS': self.data}
+    
+
+class TafelAnalysis(BaseAnalysis):
+    def __init__(self, name: str, experiments: list, data: pd.DataFrame, fitting_data:pd.DataFrame, **kwargs):
+        super().__init__(name, experiments, data, **kwargs)
+
+        self.fitting_data = fitting_data
+    def get_data(self):
+        return {f'{self.name}_TAFEL_SLOPES': self.data,
+                f'{self.name}_TAFEL_FITS': self.fitting_data}

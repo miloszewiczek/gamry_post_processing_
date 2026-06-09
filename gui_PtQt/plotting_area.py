@@ -11,6 +11,8 @@ from functions.functions import calc_closest_2D
 from experiments import Experiment
 from matplotlib.widgets import SpanSelector
 from scipy.stats import linregress
+from matplotlib.backends.backend_qt5agg import NavigationToolbar2QT as NavigationToolbar
+
 
 
 ColorRole = Qt.UserRole + 1
@@ -80,11 +82,14 @@ class PlottingCanvas(FigureCanvas):
         while current_lines:
             current_lines[0].remove()
 
+
+
 class OCPPlot(FigureCanvas):
     def __init__(self, figsize = (3,4), dpi = 100, label = None):
         self.fig = Figure(figsize = figsize, dpi = dpi)
         super().__init__(self.fig)
 
+        self.toolbar = NavigationToolbar(self)
         # Axes settings
         self.label = label
         self.axes = self.fig.add_subplot(111)
@@ -335,6 +340,8 @@ class DoubleLayerCanvas(FigureCanvas):
         self.fig = Figure(figsize=(10, 4.5), dpi=100)
         super().__init__(self.fig)
         
+        self.toolbar = NavigationToolbar(self)
+
         # Tworzymy od razu 2 podwykresy (1 wiersz, 2 kolumny)
         self.ax_cv, self.ax_cdl = self.fig.subplots(1, 2)
         
@@ -456,7 +463,8 @@ class TafelCanvas(FigureCanvas):
         # Tworzymy pierwszy wykres (górny)
         self.tafel_cv = self.fig.add_subplot(2, 1, 1)
         self.regression_line = None
-        
+        self.toolbar = NavigationToolbar(self)
+
         # Tworzymy drugi wykres (dolny) i łączymy oś X z górnym
         self.tafel_derivative = self.fig.add_subplot(2, 1, 2, sharex=self.tafel_cv)
         self.bottom_highlight = None
@@ -529,17 +537,28 @@ class TafelCanvas(FigureCanvas):
 
     def get_data(self):
         return {'Slope': self.current_slope,
-                'Selected xy': (self.selected_x, self.selected_y),
-                'Raw xy': (self.current_x, self.current_y),
-                'Regression line': (self.current_x, self.regression_line_data)}
+                'Selected xy': pd.concat((self.selected_x,self.selected_y), axis = 1),
+                'Raw xy': pd.concat((self.current_x, self.current_y), axis =1),
+                'Regression line': pd.concat((self.current_x, self.regression_line_data), axis = 1)}
+
+    @property
+    def isSelected(self):
+        if self.regression_line:
+            return True
+        else:
+            return False
     
 
 class ChronopointCanvas(FigureCanvas):
-    def __init__(self):
+    def __init__(self, storage = None):
         self.fig = Figure(figsize=(10, 6), dpi=100) # Zwiększyłem trochę wysokość pod 2 wykresy pionowo
         self.ax = self.fig.add_subplot(1,1,1)
         self.ax.set_xlabel('T [s]')
         self.ax.set_ylabel('$j_{GEO}$ [A/cm²]')
+
+        self.callback = storage
+        self.toolbar = NavigationToolbar(self)
+
 
         super().__init__(self.fig)
         self.selected_point = None
@@ -571,6 +590,10 @@ class ChronopointCanvas(FigureCanvas):
         self.selected_point, = self.ax.plot([self.selected_x], [self.selected_y], 'ro', markersize = 8)
         self.ax.set_title(f'Time: {self.selected_x}   Current density: {round(self.selected_y*1000, 2)} [mA/cm²]')
 
+
+        if self.callback:
+            self.callback()
+
         self.draw_idle()
 
 
@@ -581,7 +604,7 @@ class ChronopointCanvas(FigureCanvas):
         self.selected_point = None
 
     @property
-    def hasResult(self):
+    def isSelected(self):
         if self.selected_point:
             return True
         else:

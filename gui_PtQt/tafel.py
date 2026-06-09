@@ -18,11 +18,11 @@ from gui.small_widgets import TreeFilterProxyModel, SelectorWithSample
 from experiments import LinearVoltammetry
 from gui_PtQt.plotting_area import TafelCanvas
 from numpy import gradient
-from matplotlib.backends.backend_qt5agg import NavigationToolbar2QT as NavigationToolbar
 from functions.functions import calc_closest_value
 from scipy.stats import linregress
-from core import ExperimentManager
-
+from core import ExperimentManager, analysis_manager
+from experiments.analysis import BaseAnalysis
+import pandas as pd
 
 
 class TafelAnalysisWindow(QDialog):
@@ -68,50 +68,56 @@ class TafelAnalysisWindow(QDialog):
 
 
 class TafelCoreWidget(QWidget):
-
-    def __init__(self, manager:ExperimentManager, parent = None):
-        # Wykres i toolbar pakujemy w jeden pionowy layout
+    def __init__(self, manager: ExperimentManager, parent=None, canvas_type=TafelCanvas):
         super().__init__(parent)
-
         self.manager = manager
         self.parent = parent
-        self.canvas = TafelCanvas()
-
-        self.plot_btn = QPushButton('Start Analysis Queue')
-        self.plot_btn.clicked.connect(self.start_analysis_queue)
-        self.toolbar = NavigationToolbar(self.canvas, self)
         
+        # Inicjalizujemy bazowe zmienne i obiekty logiczne
+        self.default_analysis_prefix = 'Tafel'
         self.experiments_dict = {}
         self.experiments = []
         self.current_exp_index = 0
         self.experiment_queue = []
+        self.data = []
+        self.display_names_to_dataframe = []
 
-        self.build_ui()
+        # Tworzymy widgety, które są specyficzne dla TEGO widżetu
+        self.canvas = canvas_type()
+        # Wywołujemy metodę budującą interfejs (może być nadpisana w potomku)
+        self.setup_ui()
 
+    def setup_ui(self):
+        """Domyślny, pionowy układ dla TafelCoreWidget."""
+
+        self.plot_btn = QPushButton('Start Analysis Queue')
+        self.plot_btn.clicked.connect(self.start_analysis_queue)
+        plot_layout = QVBoxLayout()
+        plot_layout.addWidget(self.canvas)
+        plot_layout.addWidget(self.canvas.toolbar)
+        plot_layout.addWidget(self.plot_btn)
+        self.setLayout(plot_layout)
 
     def set_experiments(self, experiments):
         self.experiments = experiments
         self.experiments_dict = self.manager.construct_tree_with_cycles(experiments)
-        
-    def build_ui(self):
-        
-        plot_layout = QVBoxLayout()
-        plot_layout.addWidget(self.canvas)
-        plot_layout.addWidget(self.toolbar)
-        plot_layout.addWidget(self.plot_btn)
-        self.setLayout(plot_layout)
 
-
+    def get_display_names(self):
+        return self.display_names_to_dataframe
 
     def start_analysis_queue(self):
         """Buduje płaską kolejkę eksperymentów do analizy krok po kroku."""
 
+        self.display_names_to_dataframe = []
         self.experiment_queue = []
+        self.data = []
+        
         for sample, cycle_dict in self.experiments_dict.items():
             for cycle_num, exps in cycle_dict.items():
                 for exp in exps:
                     # Zapisujemy tuple z obiektem i jego metadanymi
                     self.experiment_queue.append((sample, cycle_num, exp))
+                    self.display_names_to_dataframe.append((sample.sample_name, cycle_num, exp.file_name)) # convert to tuple
         
         if not self.experiment_queue:
             QMessageBox.warning(self, "Brak danych", "Kolejka eksperymentów jest pusta!")
@@ -123,6 +129,8 @@ class TafelCoreWidget(QWidget):
     def load_current_experiment(self):
         """Ładuje i rysuje wykres dla bieżącego eksperymentu z kolejki."""
         if self.current_exp_index >= len(self.experiment_queue):
+            
+            print(self.create_analysis())
             QMessageBox.information(self, "Koniec", "Przeanalizowano wszystkie próbki z kolejki!")
             return
 
@@ -132,6 +140,43 @@ class TafelCoreWidget(QWidget):
         self.get_data_from_experiment(exp)
         self.plot_on_canvas()
         self.setFocus()
+
+    def make_column_multiindex(self, list_of_dataframes:list, multiindex_keys: list[tuple] = None):
+        if multiindex_keys is None:
+            multiindex_keys = self.display_names_to_dataframe
+        return pd.concat(list_of_dataframes, axis = 1, keys = multiindex_keys)
+    
+    def make_row_multiindex(self, list_of_tuples:list[tuple], multiindex = None, **kwargs):
+        if multiindex is None:
+            multiindex = self.create_multiindex_from_tuples()
+        return pd.DataFrame(list_of_tuples, multiindex, **kwargs)
+
+    def create_analysis(self):
+        from experiments.analysis import TafelAnalysis
+
+        tafel_slopes = [dictionary['Slope'] for dictionary in self.data]
+        # regression_lines = [dictionary['Regression line'] for dictionary in self.data]
+        fitting_data = [docto['Selected xy'] for docto in self.data]
+
+        tafel_slopes = self.make_row_multiindex(tafel_slopes)
+        fitting_data = self.make_column_multiindex(fitting_data) 
+
+        name = self.ask_for_analysis_name()
+        if name:
+            analysis = TafelAnalysis(name, self.experiments, tafel_slopes, fitting_data)
+            analysis_manager.add_analysis(analysis)
+
+    def ask_for_analysis_name(self):
+        analysis_number = analysis_manager.get_current_analysis_number()
+        analysis_string = f"{self.default_analysis_prefix} {analysis_number}" 
+        text, ok = QInputDialog.getText(self, 'Analysis name', 'Name of the analysis:', text = analysis_string)
+        if text and ok:
+            return text
+        else:
+            return
+
+    def create_multiindex_from_tuples(self):
+        return pd.MultiIndex.from_tuples(self.display_names_to_dataframe, names = ('Sample', 'Cycle', 'Experiment'))
 
     def get_data_from_experiment(self, experiment:LinearVoltammetry):
 
@@ -165,16 +210,13 @@ class TafelCoreWidget(QWidget):
                 return
 
             # Sprawdzamy czy użytkownik ruszył suwak (czy zakres istnieje)
-            if getattr(self.canvas, 'current_range', None) is None:
+            if not self.canvas.isSelected:
                 QMessageBox.warning(self, "Brak zaznaczenia", "Zaznacz najpierw zakres na wykresie za pomocą myszki!")
                 return
 
-            # Pobieramy zapamiętane granice z canvasu
 
-
-            sample, cycle_num, exp = self.experiment_queue[self.current_exp_index]
             data = self.canvas.get_data()
-
+            self.data.append(data)
 
             # moving on to next experiment
             self.current_exp_index += 1

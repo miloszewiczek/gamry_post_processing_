@@ -1,5 +1,8 @@
 from experiments.analysis import BaseAnalysis
 from typing import List, Callable
+import pandas as pd
+import numpy as np
+from gui_PtQt.pandas_viewer import AnalysisViewer
 
 class AnalysisManager():
     """
@@ -10,6 +13,7 @@ class AnalysisManager():
 
         self._analyses: List[BaseAnalysis] = []
         self._on_analysis_added_callbacks: List[Callable[[BaseAnalysis, None]]] = []
+        self.current_analysis_number = 1
 
     def register_on_added(self, callback: Callable[[BaseAnalysis], None]):
         self._on_analysis_added_callbacks.append(callback)
@@ -26,11 +30,16 @@ class AnalysisManager():
         """
 
         self._analyses.append(analysis_obj)
+        self.current_analysis_number += 1
+
         for callback in self._on_analysis_added_callbacks:
             try:
                 callback(analysis_obj)
             except Exception as e:
                 print(f'Callback failed during callback {e}')
+        
+    def get_current_analysis_number(self):
+        return self.current_analysis_number
     
     def get_all(self) -> List[BaseAnalysis]: 
         return self._analyses
@@ -65,6 +74,16 @@ class AnalysisManager():
                 return analysis
         else:
             return
+        
+    def save_iteratively(self):
+        
+        with pd.ExcelWriter('test.xlsx', 'openpyxl', mode = 'w') as writer:
+            for analysis in self._analyses:
+                data = analysis.get_data()
+                for sheet_name, data_set in data.items():
+                    data_set:pd.DataFrame
+                    data_set.to_excel(writer, sheet_name = sheet_name)
+
         
     def __iter__(self):
         return iter(self.analyses)
@@ -134,6 +153,11 @@ class AnalysisWindow(QWidget):
 
         main_layout = QVBoxLayout()
         main_layout.addWidget(self.tree_view)
+
+        save_btn = QPushButton('Save!')
+        save_btn.clicked.connect(self.analysis_manager.save_iteratively)
+
+        main_layout.addWidget(save_btn)
         self.setLayout(main_layout)
 
     def _on_double_clicked(self, index):
@@ -142,6 +166,16 @@ class AnalysisWindow(QWidget):
             index = index.siblingAtColumn(0)
 
         identity = index.data(Qt.UserRole)
-        print(identity)
+        self.handle_object(identity)
 
 
+    def handle_object(self, object):
+        
+        match object:
+            
+            case str():
+                print(object)
+            case int():
+                print(object)
+            case pd.DataFrame():
+                x = AnalysisViewer(object)
