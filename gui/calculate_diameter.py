@@ -89,6 +89,7 @@ class AreaDialog(BaseDataDialog):
         self.final_potential = SimpleDoubleSpinBox(0)
         self.final_potential.setDisabled(True)
         self.Ru_box = SimpleDoubleSpinBox(0)
+        self.Ru_from_EIS_btn = QPushButton('From EIS')
 
         self.potentials_list = (self.standard_potential_DoubleBox, self.offset_DoubleBox, self.pH_DoubleBox)
         for component in self.potentials_list:
@@ -111,6 +112,8 @@ class AreaDialog(BaseDataDialog):
         self.Ru_layout = QGridLayout()
         self.Ru_layout.addWidget(self.Ru_box, 1, 0)
         self.Ru_layout.addWidget(Ru_label, 0,0)
+        self.Ru_layout.addWidget(self.Ru_from_EIS_btn, 1, 1)
+        
 
 
 
@@ -340,7 +343,7 @@ class AreaDialogBox(QDialog):
         self.ok_button.clicked.connect(self.accept)
         
         # Zmiana jednostki też powinna przeliczyć widok na żywo!
-        self.units.currentTextChanged.connect(self.recalculate_current)
+        # self.units.currentTextChanged.connect(self.recalculate_current)
 
     def on_button_clicked(self, clicked_button):
         # Iterujemy po słowniku tylko raz

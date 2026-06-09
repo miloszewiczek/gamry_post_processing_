@@ -552,6 +552,8 @@ class TafelCanvas(FigureCanvas):
 class ChronopointCanvas(FigureCanvas):
     def __init__(self, storage = None):
         self.fig = Figure(figsize=(10, 6), dpi=100) # Zwiększyłem trochę wysokość pod 2 wykresy pionowo
+        super().__init__(self.fig)
+        
         self.ax = self.fig.add_subplot(1,1,1)
         self.ax.set_xlabel('T [s]')
         self.ax.set_ylabel('$j_{GEO}$ [A/cm²]')

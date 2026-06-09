@@ -192,7 +192,7 @@ class ExperimentManager():
             sample_obj (Sample): Parent Sample object.
         """
 
-        for sample_obj in self.sample_objs.values():
+        for sample_obj in self.samples.values():
             print(sample_obj)
             if experiment in sample_obj:
                 return sample_obj
