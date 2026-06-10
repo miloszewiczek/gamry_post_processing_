@@ -346,7 +346,7 @@ class ExperimentPanel(QWidget):
         eis_exps = [e for e in experiments if getattr(e, 'object_type', None) == 'EIS' or e.__class__.__name__ == 'EIS']
         if eis_exps:
             from experiments import EIS
-            from gui.small_widgets import ExperimentSelector
+            from gui.small_widgets import DataSelector
             eis_exps: list[EIS]
             menu.addSeparator()
             eis_menu = menu.addMenu("EIS Options")
@@ -360,12 +360,21 @@ class ExperimentPanel(QWidget):
 
             x = self.manager.construct_tree(experiments)
             test_menu_act1 = test_menu.addAction('Exp')
-            test_menu_act2 = test_menu.addAction('Dict')
-            test_menu_act3 = test_menu.addAction('Keys')
 
-            test_menu_act1.triggered.connect(lambda: ExperimentSelector(self.manager, experiments = experiments, object_type = EIS))
-            test_menu_act2.triggered.connect(lambda: ExperimentSelector(self.manager, sample_experiment_dict = x, object_type = EIS))
-            test_menu_act3.triggered.connect(lambda: ExperimentSelector(self.manager, samples = x.keys(), object_type = EIS))
+
+            def create_selector():
+                x = DataSelector(None)
+                x.setup_data(manager = self.manager,  experiments = experiments, object_type = EIS)
+                x.myaccepted.connect(apply)
+                x.exec()
+
+            def apply(Ru_value):
+                for experiment in experiments:
+                    experiment.set_Ru(Ru_value[0])
+                    print(Ru_value[0])
+            test_menu_act1.triggered.connect(create_selector)
+
+
 
             
 
@@ -508,7 +517,7 @@ class ExperimentPanel(QWidget):
         self.tree_view.update()
 
     def _open_area_dialog(self, experiments: list[Experiment]):
-        dialog = AreaDialog()
+        dialog = AreaDialog(experiments = experiments, manager = self.manager)
         dialog.load_from_settings()
 
         if dialog.exec() == QDialog.Accepted:

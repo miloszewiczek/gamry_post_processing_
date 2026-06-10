@@ -1,4 +1,5 @@
-from PyQt5.QtWidgets import QDoubleSpinBox, QDialog, QSpinBox, QComboBox, QLineEdit, QCheckBox, QTreeView, QHBoxLayout, QVBoxLayout, QPushButton, QAbstractItemView
+from PyQt5.QtWidgets import (QDoubleSpinBox, QDialog, QSpinBox, QComboBox, 
+QLineEdit, QCheckBox, QTreeView, QHBoxLayout, QVBoxLayout, QPushButton, QAbstractItemView, QListView, QDialogButtonBox)
 from PyQt5.QtGui import QStandardItemModel, QStandardItem
 from PyQt5.QtCore import QSettings, Qt, QAbstractTableModel, QItemSelection, QItemSelectionModel, QPersistentModelIndex, pyqtSignal, QModelIndex, QSortFilterProxyModel
 import json
@@ -9,10 +10,12 @@ from PyQt5.QtCore import Qt, pyqtSignal
 from experiments.sample import Sample
 
 class SimpleDoubleSpinBox(QDoubleSpinBox):
-    def __init__(self, value, range:tuple = None):
+    def __init__(self, value, range:tuple = None, minimum = 0, maximum = 100000):
         super().__init__()
         self.setButtonSymbols(QDoubleSpinBox.ButtonSymbols.NoButtons)
         self.setDecimals(3)
+        self.setMinimum(minimum)
+        self.setMaximum(maximum)
         self.setValue(value)
         if range:
             self.setRange(range[0], range[1])
@@ -536,38 +539,146 @@ class TreeFilterProxyModel(QSortFilterProxyModel):
         return False
 
 
-class ExperimentSelector(QDialog):
-    from core import ExperimentManager
-    def __init__(self, manager:ExperimentManager,
-                 experiments = None, 
-                 samples = None,  
-                 sample_experiment_dict:dict = None, 
-                 name = None, 
-                 cycle = None, 
-                 object_type = None):
-        
+class ExperimentSelector(QWidget):
+    # Poprawna definicja sygnału
+    selection_changed = pyqtSignal(object)
 
-        super().__init__()
-        self.sample_experiment_dict = sample_experiment_dict
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        
+        # Inicjalizujemy czyste UI
         self.sample_combobox = QComboBox()
+        self.listview = QListView()
+        self.listview_model = QStandardItemModel()
+        self.listview.setModel(self.listview_model)
+        
+        self.sample_experiment_dict = {}  # Bezpieczny fallback na pusty słownik
+        
+        self.build_ui()
+        
+        # Łączymy sygnały UI
+        self.sample_combobox.currentIndexChanged.connect(self.populate_sample)
+        
+        # POPRAWKA: Podpinamy się pod selectionModel bezpośrednio z listview
+        self.listview.selectionModel().currentChanged.connect(self.on_selection_changed)
+
+    def build_ui(self):
+        main_layout = QVBoxLayout()
+        main_layout.addWidget(self.sample_combobox)
+        main_layout.addWidget(self.listview)
+        self.setLayout(main_layout)
+
+    def populate_sample(self, index):
+        self.listview_model.clear()
+        if index < 0:
+            return
+
+        sample_key = self.sample_combobox.itemData(index)
+        experiments = self.sample_experiment_dict.get(sample_key, [])
+
+        for experiment in experiments:
+            exp_item = QStandardItem(experiment.file_name)
+            exp_item.setData(experiment, Qt.UserRole)
+            self.listview_model.appendRow(exp_item)
+
+        # POPRAWKA: Usunięto problematyczne i niepotrzebne self.listview.currentChanged()
+
+    def on_selection_changed(self, current_index, previous_index):
+        if not current_index.isValid():
+            return
+
+        # Wyciągamy ukryty obiekt eksperymentu
+        selected_experiment = self.listview_model.data(current_index, Qt.UserRole)        
+        
+        # POPRAWKA: Użycie właściwej nazwy sygnału (selection_changed zamiast experiment_selected)
+        self.selection_changed.emit(selected_experiment) 
+
+    def set_experiments(self, manager, experiments=None, samples=None, 
+                        sample_experiment_dict=None, name=None, cycle=None, object_type=None):
+        """Metoda dedykowana wyłącznie do ładowania i filtrowania danych"""
         self.manager = manager
-    
+        
         if sample_experiment_dict:
             sample_objects = sample_experiment_dict.keys()
         elif experiments:
             sample_objects = self.manager.construct_tree(experiments)
         elif samples:
             sample_objects = samples
+        else:
+            sample_objects = []
 
-        sample_filtered = self.manager.filter_samples(samples = sample_objects,
-                                             name = name,
-                                            cycle = cycle,
-                                            object_type = object_type)
-        
-        print(sample_filtered)
-        self.exec()
+        sample_filtered = self.manager.filter_samples(
+            samples=sample_objects, name=name, cycle=cycle, object_type=object_type
+        )
+        self.sample_experiment_dict = sample_filtered
+
+        # Populacja comboboxa
+        self.sample_combobox.blockSignals(True)
+        self.sample_combobox.clear()
+        for sample_key in sample_filtered.keys():
+            self.sample_combobox.addItem(sample_key.sample_name, sample_key)
+        self.sample_combobox.blockSignals(False)
+
+        # Załaduj pierwszą paczkę danych jeśli combobox nie jest pusty
+        if self.sample_combobox.count() > 0:
+            self.sample_combobox.setCurrentIndex(0)
+            self.populate_sample(0)
 
 
+class DataSelector(QDialog):
+    myaccepted = pyqtSignal(tuple)
 
-    def populate_samples(self, samples):
-        pass
+    def __init__(self, canvas_type = None, parent=None):
+        super().__init__(parent)
+        from gui_PtQt.plotting_area import PlottingCanvas
+
+        self.canvas = self.setup_canvas(PlottingCanvas)
+        self.toolbar = self.canvas.get_toolbar()        
+        # POPRAWKA: Przekazanie self jako parent
+        self.experiment_selector = ExperimentSelector(self)
+        self.experiment_selector.selection_changed.connect(lambda exp: self.canvas.plot_experiments_no_color(exp, None, marker = 'o', markersize = 2, linewidth = 0))
+
+        self.build_ui()
+
+    def build_ui(self):
+        main_layout = QHBoxLayout()
+        main_layout.addWidget(self.experiment_selector)
+
+        canvas_layout = QVBoxLayout()
+        canvas_layout.addWidget(self.canvas)
+
+        if self.toolbar:
+            canvas_layout.addWidget(self.toolbar)
+        main_layout.addLayout(canvas_layout)
+
+        buttons = QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel
+        self.button_box = QDialogButtonBox(buttons)
+        self.button_box.accepted.connect(self.accept)
+        self.button_box.rejected.connect(self.reject)
+
+        main_layout.addWidget(self.button_box)
+        self.setLayout(main_layout)
+
+    def setup_data(self, *args, **kwargs):
+        """
+        Kwargs inlcude:
+            manager: ExperimentManager
+
+            Structured data (choose one):
+                -experiments: list of Experiment
+                -samples: list of Sample
+                -sample_experiment_dict: dictionary in the form: Sample: list[Experiment]
+
+            Filtering options (based on ExperimentManager options):
+                -name (str): file_name
+                -cycle (int): cycle number
+                -object_type (Object): object to filter out. Could be for example EIS or CyclicVoltammetry
+            """
+        self.experiment_selector.set_experiments(*args, **kwargs)
+
+    def setup_canvas(self, canvas_type):
+        return canvas_type(toolbar = True)
+    
+    def accept(self):
+        self.myaccepted.emit(self.canvas.get_selected_point()) # returns x and y coordinates of a point
+        super().accept()

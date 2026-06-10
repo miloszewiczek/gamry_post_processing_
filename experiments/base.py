@@ -385,10 +385,10 @@ class Experiment():
         
         return data_to_plot
 
-    def plot(self, ax, data_to_plot = None, color = None, **kwargs):
+    def plot(self, ax, data_to_plot = None, curves = None, color = None, **kwargs):
 
         if data_to_plot == None:
-            data_to_plot = self.get_plot_data()
+            data_to_plot = self.get_plot_data(curves = curves)
 
         for data in data_to_plot:
             ax.plot(data.iloc[:, 0], data.iloc[:, 1], color = color, **kwargs)

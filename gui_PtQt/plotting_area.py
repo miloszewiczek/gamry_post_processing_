@@ -21,6 +21,7 @@ class PlottingCanvasTest(FigureCanvas):
     def __init__(self):
         self.fig = Figure(figsize=(5, 4), dpi=100)
         self.axes = self.fig.add_subplot(111)
+        
         super().__init__(self.fig)
 
     def plot_experiments(self, experiments_list=None):
@@ -34,11 +35,26 @@ class PlottingCanvas(FigureCanvas):
 
     data_requested = pyqtSignal(list)
 
-    def __init__(self):
+    def __init__(self, toolbar = False):
         self.fig = Figure(figsize = (5, 4), dpi=100)
-        self.axes = self.fig.add_subplot(111)
-
         super().__init__(self.fig)
+        self.axes = self.fig.add_subplot(111)
+        self.selected_point_scatter = None
+        self.selected_point_annotate = None
+        if toolbar:
+            self.setup_toolbar()
+
+
+    def setup_toolbar(self):
+        self.toolbar = NavigationToolbar(self)
+    
+    def get_toolbar(self):
+        if hasattr(self, 'toolbar'):
+            return self.toolbar
+        else:
+            print('No toolbar. Please add one using setup_toolbar.')
+            return
+
 
     def plot_experiments(self, experiments_list: list[tuple[Experiment, QColor]] = None):
         self.axes.clear()
@@ -56,12 +72,18 @@ class PlottingCanvas(FigureCanvas):
 
         self.draw_idle()
 
-    def plot_experiments_no_color(self, experiments_list: list[Experiment] = None, curves = None):
+    def plot_experiments_no_color(self, experiments_list: list[Experiment] = None, curves = None, **kwargs):
         self.axes.clear()
+        self.selected_point_scatter = None
+        self.selected_point_annotate = None
+
         if experiments_list:
+            if not isinstance(experiments_list, list):
+                experiments_list = [experiments_list]
+
             for exp in experiments_list:
                 # Wywołujemy nową, mądrzejszą metodę z klasy Experiment
-                exp.plot(ax=self.axes, curves = curves)
+                exp.plot(ax=self.axes, curves = curves, **kwargs)
             
             # Dodatki estetyczne, o których Experiment nie musi wiedzieć
             self.axes.set_xlabel(experiments_list[0].default_x_plot)
@@ -70,6 +92,8 @@ class PlottingCanvas(FigureCanvas):
             # self.axes.legend() # Opcjonalnie
 
         self.draw_idle()
+
+        self.mpl_connect('button_release_event', self.onclick)
 
     def clear(self):
         self.axes.clear()
@@ -82,7 +106,20 @@ class PlottingCanvas(FigureCanvas):
         while current_lines:
             current_lines[0].remove()
 
+    def onclick(self, event):
+        if (self.selected_point_scatter is not None) and (self.selected_point_annotate is not None):
+            self.selected_point_scatter.remove()
+            self.selected_point_annotate.remove()
 
+        if event.inaxes:
+            x, y  = self.axes.lines[0].get_data()
+            self.selected_x, self.selected_y = calc_closest_2D(x, y, event.xdata, event.ydata, self.axes)
+            self.selected_point_scatter = self.axes.scatter([self.selected_x], [self.selected_y], facecolors = 'none', color = 'red')
+            self.selected_point_annotate = self.axes.annotate(f'{self.selected_x}', (self.selected_x, self.selected_y))
+            self.draw_idle()
+
+    def get_selected_point(self):
+        return (self.selected_x, self.selected_y)
 
 class OCPPlot(FigureCanvas):
     def __init__(self, figsize = (3,4), dpi = 100, label = None):
@@ -614,3 +651,11 @@ class ChronopointCanvas(FigureCanvas):
 
     def get_data(self):
         return self.selected_x, self.selected_y
+
+
+
+# for future
+from typing import Dict, Type
+canvas_registry: Dict[str, Type[QWidget]] = {
+    "tafel", TafelCanvas
+}

@@ -61,6 +61,16 @@ class ExperimentLoader():
             if experiment is not None:
                 dict_of_experiments[getattr(experiment, 'id')] = experiment
         return dict_of_experiments
+    
+    def load(self, path:str):
+        from pathlib import Path
+        path_to_files = Path(path).glob('*.DTA')
+        list_of_experiments = [self.create_experiment(str(file)) for file in path_to_files]
+        dict_of_experiments = {}
+        for experiment in list_of_experiments:
+            if experiment is not None:
+                dict_of_experiments[getattr(experiment, 'id')] = experiment
+        return dict_of_experiments
 
     def populate_list_of_experiments(self,files):
 
@@ -96,10 +106,8 @@ class ExperimentLoader():
         Returns:
             list_of_experiments (list) - a list of Experiment objects. The list is also set as the attribute of the same name for the loader"""
         
-        root = TkinterDnD.Tk()
-        root.withdraw()
-        dir = askdirectory()
-        files = glob(os.path.join(dir, '*.DTA'))
+        from functions.gui_functions import load_folder 
+        files = load_folder
 
         return self.populate_list_of_experiments(files)
 
@@ -107,6 +115,7 @@ class ExperimentLoader():
     def create_experiment(self, file_path, manager = None) -> Experiment:
         '''Factory function to create the experiment and store it in a manager.
         Depending on the TAG of the .DTA file, it creates a different experiment object characterized by different data processing methods.'''
+
 
         with open(file_path, 'r') as tmp_experiment:
             lines = tmp_experiment.readlines()

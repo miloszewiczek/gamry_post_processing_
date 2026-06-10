@@ -12,9 +12,11 @@ from functions.gui_functions import add_category
 
 class AreaDialog(BaseDataDialog):
 
-    def __init__(self, settings_key = "area_dialog_window", parent = None):
+    def __init__(self, experiments, manager = None, settings_key = "area_dialog_window", parent = None):
         super().__init__(settings_key = settings_key, parent = parent)
 
+        self.experiments = experiments
+        self.manager = manager
         settings = QSettings()
         layout = QVBoxLayout()
         label = QLabel('Geometrical Area [cm²]')
@@ -90,6 +92,7 @@ class AreaDialog(BaseDataDialog):
         self.final_potential.setDisabled(True)
         self.Ru_box = SimpleDoubleSpinBox(0)
         self.Ru_from_EIS_btn = QPushButton('From EIS')
+        self.Ru_from_EIS_btn.clicked.connect(self.create_selector)
 
         self.potentials_list = (self.standard_potential_DoubleBox, self.offset_DoubleBox, self.pH_DoubleBox)
         for component in self.potentials_list:
@@ -136,6 +139,7 @@ class AreaDialog(BaseDataDialog):
             'pH': self.pH_DoubleBox,
             'Ru': self.Ru_box
         }
+
     def get_fields(self):
         return self.fields
 
@@ -233,6 +237,20 @@ class AreaDialog(BaseDataDialog):
             index = self.ref_box.findText(electrode_label)
             self.ref_box.blockSignals(False)
             self.ref_box.setCurrentIndex(index)
+
+    
+    def create_selector(self):
+        from .small_widgets import DataSelector
+        from experiments import EIS
+        def get_value(tuple):
+            #we just want the x value!
+            self.Ru_box.setValue(tuple[0])
+        quick = DataSelector(None)
+        quick.setup_data(manager = self.manager, experiments = self.experiments, object_type = EIS)
+        quick.myaccepted.connect(get_value)
+        quick.exec()
+
+        
 
 
 class AreaDialogBox(QDialog):
@@ -397,6 +415,3 @@ class AreaDialogBox(QDialog):
         except:
             return
 
-
-
-        
