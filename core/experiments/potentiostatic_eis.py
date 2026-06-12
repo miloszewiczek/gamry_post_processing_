@@ -18,7 +18,10 @@ class EIS(Experiment):
         - list of level names (e.g. ['Path, 'Curve', 'Metric])
         """
         final_potential = self.meta_data['VDC'] + self.reference_potential
-        final_potential = '{:.2f}'.format(final_potential)
+        final_potential = '{:.3f}'.format(final_potential)
+
+        print(self.meta_data['VDC'])
+        print(final_potential)
 
         level_values = [[self.file_path], [final_potential], columns]
         level_names = ['Path', 'E vs RHE [V]', 'Parameter']
