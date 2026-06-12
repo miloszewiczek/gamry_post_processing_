@@ -130,7 +130,7 @@ class MainWindow(QMainWindow):
         menuBar.addMenu(selectmenu)
 
         # Analysis menu
-        analysis_menu = QMenu("Analysis", self)
+        analysis_menu = QMenu("&Analysis", self)
         analysis_menu.addActions(self.analysisActions)
         menuBar.addMenu(analysis_menu)
 

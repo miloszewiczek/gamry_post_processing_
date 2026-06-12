@@ -133,7 +133,7 @@ class ExperimentPanel(QWidget):
         btn_select_all_experiments_shortcut.setContext(Qt.ShortcutContext.WidgetShortcut)
         btn_select_all_experiments_shortcut.activated.connect(self.select_all_experiments_globally)
 
-        focus_on_filter_shortcut = QShortcut(QKeySequence("Alt+D"), self.tree_view)
+        focus_on_filter_shortcut = QShortcut(QKeySequence("Ctrl+D"), self.tree_view)
         focus_on_filter_shortcut.setContext(Qt.ShortcutContext.WidgetShortcut)
         focus_on_filter_shortcut.activated.connect(self.search_input.setFocus)
 
