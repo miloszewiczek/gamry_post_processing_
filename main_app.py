@@ -7,6 +7,7 @@ from PyQt5.QtCore import Qt, QCoreApplication
 from sys import argv
 from gui_PtQt.configuration.config import defaults
 from core import AnalysisWindow
+from PyQt5.QtWidgets import QAction, QMenu, QMenuBar
 
 # Ustawiamy metadane aplikacji raz na samym początku
 
@@ -50,6 +51,9 @@ class MainWindow(QMainWindow):
         tmp_Qwidget.setLayout(myLayout)
         self.setCentralWidget(tmp_Qwidget)
 
+        self._createActions()
+        self._createMenuBar()
+
 
         # for testing
         for sample in self.manager.samples.values():
@@ -61,6 +65,75 @@ class MainWindow(QMainWindow):
         current_exps = self.experiment_panel.get_selected_experiments()
         if current_exps:
             self.plot_manager.add_plots(current_exps)
+
+
+    def _createActions(self):
+        
+        # File
+        self.loadfilesAction = QAction(self)
+        self.loadfilesAction.setText("&Load Files...")
+        self.loadfolderAction = QAction(self)
+        self.loadfolderAction.setText("Load &Folder...")
+        self.deletefileAction = QAction(self)
+        self.deletefileAction.setText("&Delete")
+        self.copyfileAction = QAction(self)
+        self.copyfileAction.setText("&Copy")
+        self.exitAction = QAction(self)
+        self.exitAction.setText("&Exit")
+
+        self.fileActions = [self.loadfilesAction,
+                            self.loadfolderAction,
+                            self.deletefileAction,
+                            self.copyfileAction,
+                            self.exitAction]
+
+        # Selction
+        self.selectFiles = QAction(self)
+        self.selectFiles.setText("Select all &Files")
+        self.selectSamples = QAction(self)
+        self.selectSamples.setText("Select all &Samples")
+        self.toggleExpand = QAction(self)
+        self.toggleExpand.setText("&Expand/Collapse all")
+
+        self.selectActions = [self.selectFiles,
+                              self.selectSamples,
+                              self.toggleExpand]
+
+        # Analysis
+        self.cdlAnalysis = QAction(self)
+        self.cdlAnalysis.setText("&Double Layer Capacitance")
+        self.tafelAnalysis = QAction(self)
+        self.tafelAnalysis.setText("&Tafel analysis")
+        self.chronopointAnalysis = QAction(self)
+        self.chronopointAnalysis.setText("&Chronoamperometry analysis")
+        self.overpotentialAnalysis = QAction(self)
+        self.overpotentialAnalysis.setText("&Overpotentials")
+
+        self.analysisActions = [self.cdlAnalysis,
+                                self.tafelAnalysis,
+                                self.chronopointAnalysis,
+                                self.overpotentialAnalysis]
+
+    def _createMenuBar(self):
+        
+        # Getting menuBar
+        menuBar = self.menuBar()
+
+        # File menu
+        filemenu = QMenu("&File", self)
+        filemenu.addActions(self.fileActions) # Adding file actions
+        menuBar.addMenu(filemenu)
+        
+        # Select menu
+        selectmenu = QMenu("&Select", self)
+        selectmenu.addActions(self.selectActions)
+        menuBar.addMenu(selectmenu)
+
+        # Analysis menu
+        analysis_menu = QMenu("Analysis", self)
+        analysis_menu.addActions(self.analysisActions)
+        menuBar.addMenu(analysis_menu)
+
 
 
 if __name__ == '__main__':
