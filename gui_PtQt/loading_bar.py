@@ -9,13 +9,14 @@ from PyQt5.QtGui import QStandardItemModel, QStandardItem, QColor, QIcon, QKeySe
 from PyQt5.QtCore import Qt, QAbstractTableModel, QItemSelection, QItemSelectionModel, QPersistentModelIndex, pyqtSignal, QModelIndex
 
 from core import ExperimentLoader, ExperimentManager, Experiment
-from functions.gui_functions import open_file_in_system_editor, open_folder_in_explorer
-from functions.gui_functions import load_data, load_files, load_folder
-from gui.calculate_diameter import AreaDialogBox, AreaDialog
-from gui_PtQt.config import icon_path
-from experiments.sample import Sample
-from gui.small_widgets import TreeFilterProxyModel
+from core.functions.gui_functions import open_file_in_system_editor, open_folder_in_explorer
+from core.functions.gui_functions import load_data, load_files, load_folder
+from gui_PtQt.calculate_diameter import AreaDialogBox, AreaDialog
+from gui_PtQt.configuration.config import icon_path
+from core.experiments.sample import Sample
+from gui_PtQt.small_widgets import TreeFilterProxyModel
 from gui_PtQt.pandas_viewer import DataPreviewDialog
+from gui_PtQt.resources import qrc_resources
 
 
 
@@ -133,13 +134,13 @@ class ExperimentPanel(QWidget):
         btn_select_all_experiments_shortcut.activated.connect(self.select_all_experiments_globally)
 
         # 2.2 Ikony
-        self.btn_load_dialog.setIcon(QIcon(icon_path + 'document--plus.png'))
-        self.btn_load_folder_dialog.setIcon(QIcon(icon_path + 'folder-open.png'))
-        self.btn_delete.setIcon(QIcon(icon_path + 'document--minus.png'))
-        self.btn_copy.setIcon(QIcon(icon_path + 'document-copy.png'))
-        self.btn_expand_all.setIcon(QIcon(icon_path + 'arrow-resize-090.png'))
-        self.btn_select_all_samples.setIcon(QIcon(icon_path + 'flask'))
-        self.btn_select_all_experiments.setIcon(QIcon(icon_path + 'scripts-text'))
+        self.btn_load_dialog.setIcon(QIcon(":file-load.png"))
+        self.btn_load_folder_dialog.setIcon(QIcon(":folder-load.png"))
+        self.btn_delete.setIcon(QIcon(":file-delete.png"))
+        self.btn_copy.setIcon(QIcon(":file-copy.png"))
+        self.btn_expand_all.setIcon(QIcon(":expand.png"))
+        self.btn_select_all_samples.setIcon(QIcon(":select-samples.png"))
+        self.btn_select_all_experiments.setIcon(QIcon(":select-experiments.png"))
 
         # 3. Layouty
         button_layout = QHBoxLayout()
@@ -345,8 +346,8 @@ class ExperimentPanel(QWidget):
 
         eis_exps = [e for e in experiments if getattr(e, 'object_type', None) == 'EIS' or e.__class__.__name__ == 'EIS']
         if eis_exps:
-            from experiments import EIS
-            from gui.small_widgets import DataSelector
+            from core.experiments import EIS
+            from gui_PtQt.small_widgets import DataSelector
             eis_exps: list[EIS]
             menu.addSeparator()
             eis_menu = menu.addMenu("EIS Options")

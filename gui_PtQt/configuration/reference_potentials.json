@@ -1,0 +1,51 @@
+{
+    "AgCl/Ag (3M KCl)": {
+        "AM": {
+            "2025-06-30 16:10:50": {
+                "filepath": "D:/!UNI/!sci_materials/!doktorat/!wyniki/!TM3Se4/seria_3/CATALYSIS/PELLETS/SERIA_2/FN2_PELLET_STRONA_2_POMIAR_1_AM_REDOXME_30_06_2025/OCP.DTA",
+                "time at offset [s]": 599.76,
+                "calibration offset [V]": 0.424399,
+                "notes": null
+            },
+            "2025-07-01 13:47:48": {
+                "filepath": "D:/!UNI/!sci_materials/!doktorat/!wyniki/!TM3Se4/seria_3/CATALYSIS/PELLETS/SERIA_2/F2N_PELLET_STRONA_2_POMIAR_1_AM_REDOXME_01_07_2025/OCP.DTA",
+                "time at offset [s]": 7.65,
+                "calibration offset [V]": 0.367027,
+                "notes": null,
+                "last_calibration_date": 345
+            },
+            "2025-07-03 16:32:18": {
+                "filepath": "D:/!UNI/!sci_materials/!doktorat/!wyniki/!TM3Se4/seria_3/CATALYSIS/PELLETS/SERIA_2/F2N_PELLET_STRONA_1_POMIAR_2_AM_REDOXME_03_07_2025/OCP.DTA",
+                "time at offset [s]": 415.65,
+                "calibration offset [V]": 0.414887,
+                "notes": null
+            },
+            "2025-07-07 12:01:29": {
+                "filepath": "D:/!UNI/!sci_materials/!doktorat/!wyniki/!TM3Se4/seria_3/CATALYSIS/PELLETS/SERIA_2/FN_PELLET_STRONA_2_POMIAR_2_AM_REDOXME_07_07_2025/OCP.DTA",
+                "time at offset [s]": 490.62,
+                "calibration offset [V]": 0.433007,
+                "notes": null,
+                "last_calibration_date": 339
+            },
+            "2025-07-08 08:36:10": {
+                "filepath": "D:/!UNI/!sci_materials/!doktorat/!wyniki/!TM3Se4/seria_3/CATALYSIS/PELLETS/SERIA_2/FN2_PELLET_STRONA_2_POMIAR_3_AM_REDOXME_08_07_2025/OCP.DTA",
+                "time at offset [s]": 417.69,
+                "calibration offset [V]": 0.422291,
+                "notes": null,
+                "last_calibration_date": 338
+            }
+        }
+    },
+    "Hg2Cl2/Hg (3M KCl)": {},
+    "HgO/Hg (3M KOH)": {
+        "Nowy_HgO": {
+            "2025-07-01 13:47:48": {
+                "filepath": "D:/!UNI/!sci_materials/!doktorat/!wyniki/!TM3Se4/seria_3/CATALYSIS/PELLETS/SERIA_2/F2N_PELLET_STRONA_2_POMIAR_1_AM_REDOXME_01_07_2025/OCP.DTA",
+                "time at offset [s]": 349.35,
+                "calibration offset [V]": 0.429587,
+                "notes": null,
+                "last_calibration_date": 340
+            }
+        }
+    }
+}

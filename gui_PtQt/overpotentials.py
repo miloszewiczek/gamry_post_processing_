@@ -2,15 +2,15 @@ from contextlib import contextmanager
 from PyQt5.QtWidgets import QDialog, QHBoxLayout, QVBoxLayout, QPushButton, QComboBox, QLabel, QGroupBox, QLineEdit, QShortcut, QVBoxLayout, QMessageBox
 from PyQt5.QtGui import QIcon, QKeySequence
 from PyQt5.QtCore import Qt
-from experiments import Voltammetry, LinearVoltammetry
-from gui.small_widgets import TreeSelectorWithCheckboxes, SimpleDoubleSpinBox, Selector, SelectorWithSample
+from core.experiments import Voltammetry, LinearVoltammetry
+from gui_PtQt.small_widgets import TreeSelectorWithCheckboxes, SimpleDoubleSpinBox, Selector, SelectorWithSample
 from gui_PtQt.plotting_area import DoubleLayerCanvas
-from functions.functions import calc_closest_value, convert_to_overpotential_scale
+from core.functions.functions import calc_closest_value, convert_to_overpotential_scale
 import matplotlib.cm as cm
-from experiments.sample import Sample
-from experiments import Experiment 
+from core.experiments.sample import Sample
+from core.experiments import Experiment 
 import pandas as pd
-from experiments.analysis import OverpotentialAnalysis
+from core.experiments.analysis import OverpotentialAnalysis
 from core import ExperimentManager, analysis_manager
 
 

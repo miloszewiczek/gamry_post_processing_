@@ -1,21 +1,12 @@
-- Add buttons corresponding to expand_all, collapse_all
-- Add buttons to select all Samples, select All Experiments
-
 - Raporting
 
 - ReferenceManager - add option to pick a potential point from a certain time (clickable)
-
-- Add functionality to calculate Tafels
-
-- Add functionality to calculate overpotentials
-    - with respect to a certain reaction of interest (vs specific E)
 
 - Change pH to be set globally, right now the pH affects the reference electrode, when it shouldn't! 
     - on secound thought, maybe stick with it? Because we are converting everything to RHE anyway and it depends on the pH
     - then we could only specify the overpotentials with respect to specific rections.
 
 - Adding live data viewer (kind of done, need to build it further)
-- Add option to specify uncompenasted resistance (Ru)
 
 - Big feature - automatic post-processing
     - first level - just tell the program what folder I have

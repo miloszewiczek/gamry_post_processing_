@@ -1,0 +1,421 @@
+import pandas as pd
+import numpy as np
+import gamry_parser
+from matplotlib import pyplot as plt
+from collections import defaultdict
+from typing import Literal
+from unicode_mapping import uni_map
+import os
+from datetime import datetime
+
+DTA_parser = gamry_parser.GamryParser()
+
+class Experiment():
+    """
+    A base class containing experimental metadata and data.
+
+    Each experiment subtype e.g. LinearVoltametry is based on this superclass.
+    Each subclass has its own process_data function as well as _add_computed_column
+    """
+    def __init__(self, file_path, date_time, id, tag, cycle):
+        date_format = "%Y-%m-%d %H:%M:%S"
+
+        self.file_path = file_path
+        self.folder = os.path.dirname(file_path)
+        self.file_name = os.path.basename(file_path)
+        self.date_time = date_time
+        self.id = id
+        self.tag = tag
+        self.custom_parameters = defaultdict()
+        self.cycle = cycle
+        self.isLoaded = False
+        self.isProcessed = False
+        self.geometrical_area = 1
+        self.reference_potential = 0
+        self.Ru = 0
+
+    def load_all(self):
+        """
+        Load both data curves as well as meta_data stored in meta_data and data_list, respecitvely.
+        """
+
+        self.load_curves()
+        self.load_meta_data()
+        return self.meta_data, self.data_list
+
+    def load_meta_data(self):
+        """
+        Load only meta_data. Useful to setup further processing and or initial viewing of the experiments structure.
+
+        Returns:
+            self.meta_data (dict): Dictionary containing meta data of the experiment.
+        """
+
+        DTA_parser.load(self.file_path)
+        self.meta_data = DTA_parser.get_header()
+        self.TAG = self.meta_data['TAG']
+        return self.meta_data
+
+    def load_curves(self):
+        """
+        Load only experimental curves as pandas DataFrames and store them in data_list attribute.
+        Also deletes curves which only have 1 measurement point. This is especially the case in 
+        cyclic voltammetry, when First and Last potentials are set to be the same as VLIMIT1 and 
+        VLIMIT2.
+
+        Returns:
+            self.data_list (list[DataFrame]) 
+        """
+
+        DTA_parser.load(self.file_path)
+        self.data_list = DTA_parser.get_curves() 
+        if len(self.data_list[-1].index) == 1:
+            self.data_list.pop(-1)
+            #print(f'Single point curve removed in file {self.file_path}')
+
+        setattr(self, 'isLoaded', True)
+        return self.data_list
+
+    def get_multiindex_labels(self, columns, curve_index, add_curve_index = True) -> tuple[list[list[str]], list[str]]:
+        """
+        Returns levels and names for multiindexing. Is different for each 
+        type of experiment.
+        Returns:
+        - list of lists: values for each level of the Multiindex (e.g. [[path], [curve_name], [column1, column2, column2, ...]])
+        - list of level names (e.g. ['Path, 'Curve', 'Metric])
+        """
+
+        level_values = [[self.file_path], [curve_index], columns]
+        level_names = ['Path', 'Curve', 'Parameter']
+        return level_values, level_names
+
+
+
+    
+    def _add_computed_column(self, curve:pd.DataFrame) -> pd.DataFrame:
+        """
+        A function that modifies the curve DataFrame so that it has more detailed info e.g. current density 
+        and iR-compensated potential. Other Experiment subclasses have either additional (Voltammetry) or 
+        different (EIS) modifications to the DataFrame.
+        
+        Args:
+            curve (pd.DataFrame): DataFrame to modify.
+
+        Returns:
+            processed_df (pd.DataFrame): Modified DataFrame.
+        """
+
+        curve['J_GEO [A/cm2]'] = curve['Im']/self.geometrical_area
+        curve['I [A]'] = curve['Im']
+        curve['E vs RHE [V]'] = curve['Vf'] + self.reference_potential
+        curve = curve.reset_index(drop=True)
+
+        if self.Ru != 0:
+            curve['E_iR vs RHE [V]'] = curve['Vf'] + self.reference_potential - self.Ru * curve['Im']
+            return curve[['E vs RHE [V]', 'I [A]', 'E_iR vs RHE [V]', 'J_GEO [A/cm2]']]
+
+        processed_df = curve[['E vs RHE [V]', 'I [A]', 'J_GEO [A/cm2]']] 
+
+        return processed_df
+
+    def process_data(self, **kwargs) -> list[pd.DataFrame]:
+        """
+        Function that takes all curves from data_list attribute and processes them
+        according to the _add_computed_column method.
+        
+        Returns:
+            self.processed_data (list[DataFrame]): List of processed DataFrames"""
+        
+        if not hasattr(self, 'data_list'):
+            self.load_all()
+
+        dfs = []
+        for  curve_index, curve in enumerate(self.data_list):
+            
+            processed_curve = self._add_computed_column(curve)
+
+            dfs.append(processed_curve)
+        
+        self.processed_data = dfs
+
+        # Telling the Experiment that it's processed.
+        setattr(self, 'isProcessed', True)
+        return self.processed_data
+    
+    def make_multiindex(self, data: list[pd.DataFrame]):
+        """
+        Make a MultiIndex DataFrame based on labels from get_multiindex_labels function. 
+        
+        Args:
+            data (list[DataFrame]): list od DataFrames (curves).
+        
+        Returns:
+            multiindex_df (pd.MultiIndex): Pandas MultiIndex made from data.
+        """
+        
+        dfs = []
+        
+        if len(data) > 1:
+            include_curve_index = True
+        else:
+            include_curve_index = False
+
+        for curve_index, curve in enumerate(data):
+            curve_copy = curve.copy()
+            level_values, level_names = self.get_multiindex_labels(curve_copy.columns, curve_index, add_curve_index= include_curve_index)
+            curve_copy.columns = pd.MultiIndex.from_product(level_values, names = level_names)
+            dfs.append(curve_copy)
+
+        multiindex_df = pd.concat(dfs, axis=1)
+        return multiindex_df
+
+    def get_tree_structure(self) -> dict:
+        """Return a nested dictionary representing the file → [curve or potential] → custom_parameters tree.defaultdict()   Supports both 2- and 3-level MultiIndex DataFrames."""
+    
+        if not hasattr(self, "processed_data"):
+            raise ValueError("Run process_data() first.")
+
+        df = self.processed_data
+        tree = defaultdict(lambda: defaultdict(list))
+
+        if isinstance(df.columns, pd.MultiIndex):
+            for col_tuple in df.columns:
+                if len(col_tuple) == 3:
+                    path, middle, param = col_tuple
+                    tree[path][middle].append(param)
+                elif len(col_tuple) == 2:
+                    path, param = col_tuple
+                    tree[path]["[no group]"].append(param)  # placeholder label
+                else:
+                    raise ValueError(f"Unsupported column depth: {len(col_tuple)}")
+        else:
+            # fallback: single-level column (not MultiIndex)
+            tree[self.file_path]["[flat]"] = list(df.columns)
+
+        return dict(tree)
+    
+    def perform_postprocessing(self):
+        return 'Base class has no postprocessing defined'
+
+    def get_data(self, index:int|None|list[int] = None, data_type: str = Literal['data_list', 'processed_data']) -> list[pd.DataFrame]:
+        #Need to add functionality to get either self.data_list or processed_list or even something different
+        #None is a string, because the treeview stores values as strings!
+
+        data = getattr(self, data_type)
+        
+        if index == "None" or index == None:
+            return data 
+        elif isinstance(index, int):
+            return [data[index]]
+        elif isinstance(index, str) and index.isdigit():
+            return [data[int(index)]]
+        else:
+            return [data[i] for i in index]
+    
+    def get_all_data(self):
+        return {'data_list': self.data_list,
+                'processed_data': self.processed_data}
+        
+    def get_default_columns(self, axis: Literal['x','y','both'], columns:list = None):
+        '''Helper function that returns the default column name stored in default_x or default_y'''
+
+        match axis:
+            case 'x':
+                return self.default_x
+            case 'y':
+                return self.default_y
+            case 'both':
+                return self.default_x, self.default_y
+
+    def get_columns(self, curve: int = 0, columns:list = None) -> tuple:
+        
+        #get curve'th in the processed data
+        df = self.processed_data[curve]
+        tmp = []
+        cols_to_collect = []
+        if columns is not None:
+            for column in columns:
+                if column == 'E_iR vs RHE [V]' and 'E_iR vs RHE [V]' not in df.columns:
+                    column_to_use = 'E vs RHE [V]'
+                else:
+                    column_to_use = column
+                if column_to_use in df.columns:
+                    cols_to_collect.append(df[column_to_use])
+                else:
+                    print(f'No processed data {column_to_use}. Skipping.')
+            
+            if cols_to_collect:
+                tmp = pd.concat(cols_to_collect, axis=1)
+                tmp.columns = [s.name for s in cols_to_collect]  # ensure correct column names
+                return tmp
+
+        else:
+            print('Please input the columns')
+            return 0
+        
+    def get_xy_data(self, curve_index: int) -> tuple[pd.Series, pd.Series]:
+        """
+        Get default x and y columns of a particular curve defined by its index.
+        The data is from processed_data!
+
+        Args:
+            curve_index (int): Index of curve.
+
+        Returns:
+            xy_tuple (tuple[pd.Series, pd.Series]): Tuple contaning two pandas Series
+            corresponding to x and y data, respectively.
+        
+        """
+        if not self.isProcessed:
+            raise RuntimeError("Data not yet processed. Use process_data().")
+        
+        df = self.processed_data[curve_index]
+        xy_tuple = df[self.default_x], df[self.default_y]
+        
+        return xy_tuple
+
+    def get_meta_data(self) -> dict:
+        return self.meta_data
+    
+    def get_parameter(self, param):
+        return self.meta_data[param] 
+
+    def get_essentials(self):
+
+        essentials = {
+            'Filepath': (self.file_path, 'LABEL', str, 'file_path'),
+            'Experiment ID': (self.id, 'LABEL', int, 'id'),
+            'Experiment TAG': (self.meta_data['TAG'], 'LABEL', str, 'TAG'),
+            'Title': (self.meta_data['TITLE'],'LABEL', str, 'TITLE'),
+            'Potentiostat': (self.meta_data['PSTAT'],'LABEL', str, 'PSTAT'),
+            'Date | Time': (" | ".join([self.meta_data['DATE'], self.meta_data['TIME']]), 'LABEL', str, 'NONE'),
+            f'Area [cm{uni_map['square']}]': (self.geometrical_area, 'ENTRY', float, 'geometrical_area'),
+            'Reference Potential [V]': (self.reference_potential, 'ENTRY', float, 'reference_potential'),
+            f'Ru [{uni_map['Ohm']}]': (self.Ru, 'ENTRY', float, 'Ru')
+        }
+
+        if hasattr(self, 'data_list'):
+            essentials['Number of curves'] = (len(self.data_list), 'LABEL', int, 'NONE')
+            
+        return essentials
+    
+    def set_parameter(self, parameter:str, value):
+        self.custom_parameters[parameter] = value
+
+    def set_Ru(self, Ru_value):
+        """
+        Simple function to set Ru (uncompensated resistance) of the experiment. 
+        
+        Args:
+            Ru_value (float): Uncompensated resistance value to set.
+            
+        Returns:
+            None
+        """
+
+        self.Ru = Ru_value
+        return
+
+    def set_area(self, area: float):
+        """
+        Set geometrical area in cm2. 
+        
+        Args:
+            args (float): Area to set in cm2.
+        
+        Returns:
+            None
+        """
+        
+        self.geometrical_area = area
+        return
+
+    def set_potential(self, potential: float):
+        """
+        Set potential vs RHE in [V]
+        
+        Args:
+            potential (float): Potential to set [V].
+            
+        Returns:
+            None"""
+
+        if not isinstance(potential, float):
+            try:
+                potential = float(potential)
+            except:
+                return
+        
+        self.reference_potential = potential
+        return
+
+
+    def get_plot_data(self, curves:list[int] = None, x = None, y = None):
+                # Automatyczne ładowanie i procesowanie, jeśli zapomniano to zrobić wcześniej
+        if not hasattr(self, 'processed_data'):
+            self.process_data()
+
+
+        if isinstance(curves, list):
+            curves_to_plot = self.get_data(curves, data_type = 'processed_data')
+        elif curves is None:
+            curves_to_plot = self.get_data(data_type = 'processed_data')
+
+        if x is None or y is None:
+            x, y = self.get_default_columns('both')
+
+
+        data_to_plot = []
+        
+        for df in curves_to_plot:
+            # Sprawdzamy czy kolumny istnieją, żeby uniknąć KeyError
+            if x in df.columns and y in df.columns:
+
+                clean_df =  df[[x,y]].reset_index(drop=True)
+                data_to_plot.append(clean_df)
+            else:
+                print(f"Błąd: Brak kolumn {x} lub {y} w eksperymencie {self.id}")
+        
+        return data_to_plot
+
+    def plot(self, ax, data_to_plot = None, curves = None, color = None, **kwargs):
+
+        if data_to_plot == None:
+            data_to_plot = self.get_plot_data(curves = curves)
+
+        for data in data_to_plot:
+            ax.plot(data.iloc[:, 0], data.iloc[:, 1], color = color, **kwargs)
+
+    def __repr__(self):
+        return f"Experiment(id={self.id}, tag='{self.tag}', cycle={self.cycle}, file='{self.file_name}')"
+    
+
+    @property
+    def default_x(self) -> str:
+        """Zwraca domyślną nazwę kolumny X na podstawie stanu Ru."""
+        if self.Ru != 0:
+            return 'E_iR vs RHE [V]'
+        return 'E vs RHE [V]'
+    
+    @property
+    def default_x_plot(self) -> str:
+        """Zwraca domyślną nazwę kolumny X na podstawie stanu Ru."""
+        if self.Ru != 0:
+            return 'E$_{iR}$ vs RHE [V]'
+        return 'E vs RHE [V]'
+
+
+    @property
+    def default_y(self) -> str:
+        """Zwraca domyślną nazwę kolumny Y."""
+        if self.geometrical_area != 1:
+            return 'J_GEO [A/cm2]'
+        return 'I [A]'
+    
+    @property
+    def default_y_plot(self) -> str:
+        """Zwraca domyślną nazwę kolumny Y."""
+        if self.geometrical_area != 1:
+            return 'j$_{GEO}$ [A/cm²]'
+        return 'I [A]'
+    

@@ -1,6 +1,6 @@
 from PyQt5.QtWidgets import QDialog, QHBoxLayout, QVBoxLayout, QPushButton, QMessageBox
 from PyQt5.QtCore import Qt
-from gui.small_widgets import SelectorWithSample
+from gui_PtQt.small_widgets import SelectorWithSample
 from matplotlib.backends.backend_qt5agg import NavigationToolbar2QT as NavigationToolbar
 
 class BaseAnalysisWindow(QDialog):

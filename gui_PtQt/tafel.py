@@ -9,19 +9,19 @@ from PyQt5.QtGui import QStandardItemModel, QStandardItem, QColor, QIcon, QKeySe
 from PyQt5.QtCore import Qt, QAbstractTableModel, QItemSelection, QItemSelectionModel, QPersistentModelIndex, pyqtSignal, QModelIndex
 
 from core import ExperimentLoader, ExperimentManager, Experiment
-from functions.gui_functions import open_file_in_system_editor, open_folder_in_explorer
-from functions.gui_functions import load_data, load_files, load_folder
-from gui.calculate_diameter import AreaDialogBox, AreaDialog
-from gui_PtQt.config import icon_path
-from experiments.sample import Sample
-from gui.small_widgets import TreeFilterProxyModel, SelectorWithSample
-from experiments import LinearVoltammetry
+from core.functions.gui_functions import open_file_in_system_editor, open_folder_in_explorer
+from core.functions.gui_functions import load_data, load_files, load_folder
+from gui_PtQt.calculate_diameter import AreaDialogBox, AreaDialog
+from gui_PtQt.configuration.config import icon_path
+from core.experiments.sample import Sample
+from gui_PtQt.small_widgets import TreeFilterProxyModel, SelectorWithSample
+from core.experiments import LinearVoltammetry
 from gui_PtQt.plotting_area import TafelCanvas
 from numpy import gradient
-from functions.functions import calc_closest_value
+from core.functions.functions import calc_closest_value
 from scipy.stats import linregress
 from core import ExperimentManager, analysis_manager
-from experiments.analysis import BaseAnalysis
+from core.experiments.analysis import BaseAnalysis
 import pandas as pd
 
 
@@ -152,7 +152,7 @@ class TafelCoreWidget(QWidget):
         return pd.DataFrame(list_of_tuples, multiindex, **kwargs)
 
     def create_analysis(self):
-        from experiments.analysis import TafelAnalysis
+        from core.experiments.analysis import TafelAnalysis
 
         tafel_slopes = [dictionary['Slope'] for dictionary in self.data]
         # regression_lines = [dictionary['Regression line'] for dictionary in self.data]

@@ -1,0 +1,12 @@
+<!DOCTYPE RCC><RCC version="1.0">
+<qresource>
+    <file alias="file-load.png">Fugue_icons/fugue-icons-3.5.6/icons/document--plus.png</file>
+    <file alias="folder-load.png">Fugue_icons/fugue-icons-3.5.6/icons/folder-open.png</file>
+    <file alias="file-delete.png">Fugue_icons/fugue-icons-3.5.6/icons/document--minus.png</file>
+    <file alias="file-copy.png">Fugue_icons/fugue-icons-3.5.6/icons/document-copy.png</file>
+    <file alias="expand.png">Fugue_icons/fugue-icons-3.5.6/icons/arrow-resize-090.png</file>
+    <file alias="select-samples.png">Fugue_icons/fugue-icons-3.5.6/icons/flask.png</file>
+    <file alias="select-experiments.png">Fugue_icons/fugue-icons-3.5.6/icons/scripts-text.png</file>
+</qresource>
+</RCC>
+

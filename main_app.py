@@ -1,11 +1,11 @@
 from core import ExperimentLoader, ExperimentManager, analysis_manager
 from gui_PtQt.loading_bar import ExperimentPanel
 from gui_PtQt.plotting_area import PlottingArea, PlotManagerPanel
-from experiments import *
+from core.experiments import *
 from PyQt5.Qt import QApplication, QMainWindow, QWidget, QHBoxLayout, QSplitter
 from PyQt5.QtCore import Qt, QCoreApplication
 from sys import argv
-from gui_PtQt.config import defaults
+from gui_PtQt.configuration.config import defaults
 from core import AnalysisWindow
 
 # Ustawiamy metadane aplikacji raz na samym początku

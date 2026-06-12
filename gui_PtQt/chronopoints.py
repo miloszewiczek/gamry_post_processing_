@@ -9,19 +9,19 @@ from PyQt5.QtGui import QStandardItemModel, QStandardItem, QColor, QIcon, QKeySe
 from PyQt5.QtCore import Qt, QAbstractTableModel, QItemSelection, QItemSelectionModel, QPersistentModelIndex, pyqtSignal, QModelIndex
 
 from core import ExperimentLoader, ExperimentManager, Experiment
-from functions.gui_functions import open_file_in_system_editor, open_folder_in_explorer
-from functions.gui_functions import load_data, load_files, load_folder
-from gui.calculate_diameter import AreaDialogBox, AreaDialog
-from gui_PtQt.config import icon_path
-from experiments.sample import Sample
-from gui.small_widgets import TreeFilterProxyModel, SelectorWithSample
-from experiments import LinearVoltammetry
+from core.functions.gui_functions import open_file_in_system_editor, open_folder_in_explorer
+from core.functions.gui_functions import load_data, load_files, load_folder
+from gui_PtQt.calculate_diameter import AreaDialogBox, AreaDialog
+from gui_PtQt.configuration.config import icon_path
+from core.experiments.sample import Sample
+from gui_PtQt.small_widgets import TreeFilterProxyModel, SelectorWithSample
+from core.experiments import LinearVoltammetry
 from gui_PtQt.plotting_area import ChronopointCanvas
 from numpy import gradient
 from matplotlib.backends.backend_qt5agg import NavigationToolbar2QT as NavigationToolbar
 from scipy.stats import linregress
 from .tafel import TafelCoreWidget
-from experiments import Chronoamperometry
+from core.experiments import Chronoamperometry
 from core import analysis_manager
 
 class ChronopointsCoreWidget(TafelCoreWidget):
@@ -42,7 +42,7 @@ class ChronopointsCoreWidget(TafelCoreWidget):
         self.canvas.plot_chrono(self.current_x, self.current_y)
     
     def create_analysis(self):
-        from experiments.analysis import ChronopointAnalysis
+        from core.experiments.analysis import ChronopointAnalysis
 
         data_to_add = self.make_row_multiindex(self.data, columns = ['T [s]', 'J_GEO [A/cm2]']) 
         print(data_to_add)

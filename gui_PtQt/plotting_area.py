@@ -7,8 +7,8 @@ from PyQt5.QtGui import QKeySequence, QColor
 from .painting import create_line_icon, ColorManager
 import pandas as pd
 import matplotlib.dates as mdates
-from functions.functions import calc_closest_2D
-from experiments import Experiment
+from core.functions.functions import calc_closest_2D
+from core.experiments import Experiment
 from matplotlib.widgets import SpanSelector
 from scipy.stats import linregress
 from matplotlib.backends.backend_qt5agg import NavigationToolbar2QT as NavigationToolbar

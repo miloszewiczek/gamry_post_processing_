@@ -1,13 +1,13 @@
 from contextlib import contextmanager
 from PyQt5.QtWidgets import QDialog, QHBoxLayout, QVBoxLayout, QPushButton, QComboBox, QLabel, QGroupBox, QWidget
 from PyQt5.QtCore import Qt
-from experiments import Voltammetry, ECSA
-from gui.small_widgets import TreeSelectorWithCheckboxes, SimpleDoubleSpinBox, Selector, SelectorWithSample
+from core.experiments import Voltammetry, ECSA
+from gui_PtQt.small_widgets import TreeSelectorWithCheckboxes, SimpleDoubleSpinBox, Selector, SelectorWithSample
 from gui_PtQt.plotting_area import DoubleLayerCanvas
-from functions.functions import calculate_ECSA_from_slope
+from core.functions.functions import calculate_ECSA_from_slope
 import matplotlib.cm as cm
 from core import ExperimentManager, analysis_manager
-from experiments.analysis import DoubleLayerAnalysis
+from core.experiments.analysis import DoubleLayerAnalysis
 from gui_PtQt.tafel import TafelCoreWidget
 
 
