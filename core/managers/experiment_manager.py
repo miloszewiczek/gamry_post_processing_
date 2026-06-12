@@ -390,12 +390,12 @@ class ExperimentManager():
 
                 if cycles[0] > counter:
                     counter = cycles [0]
-                    print(messages.manager_messages['chronology'][0].format(cycle_number = counter))
+                    # print(messages.manager_messages['chronology'][0].format(cycle_number = counter))
 
 
                 if len(cycles) > 1 and cycles[1] == 1:
                     experiment_name = type(experiment).__name__ 
-                    print(messages.manager_messages['chronology'][1].format(experiment_name = experiment_name))
+                    # print(messages.manager_messages['chronology'][1].format(experiment_name = experiment_name))
 
                 print(experiment.file_path)
         else:
@@ -406,7 +406,7 @@ class ExperimentManager():
 
             for experiment in first_experiment_list:
                 print(f'{experiment.tag}')
-            print(messages.manager_messages['chronology'][2].format(total_duration = total_duration))
+            # print(messages.manager_messages['chronology'][2].format(total_duration = total_duration))
 
     def batch_process_selected_experiments(
         self,
