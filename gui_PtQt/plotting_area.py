@@ -237,7 +237,8 @@ class OCPPlot(FigureCanvas):
             processed_data[0][y], 
             picker=5        # 10 pikseli tolerancji (liczba, nie True!)
             )
-            
+        
+        self.axes.relim()
         self.draw()
 
 

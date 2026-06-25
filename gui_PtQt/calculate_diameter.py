@@ -94,6 +94,17 @@ class AreaDialog(BaseDataDialog):
         self.Ru_from_EIS_btn = QPushButton('From EIS')
         self.Ru_from_EIS_btn.clicked.connect(self.create_selector)
 
+        self.potentialRadiobuttons_group = QButtonGroup()
+        self.radiobutton_layout = QHBoxLayout()
+        self.calculate_from_scratch_rb = QRadioButton('Calculate')
+        self.only_final_potential_rb = QRadioButton('Final potential')
+        self.potentialRadiobuttons_group.addButton(self.calculate_from_scratch_rb)
+        self.potentialRadiobuttons_group.addButton(self.only_final_potential_rb)
+        self.radiobutton_layout.addWidget(self.calculate_from_scratch_rb)
+        self.radiobutton_layout.addWidget(self.only_final_potential_rb)
+        self.potentialRadiobuttons_group.buttonToggled.connect(self.toggle_reference_potential_input)
+        layout.addLayout(self.radiobutton_layout)
+
         self.potentials_list = (self.standard_potential_DoubleBox, self.offset_DoubleBox, self.pH_DoubleBox)
         for component in self.potentials_list:
             component.valueChanged.connect(self.calculate_final_potential)
@@ -117,8 +128,9 @@ class AreaDialog(BaseDataDialog):
         self.Ru_layout.addWidget(Ru_label, 0,0)
         self.Ru_layout.addWidget(self.Ru_from_EIS_btn, 1, 1)
         
-
-
+        self.variable_selector = QPushButton('Variables...')
+        self.variable_selector.clicked.connect(self.create_variable_selector)
+        layout.addWidget(self.variable_selector)
 
         layout.addWidget(label)
         layout.addLayout(self.area_layout)
@@ -139,6 +151,7 @@ class AreaDialog(BaseDataDialog):
             'pH': self.pH_DoubleBox,
             'Ru': self.Ru_box
         }
+
 
     def get_fields(self):
         return self.fields
@@ -245,12 +258,24 @@ class AreaDialog(BaseDataDialog):
         def get_value(tuple):
             #we just want the x value!
             self.Ru_box.setValue(tuple[0])
-        quick = DataSelector(None)
-        quick.setup_data(manager = self.manager, experiments = self.experiments, object_type = EIS)
-        quick.myaccepted.connect(get_value)
-        quick.exec()
+            
+        quick = DataSelector(manager = self.manager, experiments = self.experiments, object_type = EIS, callback = get_value)
 
-        
+    def create_variable_selector(self):
+        from .xml_reader import VariableSelector
+        VariableSelector({"Ru": self.Ru_box,
+                          "Dupa": 'cyce'})
+
+
+    def toggle_reference_potential_input(self, button, checked):
+        if button == self.calculate_from_scratch_rb:
+            toggle_bool = True
+        elif button == self.only_final_potential_rb:
+            toggle_bool = False
+
+        for item in self.potentials_list:
+            item.setEnabled(toggle_bool)
+        self.final_potential.setDisabled(toggle_bool)
 
 
 class AreaDialogBox(QDialog):

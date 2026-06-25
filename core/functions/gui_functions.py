@@ -16,13 +16,13 @@ def load_folder(parent = None):
         files = normalized_folder_path.glob('*.DTA')
         return files
 
-def load_files(parent = None):
+def load_files(parent = None, caption = 'Choose files', directory = "", filter = "Gamry files (*.DTA);;All files (*)"):
 
     files, _ = QFileDialog.getOpenFileNames(
         parent,
-        "Choose files",
-        "",
-        "Gamry files (*.DTA);;All files (*)"
+        caption,
+        directory,
+        filter
     )
     return files
 

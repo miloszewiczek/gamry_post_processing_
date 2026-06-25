@@ -628,17 +628,19 @@ class ExperimentSelector(QWidget):
 class DataSelector(QDialog):
     myaccepted = pyqtSignal(tuple)
 
-    def __init__(self, canvas_type = None, parent=None):
+    def __init__(self, manager, experiments, canvas_type = None, parent=None, callback = None, *args, **kwargs):
         super().__init__(parent)
         from gui_PtQt.plotting_area import PlottingCanvas
 
         self.canvas = self.setup_canvas(PlottingCanvas)
         self.toolbar = self.canvas.get_toolbar()        
-        # POPRAWKA: Przekazanie self jako parent
         self.experiment_selector = ExperimentSelector(self)
         self.experiment_selector.selection_changed.connect(lambda exp: self.canvas.plot_experiments_no_color(exp, None, marker = 'o', markersize = 2, linewidth = 0))
 
         self.build_ui()
+        self.setup_data(experiments = experiments, manager = manager, **kwargs)
+        self.myaccepted.connect(callback)
+        self.exec()
 
     def build_ui(self):
         main_layout = QHBoxLayout()

@@ -355,42 +355,27 @@ class ExperimentPanel(QWidget):
             eis_exps: list[EIS]
             menu.addSeparator()
             eis_menu = menu.addMenu("EIS Options")
-            eis_ru_act = eis_menu.addAction(f"Get Ru value")
-
-            print(eis_exps[0])
+            eis_ru_act = eis_menu.addAction(f"Quick Ru")
             eis_ru_act.triggered.connect(lambda: self.get_and_set_Ru(eis_exps[0]))
 
-            test_menu = menu.addMenu("TEST_DIALOG")
-            
-
-            x = self.manager.construct_tree(experiments)
-            test_menu_act1 = test_menu.addAction('Exp')
-
-
-            def create_selector():
-                x = DataSelector(None)
-                x.setup_data(manager = self.manager,  experiments = experiments, object_type = EIS)
-                x.myaccepted.connect(apply)
-                x.exec()
+            eis_ru_interactive_act = eis_menu.addAction(f"Select Ru Value")
+            eis_ru_interactive_act.triggered.connect(lambda x: DataSelector(self.manager, experiments, object_type = EIS, callback = apply))
 
             def apply(Ru_value):
-                for experiment in experiments:
+                sample = self.manager.find_sample(experiments[0])
+                for experiment in sample:
                     experiment.set_Ru(Ru_value[0])
-                    print(Ru_value[0])
-            test_menu_act1.triggered.connect(create_selector)
+                QMessageBox.information(self, 'Ru set', f'Ru was set to {Ru_value[0]} for sample: \n {sample.sample_name}', QMessageBox.Ok)
 
+                
+    def get_and_set_Ru(self, selected_experiment = None):
+            if selected_experiment:
+                Ru_to_set = selected_experiment.get_Ru()
+                sample = self.manager.find_sample(selected_experiment)
+                for exp in sample:
+                    exp.set_Ru(Ru_to_set)
+                QMessageBox.information(self, 'Ru set', f'Ru was set to {Ru_to_set} for sample: \n {sample.sample_name}', QMessageBox.Ok)
 
-
-            
-
-    def get_and_set_Ru(self, experiment):
-            x = self.manager.find_sample(experiment)
-            Ru_val = experiment.get_Ru()
-            for exp in x:
-                exp.set_Ru(Ru_val)
-    # =========================================================================
-    # CZYSZCZENIE LOGIKI OPERACYJNEJ (KOPIOWANIE, USUWANIE, ZAPISYWANIE)
-    # =========================================================================
 
     def copy_selected_items(self):
         node_type, objects = self._get_business_objects_from_selection()
