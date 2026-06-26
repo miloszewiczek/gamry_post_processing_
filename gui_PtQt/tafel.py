@@ -161,19 +161,12 @@ class TafelCoreWidget(QWidget):
         tafel_slopes = self.make_row_multiindex(tafel_slopes)
         fitting_data = self.make_column_multiindex(fitting_data) 
 
-        name = self.ask_for_analysis_name()
+
+        name = analysis_manager.ask_for_analysis_name(self.default_analysis_prefix)
         if name:
             analysis = TafelAnalysis(name, self.experiments, tafel_slopes, fitting_data)
             analysis_manager.add_analysis(analysis)
 
-    def ask_for_analysis_name(self):
-        analysis_number = analysis_manager.get_current_analysis_number()
-        analysis_string = f"{self.default_analysis_prefix} {analysis_number}" 
-        text, ok = QInputDialog.getText(self, 'Analysis name', 'Name of the analysis:', text = analysis_string)
-        if text and ok:
-            return text
-        else:
-            return
 
     def create_multiindex_from_tuples(self):
         return pd.MultiIndex.from_tuples(self.display_names_to_dataframe, names = ('Sample', 'Cycle', 'Experiment'))

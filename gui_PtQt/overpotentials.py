@@ -18,6 +18,8 @@ class OverpotentialsWindow(QDialog):
     def __init__(self, sample_dict:dict[Sample, list[Experiment]], parent = None, manager:ExperimentManager = None):
         super().__init__(parent)
         
+        self.default_analysis_prefix = 'Overpotential'
+
         self.manager = manager
         self.current_density_label = QLabel('Current density [A/cm²]')
         line_edit_layout = QHBoxLayout()
@@ -183,9 +185,10 @@ class OverpotentialsWindow(QDialog):
         # 3. Odejmujemy potencjał odniesienia (Pandas odejmie go automatycznie od każdej komórki)
         overpotentials_vs_reference = full_df - self.reference_potential_line_edit.value()
         
-
-        overpotential_analysis = OverpotentialAnalysis('Analysis 1', experiments = sample_experiments_dict, data = overpotentials_vs_reference)
-        analysis_manager.add_analysis(overpotential_analysis)
+        name = analysis_manager.ask_for_analysis_name(self.default_analysis_prefix)
+        if name:
+            overpotential_analysis = OverpotentialAnalysis(name = name, experiments = sample_experiments_dict, data = overpotentials_vs_reference)
+            analysis_manager.add_analysis(overpotential_analysis)
 
     def strip(self):
         

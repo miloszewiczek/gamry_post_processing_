@@ -2,11 +2,16 @@ import pandas as pd
 import numpy as np
 from typing import List, Literal, Union, Dict, Any
 import pandas as pd
+from PyQt5.QtWidgets import QInputDialog
 
 class BaseAnalysis():
-    def __init__(self, name, experiments, data, image = None, **kwargs):
+    def __init__(self, experiments,  data, name = None, image = None, **kwargs):
         
         self.name = name
+        if name is None:
+            name, ok = QInputDialog.getText(self, 'Input Name', 'Please input the name of the analysis')
+            if not ok:
+                return
         self.experiments = experiments
         self.data = data
         self.image = image
@@ -39,7 +44,7 @@ class BaseAnalysis():
 class OverpotentialAnalysis(BaseAnalysis):
     IndexLevel = Literal['Sample', 'Cycle', 'Experiment']
     def __init__(self, name: str, experiments: list, data: pd.DataFrame, **kwargs):
-        super().__init__(name, experiments, data, **kwargs)
+        super().__init__(name = name, experiments = experiments, data = data, **kwargs)
 
     def group_by(self, level: Union[IndexLevel, List[IndexLevel]]) -> pd.DataFrame:
         """
@@ -60,7 +65,7 @@ class DoubleLayerAnalysis(BaseAnalysis):
     def __init__(self, name: str, experiments: list, fitting_data: pd.DataFrame, raw_data: pd.DataFrame, **kwargs):
         # Przekazujemy fitting_data jako główny "data" do bazy, albo odwrotnie - zależnie od preferencji.
         # Umówmy się, że głównym 'data' będą punkty surowe, a fitting_data przypiszemy jawnie.
-        super().__init__(name, experiments, data=raw_data, **kwargs)
+        super().__init__(experiments = experiments, name = name, data=raw_data, **kwargs)
         
 
         # Dzięki kwargs, jeśli podasz `potential=chosen_potential`, 
@@ -90,3 +95,16 @@ class TafelAnalysis(BaseAnalysis):
     def get_data(self):
         return {f'{self.name}_TAFEL_SLOPES': self.data,
                 f'{self.name}_TAFEL_FITS': self.fitting_data}
+    
+
+class MeanAnalysis(BaseAnalysis):
+    def __init__(self, name: str, experiments: list, data: pd.DataFrame, selection, **kwargs) -> dict:
+    
+        super().__init__(name = name, experiments = experiments, data = data, **kwargs)
+        self.selection = selection
+
+    def get_data(self):
+        return 
+    
+
+

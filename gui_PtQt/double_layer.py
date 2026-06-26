@@ -237,7 +237,7 @@ class DoubleLayerCoreWidget(TafelCoreWidget):
     
     def create_analysis(self):
 
-        name = self.ask_for_analysis_name()
+        name = analysis_manager.ask_for_analysis_name(self.default_analysis_prefix)
         if (name) and (hasattr(self, 'fitting_data')): # it only exists once we make a CDL_calculation!
             cdl_analysis = DoubleLayerAnalysis(
                                                 name=name, 

@@ -3,6 +3,7 @@ from typing import List, Callable
 import pandas as pd
 import numpy as np
 from gui_PtQt.pandas_viewer import AnalysisViewer
+from PyQt5.QtWidgets import QInputDialog
 
 class AnalysisManager():
     """
@@ -84,7 +85,20 @@ class AnalysisManager():
                     data_set:pd.DataFrame
                     data_set.to_excel(writer, sheet_name = sheet_name)
 
+    def ask_for_analysis_name(self, default:str, default_number:int = None):
         
+        if default_number is None:
+            analysis_number = self.get_current_analysis_number()
+        else:
+            analysis_number = default_number
+            
+        analysis_string = f"{default} {analysis_number}" 
+        text, ok = QInputDialog.getText(None, 'Analysis name', 'Name of the analysis:', text = analysis_string)
+        if text and ok:
+            return text
+        else:
+            return    
+    
     def __iter__(self):
         return iter(self.analyses)
     

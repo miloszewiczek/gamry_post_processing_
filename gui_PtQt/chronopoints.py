@@ -47,7 +47,7 @@ class ChronopointsCoreWidget(TafelCoreWidget):
         data_to_add = self.make_row_multiindex(self.data, columns = ['T [s]', 'J_GEO [A/cm2]']) 
         print(data_to_add)
 
-        name = self.ask_for_analysis_name()
+        name = analysis_manager.ask_for_analysis_name(self.default_analysis_prefix)
         if name:
             analysis = ChronopointAnalysis(name, self.experiments, data_to_add)
             analysis_manager.add_analysis(analysis)

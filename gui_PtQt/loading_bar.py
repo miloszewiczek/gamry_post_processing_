@@ -340,6 +340,12 @@ class ExperimentPanel(QWidget):
         plot_act = menu.addAction('Plot')
         plot_act.triggered.connect(lambda: self.plotRequested.emit(experiments))
 
+
+        #testing 
+        from gui_PtQt.mean_calculator import MeanCalculator
+        mean_act = menu.addAction('Mean')
+        mean_act.triggered.connect(lambda: MeanCalculator(self, experiments))
+
         # --- SEKCOWI DEDYKOWANE (Rozbudowa np. pod ECSA) ---
         ecsa_exps = [e for e in experiments if getattr(e, 'object_type', None) == 'ECSA' or e.__class__.__name__ == 'ECSA']
         if ecsa_exps:
