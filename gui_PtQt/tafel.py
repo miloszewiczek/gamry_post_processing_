@@ -164,7 +164,7 @@ class TafelCoreWidget(QWidget):
 
         name = analysis_manager.ask_for_analysis_name(self.default_analysis_prefix)
         if name:
-            analysis = TafelAnalysis(name, self.experiments, tafel_slopes, fitting_data)
+            analysis = TafelAnalysis(name = name, experiments = self.experiments, data = tafel_slopes, fitting_data = fitting_data)
             analysis_manager.add_analysis(analysis)
 
 

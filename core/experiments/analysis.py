@@ -81,7 +81,7 @@ class DoubleLayerAnalysis(BaseAnalysis):
 
 class ChronopointAnalysis(BaseAnalysis):
     def __init__(self, name: str, experiments: list, data: pd.DataFrame, **kwargs):
-        super().__init__(name, experiments, data, **kwargs)
+        super().__init__(name = name, experiments = experiments, data = data, **kwargs)
 
     def get_data(self):
         return {f'{self.name}_CHRONOPOINTS': self.data}
@@ -89,7 +89,7 @@ class ChronopointAnalysis(BaseAnalysis):
 
 class TafelAnalysis(BaseAnalysis):
     def __init__(self, name: str, experiments: list, data: pd.DataFrame, fitting_data:pd.DataFrame, **kwargs):
-        super().__init__(name, experiments, data, **kwargs)
+        super().__init__(name = name, experiments = experiments, data = data, **kwargs)
 
         self.fitting_data = fitting_data
     def get_data(self):
@@ -104,7 +104,7 @@ class MeanAnalysis(BaseAnalysis):
         self.selection = selection
 
     def get_data(self):
-        return 
+        return {f'{self.name}_MEAN CURVE': self.data}
     
 
 

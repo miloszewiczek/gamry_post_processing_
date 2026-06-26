@@ -27,6 +27,7 @@ class MeanCalculator(QDialog):
         self.populate(experiments = experiments)
         self.build_ui()
         self.exec()
+        
 
     def build_ui(self):
         # layouts
@@ -45,6 +46,15 @@ class MeanCalculator(QDialog):
         check_button.clicked.connect(self.calculate_mean)
         tree_layout.addWidget(check_button)
 
+        self.table.setColumnWidth(0, 400)
+        self.table.setColumnWidth(1, 25)
+        self.table.setColumnWidth(2, 25)
+
+        self.resize(550, 400)
+        header = self.table.horizontalHeader()
+        header.setStretchLastSection(True)
+        
+
     def populate(self, experiments:list[Experiment]):
 
         for experiment in experiments:
@@ -57,7 +67,8 @@ class MeanCalculator(QDialog):
             for check in checks:
                 check.setCheckState(Qt.CheckState.Unchecked)
                 check.setCheckable(True)
-            
+                check.setTextAlignment(Qt.AlignHCenter)
+
             self.model.appendRow([name_item, check_x, check_y])
 
     def get_checked(self, column_index):

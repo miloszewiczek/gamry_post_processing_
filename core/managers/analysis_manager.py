@@ -77,13 +77,16 @@ class AnalysisManager():
             return
         
     def save_iteratively(self):
+        from PyQt5.QtWidgets import QFileDialog
         
-        with pd.ExcelWriter('test.xlsx', 'openpyxl', mode = 'w') as writer:
-            for analysis in self._analyses:
-                data = analysis.get_data()
-                for sheet_name, data_set in data.items():
-                    data_set:pd.DataFrame
-                    data_set.to_excel(writer, sheet_name = sheet_name)
+        file_path, _ = QFileDialog.getSaveFileName(caption = 'Save analyses')
+        if file_path:    
+            with pd.ExcelWriter(f'{file_path}.xlsx', 'openpyxl', mode = 'w') as writer:
+                for analysis in self._analyses:
+                    data = analysis.get_data()
+                    for sheet_name, data_set in data.items():
+                        data_set:pd.DataFrame
+                        data_set.to_excel(writer, sheet_name = sheet_name)
 
     def ask_for_analysis_name(self, default:str, default_number:int = None):
         
@@ -91,7 +94,7 @@ class AnalysisManager():
             analysis_number = self.get_current_analysis_number()
         else:
             analysis_number = default_number
-            
+
         analysis_string = f"{default} {analysis_number}" 
         text, ok = QInputDialog.getText(None, 'Analysis name', 'Name of the analysis:', text = analysis_string)
         if text and ok:

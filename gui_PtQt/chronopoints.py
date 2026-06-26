@@ -49,7 +49,7 @@ class ChronopointsCoreWidget(TafelCoreWidget):
 
         name = analysis_manager.ask_for_analysis_name(self.default_analysis_prefix)
         if name:
-            analysis = ChronopointAnalysis(name, self.experiments, data_to_add)
+            analysis = ChronopointAnalysis(name = name, experiments = self.experiments, data = data_to_add)
             analysis_manager.add_analysis(analysis)
 
 
