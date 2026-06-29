@@ -9,6 +9,7 @@ import matplotlib.cm as cm
 from core import ExperimentManager, analysis_manager
 from core.experiments.analysis import DoubleLayerAnalysis
 from gui_PtQt.tafel import TafelCoreWidget
+import pandas as pd
 
 
 class DoubleLayerDialog(QDialog):
@@ -52,6 +53,7 @@ class DoubleLayerCoreWidget(TafelCoreWidget):
         self.default_analysis_prefix = 'CDL'
         self.cmap = None
         self.experiment_dict = {}
+        self.data_list = []
 
     def setup_ui(self):
         """Nadpisujemy całkowicie wygląd widżetu bazowego."""
@@ -60,6 +62,8 @@ class DoubleLayerCoreWidget(TafelCoreWidget):
         self.curve_combobox = QComboBox()
         self.calculate_btn = QPushButton("Calculate CDL")
         self.save_analysis_btn = QPushButton('Save analysis')
+        self.add_analysis_btn = QPushButton('Add analysis')
+        self.join_analysis_btn = QPushButton("Join analyses")
 
         # Łączymy sygnały
         self.connect_signals()
@@ -76,6 +80,9 @@ class DoubleLayerCoreWidget(TafelCoreWidget):
         settings_layout.addWidget(QLabel("Potential value [V]:"))
         settings_layout.addWidget(self.potential_spinbox)
         settings_layout.addWidget(self.calculate_btn)
+        settings_layout.addWidget(self.add_analysis_btn)
+        settings_layout.addWidget(self.join_analysis_btn)
+
         
         self.save_analysis_btn.clicked.connect(self.create_analysis)
         settings_layout.addWidget(self.save_analysis_btn)
@@ -98,6 +105,8 @@ class DoubleLayerCoreWidget(TafelCoreWidget):
         self.curve_combobox.currentIndexChanged.connect(self.replot_selected_curve)
         self.calculate_btn.clicked.connect(self.run_cdl_calculation)
         self.potential_spinbox.valueChanged.connect(self.canvas.move_vline)
+        self.add_analysis_btn.clicked.connect(self.add_data)
+        self.join_analysis_btn.clicked.connect(self.join_data)
 
     @contextmanager
     def signals_blocked(self, widget):
@@ -108,10 +117,6 @@ class DoubleLayerCoreWidget(TafelCoreWidget):
         finally:
             widget.blockSignals(False)
 
-    def connect_signals(self):
-        self.curve_combobox.currentIndexChanged.connect(self.replot_selected_curve)
-        self.calculate_btn.clicked.connect(self.run_cdl_calculation)
-        self.potential_spinbox.valueChanged.connect(self.canvas.move_vline)
 
     def set_experiments(self, experiments):
         self.experiments = experiments
@@ -201,9 +206,6 @@ class DoubleLayerCoreWidget(TafelCoreWidget):
         multi_index_tuples = []
         fitting_data = []
         data = []
-        
-        import pandas as pd
-
         new_dict = {}
         for sample, cycle_dict in self.experiment_dict.items():
             new_dict[sample] = {}
@@ -232,9 +234,16 @@ class DoubleLayerCoreWidget(TafelCoreWidget):
         self.fitting_data = pd.concat(fitting_data, axis = 0, keys = multi_index_tuples, names = names)
         self.raw_data = pd.concat(data, axis = 1, keys = multi_index_tuples, names = names)
 
-    def keyPressEvent():
-        pass
-    
+    def add_data(self):
+        if hasattr(self, 'fitting_data'):
+            print('elo')
+            self.data_list.append(self.fitting_data)
+
+    def join_data(self):
+        if self.data_list:
+            x = pd.concat(self.data_list, axis = 0)
+            print(x)
+
     def create_analysis(self):
 
         name = analysis_manager.ask_for_analysis_name(self.default_analysis_prefix)

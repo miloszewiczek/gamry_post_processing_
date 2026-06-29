@@ -40,10 +40,10 @@ class ExperimentLoader():
         self.id_counter += delta
         return self.id_counter
 
-    def load_testing(self, sample_size):
+    def load_testing(self,  sample_size):
 
         current_dir = os.path.dirname(os.path.abspath(__file__))
-        input_path = os.path.join(current_dir, '..', 'input')
+        input_path = os.path.join(current_dir, '../..', 'input')
         input_path = os.path.normpath(input_path)
 
         if not os.path.exists(input_path):

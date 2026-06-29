@@ -14,13 +14,15 @@ from PyQt5.QtWidgets import QAction, QMenu, QMenuBar
 
 
 class MainWindow(QMainWindow):
-    def __init__(self):
+    def __init__(self, args_list):
         super().__init__()
 
-      
+        
         self.loader = ExperimentLoader()
-        # self.manager = ExperimentManager(self.loader.load_testing(5))
-        self.manager = ExperimentManager()        
+        if ('-testing' in args_list) or ('-t' in args_list):
+            self.manager = ExperimentManager(self.loader.load_testing(5))
+        else:
+            self.manager = ExperimentManager()        
 
         self.analysis_manager = analysis_manager
 
@@ -140,9 +142,8 @@ if __name__ == '__main__':
     QCoreApplication.setOrganizationName("MyChemistryLab")
     QCoreApplication.setApplicationName("ElectrodeAnalyzer")
 
-    defaults = defaults
     app = QApplication(argv)
-    mainwindow = MainWindow()
+    mainwindow = MainWindow(argv)
     mainwindow.show()
     app.exec_()
 
