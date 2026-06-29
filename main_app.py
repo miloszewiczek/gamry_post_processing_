@@ -20,8 +20,7 @@ class MainWindow(QMainWindow):
       
         self.loader = ExperimentLoader()
         # self.manager = ExperimentManager(self.loader.load_testing(5))
-        path =r'd:\!UNI\!sci_materials\!doktorat\!wyniki\!TM3Se4\seria_3\CATALYSIS\PELLETS\SERIA_2\F2N_PELLET_STRONA_2_POMIAR_1_AM_REDOXME_01_07_2025'
-        self.manager = ExperimentManager(self.loader.load(path))        
+        self.manager = ExperimentManager()        
 
         self.analysis_manager = analysis_manager
 
