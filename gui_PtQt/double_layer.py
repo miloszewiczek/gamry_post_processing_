@@ -1,6 +1,6 @@
 from contextlib import contextmanager
 from PyQt5.QtWidgets import QDialog, QHBoxLayout, QVBoxLayout, QPushButton, QComboBox, QLabel, QGroupBox, QWidget
-from PyQt5.QtCore import Qt
+from PyQt5.QtCore import Qt, pyqtSignal
 from core.experiments import Voltammetry, ECSA
 from gui_PtQt.small_widgets import TreeSelectorWithCheckboxes, SimpleDoubleSpinBox, Selector, SelectorWithSample
 from gui_PtQt.plotting_area import DoubleLayerCanvas
@@ -22,6 +22,7 @@ class DoubleLayerDialog(QDialog):
         # Komponenty
         self.selector = SelectorWithSample(selected_indices)
         self.analysis_widget = DoubleLayerCoreWidget(manager=manager)
+        self.analysis_widget.analysis_done.connect(self.selector.mark_as_analyzed)
         
         # Układ: Doklejamy selektor z lewej strony rdzenia obliczeniowego
         layout = QHBoxLayout(self)
@@ -42,6 +43,7 @@ class DoubleLayerCoreWidget(TafelCoreWidget):
     Serce analizy. Nie posiada selektora danych. 
     Wymaga podania gotowego słownika z eksperymentami przez metodę 'set_experiments'.
     """
+    analysis_done = pyqtSignal()
 
     def __init__(self, manager: ExperimentManager, parent=None):
         # 1. Wywołujemy konstruktor bazy z odpowiednim Canvasem
@@ -53,9 +55,16 @@ class DoubleLayerCoreWidget(TafelCoreWidget):
         self.default_analysis_prefix = 'CDL'
         self.cmap = None
         self.experiment_dict = {}
-        self.data_list = []
+        self.fitting_data_list = []
+        self.raw_data_list = []
+        self.previous_selection = None
 
     def setup_ui(self):
+
+        from .small_widgets import Tracker
+
+        self.track = Tracker()
+
         """Nadpisujemy całkowicie wygląd widżetu bazowego."""
         # Inicjalizacja kontrolek specyficznych TYLKO dla CDL
         self.potential_spinbox = SimpleDoubleSpinBox(0, None)
@@ -83,6 +92,7 @@ class DoubleLayerCoreWidget(TafelCoreWidget):
         settings_layout.addWidget(self.add_analysis_btn)
         settings_layout.addWidget(self.join_analysis_btn)
 
+        settings_layout.addWidget(self.track)
         
         self.save_analysis_btn.clicked.connect(self.create_analysis)
         settings_layout.addWidget(self.save_analysis_btn)
@@ -131,8 +141,11 @@ class DoubleLayerCoreWidget(TafelCoreWidget):
 
     def refresh_ui_state(self):
         """Zarządza stanem kontrolek w zależności od wybranego eksperymentu."""
+
         if not self.experiments:
             with self.signals_blocked(self.curve_combobox):
+                
+                self.previous_selection = self.curve_combobox.currentText()
                 self.curve_combobox.clear()
                 self.curve_combobox.setCurrentText('Add an experiment to analysis')
                 self.curve_combobox.setDisabled(True)
@@ -145,16 +158,16 @@ class DoubleLayerCoreWidget(TafelCoreWidget):
         
         # Aktualizacja zawartości ComboBoxa (zakres dostępnych cykli)
         available_curves = self.get_common_curve_indices()
-        previous_selection = self.curve_combobox.currentText()
         
         with self.signals_blocked(self.curve_combobox):
             self.curve_combobox.clear()
             self.curve_combobox.addItems(available_curves)
 
-            if previous_selection in available_curves:
-                self.curve_combobox.setCurrentText(previous_selection)
+            if self.previous_selection in available_curves:
+                self.curve_combobox.setCurrentText(self.previous_selection)
             elif available_curves:
-                self.curve_combobox.setCurrentIndex(0)
+                current_max_item = self.curve_combobox.count()
+                self.curve_combobox.setCurrentIndex(current_max_item - 1)
                 
         self.replot_selected_curve()
         
@@ -236,22 +249,36 @@ class DoubleLayerCoreWidget(TafelCoreWidget):
 
     def add_data(self):
         if hasattr(self, 'fitting_data'):
-            print('elo')
-            self.data_list.append(self.fitting_data)
+            self.fitting_data_list.append(self.fitting_data)
+            self.raw_data_list.append(self.raw_data)
 
-    def join_data(self):
-        if self.data_list:
-            x = pd.concat(self.data_list, axis = 0)
-            print(x)
+            data_to_store = (self.fitting_data, self.raw_data)
+
+            self.track.add_row('test', data_to_store)
+            
+
+    def join_data(self, data: pd.DataFrame, axis = 0):
+        if data is not None:
+            joined_data = pd.concat(self.fitting_data_list, axis = axis)
+            return joined_data
 
     def create_analysis(self):
+        raw_data, fitting_data = self.track.get_data() # first is raw_data, second is fiting data
+        print(raw_data)
 
-        name = analysis_manager.ask_for_analysis_name(self.default_analysis_prefix)
-        if (name) and (hasattr(self, 'fitting_data')): # it only exists once we make a CDL_calculation!
-            cdl_analysis = DoubleLayerAnalysis(
-                                                name=name, 
-                                                experiments=self.experiments,
-                                                fitting_data=self.fitting_data,
-                                                raw_data=self.raw_data,
-                                                )   
-            analysis_manager.add_analysis(cdl_analysis)
+        if raw_data and fitting_data:
+            name = analysis_manager.ask_for_analysis_name(self.default_analysis_prefix)
+            if name:
+                
+                joined_raw_data = self.join_data(raw_data, axis = 0)
+                joined_fitting_data = self.join_data(fitting_data, axis = 1)
+                
+                cdl_analysis = DoubleLayerAnalysis(
+                                                    name=name, 
+                                                    experiments=self.experiments,
+                                                    raw_data=joined_raw_data,
+                                                    fitting_data=joined_fitting_data,
+                                                    )   
+                analysis_manager.add_analysis(cdl_analysis)
+                self.analysis_done.emit()
+        

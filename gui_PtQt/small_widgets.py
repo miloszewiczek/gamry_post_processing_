@@ -1,6 +1,6 @@
-from PyQt5.QtWidgets import (QDoubleSpinBox, QDialog, QSpinBox, QComboBox, 
+from PyQt5.QtWidgets import (QDoubleSpinBox, QDialog, QSpinBox, QComboBox, QTableView, QTreeWidget, QTreeWidgetItem,
 QLineEdit, QCheckBox, QTreeView, QHBoxLayout, QVBoxLayout, QPushButton, QAbstractItemView, QListView, QDialogButtonBox)
-from PyQt5.QtGui import QStandardItemModel, QStandardItem
+from PyQt5.QtGui import QStandardItemModel, QStandardItem, QColor, QBrush
 from PyQt5.QtCore import QSettings, Qt, QAbstractTableModel, QItemSelection, QItemSelectionModel, QPersistentModelIndex, pyqtSignal, QModelIndex, QSortFilterProxyModel
 import json
 from core.experiments.base import Experiment
@@ -314,7 +314,6 @@ class SelectorWithSample(Selector):
         self._toggle_selection(self.dest_view, self.right_proxy, target_state=False)
         self.flat_list_signal.emit(self.get_flat())
 
-
     def move_selected_to_dest(self):
         self._toggle_selection(self.source_view, self.left_proxy, target_state=True)
         self.flat_list_signal.emit(self.get_flat())
@@ -372,6 +371,41 @@ class SelectorWithSample(Selector):
                         experiments_list.append(exp_obj)
         
         return experiments_list
+    
+
+    def mark_as_analyzed(self):
+        """Koloruje elementy, które aktualnie znajdują się w prawym oknie (są wybrane)"""
+        # Definiujemy kolor tła (np. delikatny zielony) oraz alternatywnie tekst
+        analyzed_background = QBrush(QColor("#D4EDDA")) # Jasnozielony
+        analyzed_text = QBrush(QColor("#155724"))       # Ciemnozielony tekst dla kontrastu
+
+        for row in range(self.source_model.rowCount()):
+            sample_item = self.source_model.item(row, 0)
+            if not sample_item:
+                continue
+                
+            any_child_analyzed = False
+            
+            for child_row in range(sample_item.rowCount()):
+                exp_item = sample_item.child(child_row, 0)
+                
+                # Sprawdzamy, czy eksperyment jest zaznaczony (czyli był w prawym oknie)
+                if exp_item and exp_item.data(Qt.ItemDataRole.UserRole + 1) == True:
+                    # Ustawiamy kolorowanie
+                    exp_item.setData(analyzed_background, Qt.ItemDataRole.BackgroundRole)
+                    exp_item.setData(analyzed_text, Qt.ItemDataRole.ForegroundRole)
+                    any_child_analyzed = True
+            
+            # Opcjonalnie: Jeśli chcesz pokolorować również rodzica (Sample), 
+            # gdy choć jeden jego eksperyment był analizowany:
+            if any_child_analyzed:
+                sample_item.setData(QBrush(QColor("#E2E3E5")), Qt.ItemDataRole.BackgroundRole) # Jasnoszary dla rodzica
+
+        # Wymuszamy odświeżenie filtrów i widoków
+        self.left_proxy.invalidateFilter()
+        self.right_proxy.invalidateFilter()
+        self.source_view.expandAll()
+        self.dest_view.expandAll()
     
 
 class TreeSelectorWithCheckboxes(QWidget):
@@ -684,3 +718,56 @@ class DataSelector(QDialog):
     def accept(self):
         self.myaccepted.emit(self.canvas.get_selected_point()) # returns x and y coordinates of a point
         super().accept()
+
+
+class Tracker(QWidget):
+    dataRequested = pyqtSignal(list)
+
+    def __init__(self):
+        super().__init__()
+
+        self.tree = QTreeWidget()
+        self.tree.setColumnCount(2)
+        self._storage = []
+
+        self.build_ui()
+
+    def build_ui(self):
+        layout = QVBoxLayout()
+        layout.addWidget(self.tree)
+        add_btn = QPushButton('Add')
+        
+        layout.addWidget(add_btn)
+        self.setLayout(layout)
+
+    def add_row(self, name:str, data: dict):
+        item = QTreeWidgetItem(self.tree)
+        item.setText(0, name)
+        item.setData(0, Qt.UserRole, data)
+
+        delete_btn = QPushButton('-')
+        delete_btn.clicked.connect(lambda: self.remove_row(item))
+        
+        self.tree.setItemWidget(item, 1, delete_btn)
+
+    def remove_row(self, item):
+        parent = item.parent()
+        if parent:
+            parent.removeChild(item)
+        else:
+            index = self.tree.indexOfTopLevelItem(item)
+            self.tree.takeTopLevelItem(index)
+
+    def get_data(self):
+        data = []
+        for row in range(self.tree.topLevelItemCount()):
+            row_data = self.tree.topLevelItem(row).data(0, Qt.UserRole)
+            data.append(row_data)
+    
+
+        if data:
+            self.dataRequested.emit(data)
+            return zip(*data) # now it can be assigned into multiple variables
+        else:
+            return
+            
