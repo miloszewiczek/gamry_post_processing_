@@ -3,8 +3,8 @@ from pathlib import Path
 from PyQt5.QtWidgets import (QTreeWidget, QWidget, QLayout, QPushButton, QHBoxLayout, 
                              QVBoxLayout, QTreeView, QFileDialog, QMessageBox, 
                              QAbstractItemView, QDialog, QLabel, 
-                             QFormLayout, QDialogButtonBox, QTableView,
-                             QComboBox, QMenu, QTextBrowser, QShortcut, QInputDialog, QDoubleSpinBox, QLineEdit)
+                             QFormLayout, QDialogButtonBox, QTableView, QAction,
+                             QComboBox, QMenu, QTextBrowser, QShortcut, QInputDialog, QDoubleSpinBox, QLineEdit, QHeaderView)
 from PyQt5.QtGui import QStandardItemModel, QStandardItem, QColor, QIcon, QKeySequence, QBrush
 from PyQt5.QtCore import Qt, QAbstractTableModel, QItemSelection, QItemSelectionModel, QPersistentModelIndex, pyqtSignal, QModelIndex
 
@@ -85,115 +85,100 @@ class ExperimentPanel(QWidget):
         self.proxy_model.setSourceModel(self.model)
 
         self.tree_view.setModel(self.proxy_model)
-        self.tree_view.setColumnWidth(0, 300)
-        self.tree_view.setColumnWidth(1, 150)
-        self.tree_view.setColumnWidth(2, 10)
+        header = self.tree_view.header()
+        header.setStretchLastSection(False)
+        header.setSectionResizeMode(0, QHeaderView.ResizeMode.Stretch)
+        header.setSectionResizeMode(1, QHeaderView.ResizeMode.ResizeToContents)
+        header.setSectionResizeMode(2, QHeaderView.ResizeMode.ResizeToContents)
         self.tree_view.setSelectionMode(QAbstractItemView.SelectionMode.ExtendedSelection)
         self.tree_view.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
         self.tree_view.customContextMenuRequested.connect(self.open_menu)
 
-        # 2. UI - Przyciski
-        self.btn_load_dialog = QPushButton()
-        self.btn_load_folder_dialog = QPushButton()
-        self.btn_delete = QPushButton()
-        self.btn_copy = QPushButton()
-        self.btn_expand_all = QPushButton()
-        self.btn_select_all_samples = QPushButton()
-        self.btn_select_all_experiments = QPushButton()
-
-
+        self.search_layout = QHBoxLayout()
+        search_label = QLabel('Filter: ')
+        
         self.search_input = QLineEdit()
         self.search_input.setPlaceholderText("Type to search")
+        self.search_layout.addWidget(search_label)
+        self.search_layout.addWidget(self.search_input)
 
-        self.btn_load_dialog.setShortcut('Ctrl+O')
-        self.btn_load_folder_dialog.setShortcut('Ctrl+Shift+O')
-
-        # 2.1 Skróty klawiszowe (Zmapowane na czyste metody akcji)
-        btn_copy_shortcut = QShortcut(QKeySequence("Ctrl+C"), self.tree_view)
-        btn_copy_shortcut.setContext(Qt.ShortcutContext.WidgetShortcut)
-        btn_copy_shortcut.activated.connect(self.copy_selected_items)
-
-        btn_delete_shortcut = QShortcut(QKeySequence("Delete"), self.tree_view)
-        btn_delete_shortcut.setContext(Qt.ShortcutContext.WidgetShortcut)
-        btn_delete_shortcut.activated.connect(self.delete_selected_items)  
 
         btn_select_all_shortcut = QShortcut(QKeySequence("Ctrl+A"), self.tree_view)
         btn_select_all_shortcut.setContext(Qt.ShortcutContext.WidgetShortcut)
         btn_select_all_shortcut.activated.connect(self.expand_selection_automatically)
 
-        btn_expand_all_shortcut = QShortcut(QKeySequence("Ctrl+E"), self.tree_view)
-        btn_expand_all_shortcut.setContext(Qt.ShortcutContext.WidgetShortcut)
-        btn_expand_all_shortcut.activated.connect(self.toggle_expand)
-
-        btn_select_all_samples_shortcut = QShortcut(QKeySequence("Ctrl+Shift+S"), self.tree_view)
-        btn_select_all_samples_shortcut.setContext(Qt.ShortcutContext.WidgetShortcut)
-        btn_select_all_samples_shortcut.activated.connect(self.select_all_samples)
-
-        btn_select_all_experiments_shortcut = QShortcut(QKeySequence("Ctrl+Shift+E"), self.tree_view)
-        btn_select_all_experiments_shortcut.setContext(Qt.ShortcutContext.WidgetShortcut)
-        btn_select_all_experiments_shortcut.activated.connect(self.select_all_experiments_globally)
-
         focus_on_filter_shortcut = QShortcut(QKeySequence("Ctrl+D"), self.tree_view)
         focus_on_filter_shortcut.setContext(Qt.ShortcutContext.WidgetShortcut)
         focus_on_filter_shortcut.activated.connect(self.search_input.setFocus)
 
-        # 2.2 Ikony
-        self.btn_load_dialog.setIcon(QIcon(":file-load.png"))
-        self.btn_load_folder_dialog.setIcon(QIcon(":folder-load.png"))
-        self.btn_delete.setIcon(QIcon(":file-delete.png"))
-        self.btn_copy.setIcon(QIcon(":file-copy.png"))
-        self.btn_expand_all.setIcon(QIcon(":expand.png"))
-        self.btn_select_all_samples.setIcon(QIcon(":select-samples.png"))
-        self.btn_select_all_experiments.setIcon(QIcon(":select-experiments.png"))
-
-        # 3. Layouty
-        button_layout = QHBoxLayout()
-        button_layout.addWidget(self.btn_load_folder_dialog)
-        button_layout.addWidget(self.btn_load_dialog)
-        button_layout.addWidget(self.btn_delete)
-        button_layout.addWidget(self.btn_copy)
-
-        tree_view_button_layout = QVBoxLayout()
-        tree_view_button_layout.addWidget(self.btn_expand_all)
-        tree_view_button_layout.addWidget(self.btn_select_all_experiments)
-        tree_view_button_layout.addWidget(self.btn_select_all_samples)
         
         treeview_layout = QHBoxLayout()
-        treeview_layout.addLayout(tree_view_button_layout)
         treeview_layout.addWidget(self.tree_view)
         
         main_layout = QVBoxLayout(self)
-        main_layout.addLayout(button_layout)
-        main_layout.addWidget(self.search_input)
+        main_layout.addLayout(self.search_layout)
         main_layout.addLayout(treeview_layout)
         
         # 4. Połączenia Sygnałów UI
-        self.btn_load_dialog.clicked.connect(self.load_files)
-        self.btn_load_folder_dialog.clicked.connect(self.load_folder)
-        self.btn_delete.clicked.connect(self.delete_selected_items)
-        self.btn_copy.clicked.connect(self.copy_selected_items)
-        self.btn_expand_all.clicked.connect(self.toggle_expand)
-        self.btn_select_all_samples.clicked.connect(self.select_all_samples)
-        self.btn_select_all_experiments.clicked.connect(self.select_all_experiments_globally)
+
         self.search_input.textChanged.connect(self.filter_tree)
         self.tree_view.doubleClicked.connect(self.on_double_clicked)
-
-        open_doublelayer_btn = QPushButton('CDL!')
-        open_doublelayer_btn.clicked.connect(self.double_layer)
-        main_layout.addWidget(open_doublelayer_btn)
-        self.overpotentials_btn = QPushButton('OVERPOT')
-        self.overpotentials_btn.clicked.connect(self.overpotentials)
-        main_layout.addWidget(self.overpotentials_btn)
-
-        open_tafel_btn = QPushButton('Tafel!')
-        open_tafel_btn.clicked.connect(self.tafel_analysis)
-        main_layout.addWidget(open_tafel_btn)
         
-        open_chrono_btn = QPushButton('Chrono!')
-        open_chrono_btn.clicked.connect(self.chronopoint_analysis)
-        main_layout.addWidget(open_chrono_btn)
-        
+        self._init_actions()
 
+
+    def _init_actions(self):
+        self.action_load_files = QAction(QIcon(":file-load.png"), "&Load Files...", self)
+        self.action_load_files.setShortcut("Ctrl+O")
+        self.action_load_files.triggered.connect(self.load_files)
+
+        self.action_load_folder = QAction(QIcon(":folder-load.png"), "Load &Folder...", self)
+        self.action_load_folder.setShortcut("Ctrl+Shift+O")
+        self.action_load_folder.triggered.connect(self.load_folder)
+
+        self.action_delete = QAction(QIcon(":file-delete.png"), "&Delete", self)
+        self.action_delete.setShortcut("Delete")
+        self.action_delete.triggered.connect(self.delete_selected_items)
+
+        self.action_expand_all = QAction(QIcon(":expand.png"), "&Expand/Collapse all", self)
+        self.action_expand_all.setShortcut("Ctrl+E")
+        self.action_expand_all.triggered.connect(self.toggle_expand)
+
+        self.action_copy = QAction(QIcon(":file-copy.png"),"&Copy", self)
+        self.action_copy.setShortcut("Ctrl+C")
+        self.action_copy.triggered.connect(self.copy_selected_items)
+
+        self.action_select_samples = QAction(QIcon(":select-samples.png"), "Select all &Samples", self)
+        self.action_select_samples.setShortcut("Ctrl+Shift+S")
+        self.action_select_samples.triggered.connect(self.select_all_samples)
+
+        self.action_select_experiments = QAction(QIcon(":select-experiments.png"), "Select all &Experiments", self)
+        self.action_select_experiments.setShortcut("Ctrl+Shift+E")
+        self.action_select_experiments.triggered.connect(self.select_all_experiments_globally)
+
+        self.action_double_layer = QAction(QIcon(":select-samples.png"), "Double Layer &Capacitance", self)
+        self.action_double_layer.setShortcut("Alt+1")
+        self.action_double_layer.triggered.connect(self.double_layer)
+
+        self.action_overpotentials = QAction(QIcon(":select-samples.png"), "&Overpotentials", self)
+        self.action_overpotentials.setShortcut("Alt+2")
+        self.action_overpotentials.triggered.connect(self.overpotentials)
+
+        self.action_tafel = QAction(QIcon(":select-samples.png"), "&Tafel analysis", self)
+        self.action_tafel.setShortcut("Alt+3")
+        self.action_tafel.triggered.connect(self.tafel_analysis)
+
+        self.action_chronopoints = QAction(QIcon(":select-samples.png"), "&C&hronopoints", self)
+        self.action_chronopoints.setShortcut("Alt+4")
+        self.action_chronopoints.triggered.connect(self.chronopoint_analysis)
+
+
+    def get_actions(self):
+        action_dict = {'file': [self.action_load_files, self.action_load_folder, self.action_delete, self.action_copy],
+                       'selection': [self.action_expand_all, self.action_select_samples, self.action_select_experiments],
+                       'analysis': [self.action_double_layer, self.action_overpotentials, self.action_tafel, self.action_chronopoints]
+        }
+        return action_dict
     # =========================================================================
     # TRANSLATOR INDEKSÓW (SERCE ARCHITEKTURY)
     # =========================================================================

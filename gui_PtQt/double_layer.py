@@ -1,5 +1,5 @@
 from contextlib import contextmanager
-from PyQt5.QtWidgets import QDialog, QHBoxLayout, QVBoxLayout, QPushButton, QComboBox, QLabel, QGroupBox, QWidget
+from PyQt5.QtWidgets import QDialog, QHBoxLayout, QVBoxLayout, QPushButton, QComboBox, QLabel, QGroupBox, QWidget, QSplitter
 from PyQt5.QtCore import Qt, pyqtSignal
 from core.experiments import Voltammetry, ECSA
 from gui_PtQt.small_widgets import TreeSelectorWithCheckboxes, SimpleDoubleSpinBox, Selector, SelectorWithSample
@@ -17,26 +17,38 @@ class DoubleLayerDialog(QDialog):
     def __init__(self, selected_indices, manager=None, parent=None):
         super().__init__(parent)
         self.setWindowTitle("Double Layer Capacity & ECSA Calculation")
-        self.resize(1200, 600)
+        self.resize(1500, 700) # Nieco wyższe okno, aby zmieścić Tracker pod spinboxami
         
         # Komponenty
         self.selector = SelectorWithSample(selected_indices)
         self.analysis_widget = DoubleLayerCoreWidget(manager=manager)
         self.analysis_widget.analysis_done.connect(self.selector.mark_as_analyzed)
         
-        # Układ: Doklejamy selektor z lewej strony rdzenia obliczeniowego
-        layout = QHBoxLayout(self)
+        # Główny layout okna
+        main_layout = QHBoxLayout(self)
         
-        left_panel = QVBoxLayout()
+        # Tworzymy widget-kontener dla lewego panelu (Selektora)
+        left_widget = QWidget()
+        left_panel = QVBoxLayout(left_widget)
+        left_panel.setContentsMargins(0, 0, 0, 0) # Kasujemy marginesy wewnętrzne
         left_panel.addWidget(QLabel("<b>Select Experiments:</b>"))
         left_panel.addWidget(self.selector)
         
-        layout.addLayout(left_panel, stretch=2)
-        layout.addWidget(self.analysis_widget, stretch=4)
+        # Wykorzystujemy QSplitter zamiast sztywnych stretchów w layoucie
+        splitter = QSplitter(Qt.Horizontal)
+        splitter.addWidget(left_widget)
+        splitter.addWidget(self.analysis_widget)
         
-        # Łączenie: Zmiana w selektorze pcha dane do rdzenia
+        # Ustawiamy proporcje startowe: Selektor (np. 400px), Rdzeń analizy (np. 900px)
+        splitter.setSizes([400, 900])
+        splitter.setStretchFactor(0, 1)
+        splitter.setStretchFactor(1, 2)
+        
+        main_layout.addWidget(splitter)
+        
+        # Łączenie sygnałów
         self.selector.flat_list_signal.connect(self.analysis_widget.set_experiments)
-        
+        self.selector.flat_list_signal.connect(self.analysis_widget.enable_next_analysis)
 
 class DoubleLayerCoreWidget(TafelCoreWidget):
     """
@@ -62,61 +74,89 @@ class DoubleLayerCoreWidget(TafelCoreWidget):
     def setup_ui(self):
 
         from .small_widgets import Tracker
+        from PyQt5.QtWidgets import QFormLayout, QSplitter
 
-        self.track = Tracker()
+        # Inicjalizacja Tracker
+        self.track = Tracker(column_names=['Name','Potential', 'Curve'],
+                             column_widths=[50,50,50],
+                             add_delete=True)
 
-        """Nadpisujemy całkowicie wygląd widżetu bazowego."""
-        # Inicjalizacja kontrolek specyficznych TYLKO dla CDL
+        # Kontrolki specyficzne dla CDL
         self.potential_spinbox = SimpleDoubleSpinBox(0, None)
         self.curve_combobox = QComboBox()
         self.calculate_btn = QPushButton("Calculate CDL")
-        self.save_analysis_btn = QPushButton('Save analysis')
-        self.add_analysis_btn = QPushButton('Add analysis')
-        self.join_analysis_btn = QPushButton("Join analyses")
+        self.add_analysis_btn = QPushButton('Add to Table')
+        self.save_analysis_btn = QPushButton('Save Final Analysis')
+        
+        # Wizualne wyróżnienie głównego przycisku kalkulacji
+        self.calculate_btn.setStyleSheet("font-weight: bold; padding: 5px;")
+        self.save_analysis_btn.setStyleSheet("background-color: #2a75ad; color: white; font-weight: bold; padding: 5px;")
 
         # Łączymy sygnały
         self.connect_signals()
 
-        # Budujemy nowy układ (HBoxLayout zamiast bazowego VBoxLayout)
+        # Główny układ widżetu
         main_layout = QHBoxLayout(self)
-        control_layout = QVBoxLayout()
         
-        # Panel parametrów
+        # --- LEWY PANEL KONTROLNY ---
+        control_widget = QWidget()
+        control_layout = QVBoxLayout(control_widget)
+        control_layout.setContentsMargins(0, 0, 0, 0)
+        
         settings_group = QGroupBox("Plotting & Analysis Settings")
+        # Zapobiega nadmiernemu rozpychaniu panelu kontrolnego w poziomie
+        settings_group.setMaximumWidth(320) 
+        
+        # Organizacja parametrów w układzie formularza (etykieta po lewej, pole po prawej)
+        form_layout = QFormLayout()
+        form_layout.setLabelAlignment(Qt.AlignLeft)
+        form_layout.addRow(QLabel("Curve Index:"), self.curve_combobox)
+        form_layout.addRow(QLabel("Potential [V]:"), self.potential_spinbox)
+        
+        # Układ przycisków
         settings_layout = QVBoxLayout(settings_group)
-        settings_layout.addWidget(QLabel("Select Curve Index:"))
-        settings_layout.addWidget(self.curve_combobox)
-        settings_layout.addWidget(QLabel("Potential value [V]:"))
-        settings_layout.addWidget(self.potential_spinbox)
+        settings_layout.addLayout(form_layout)
+        settings_layout.addSpacing(10)
         settings_layout.addWidget(self.calculate_btn)
         settings_layout.addWidget(self.add_analysis_btn)
-        settings_layout.addWidget(self.join_analysis_btn)
-
+        
+        # Linia oddzielająca sekcję tabeli/zapisu
+        settings_layout.addSpacing(15)
+        settings_layout.addWidget(QLabel("<b>Saved Points Tracker:</b>"))
         settings_layout.addWidget(self.track)
         
-        self.save_analysis_btn.clicked.connect(self.create_analysis)
+        settings_layout.addSpacing(10)
         settings_layout.addWidget(self.save_analysis_btn)
-
-        control_layout.addWidget(settings_group)
-        control_layout.addStretch()
         
-        # Kompozycja główna: Panel kontrolny po lewej, wykres po prawej
-        canvas_layout = QVBoxLayout()
+        self.save_analysis_btn.clicked.connect(self.create_analysis)
+        
+        control_layout.addWidget(settings_group)
+        control_layout.addStretch() # Spycha całą zawartość grupy do góry, zapobiegając rozstrzeleniu widżetów w pionie
+
+        # --- PRAWY PANEL (WYKRES) ---
+        canvas_widget = QWidget()
+        canvas_layout = QVBoxLayout(canvas_widget)
+        canvas_layout.setContentsMargins(0, 0, 0, 0)
         canvas_layout.addWidget(self.canvas)
         canvas_layout.addWidget(self.canvas.toolbar)
 
-        main_layout.addLayout(control_layout, stretch=1)
-        main_layout.addLayout(canvas_layout, stretch=3)
+        # Wewnętrzny splitter dla panelu kontrolnego i wykresu
+        internal_splitter = QSplitter(Qt.Horizontal)
+        internal_splitter.addWidget(control_widget)
+        internal_splitter.addWidget(canvas_widget)
+        internal_splitter.setSizes([320, 800]) # Sztywne 320px na opcje, reszta na wykres
+        internal_splitter.setCollapsible(0, False) # Blokada przed całkowitym schowaniem opcji
         
-        # Ponieważ w bazie i w potomku bazujemy na self.canvas, 
-        # toolbar i plot_btn z bazy po prostu "wiszą" w próżni i nie są wyświetlane.
+        main_layout.addWidget(internal_splitter)
 
     def connect_signals(self):
         self.curve_combobox.currentIndexChanged.connect(self.replot_selected_curve)
+        self.curve_combobox.currentIndexChanged.connect(self.enable_next_analysis)
+
         self.calculate_btn.clicked.connect(self.run_cdl_calculation)
         self.potential_spinbox.valueChanged.connect(self.canvas.move_vline)
+        self.potential_spinbox.valueChanged.connect(self.enable_next_analysis)
         self.add_analysis_btn.clicked.connect(self.add_data)
-        self.join_analysis_btn.clicked.connect(self.join_data)
 
     @contextmanager
     def signals_blocked(self, widget):
@@ -127,6 +167,8 @@ class DoubleLayerCoreWidget(TafelCoreWidget):
         finally:
             widget.blockSignals(False)
 
+    def enable_next_analysis(self):
+        self.calculate_btn.setEnabled(True)
 
     def set_experiments(self, experiments):
         self.experiments = experiments
@@ -247,31 +289,39 @@ class DoubleLayerCoreWidget(TafelCoreWidget):
         self.fitting_data = pd.concat(fitting_data, axis = 0, keys = multi_index_tuples, names = names)
         self.raw_data = pd.concat(data, axis = 1, keys = multi_index_tuples, names = names)
 
+        self.calculate_btn.setDisabled(True)
+        self.add_analysis_btn.setEnabled(True)
+
     def add_data(self):
         if hasattr(self, 'fitting_data'):
             self.fitting_data_list.append(self.fitting_data)
             self.raw_data_list.append(self.raw_data)
 
-            data_to_store = (self.fitting_data, self.raw_data)
+            data_to_store = (self.raw_data, self.fitting_data)
 
-            self.track.add_row('test', data_to_store)
+            columns = ['Test', 
+                    str(self.potential_spinbox.value()),
+                    self.curve_combobox.currentText()]
+            self.track.add_row(columns = columns, data = data_to_store)
+            self.add_analysis_btn.setDisabled(True)
             
+            self.analysis_done.emit()
+        
 
-    def join_data(self, data: pd.DataFrame, axis = 0):
+    def join_data(self, data: list[pd.DataFrame], axis = 0):
         if data is not None:
-            joined_data = pd.concat(self.fitting_data_list, axis = axis)
+            joined_data = pd.concat(data, axis = axis)
             return joined_data
 
     def create_analysis(self):
         raw_data, fitting_data = self.track.get_data() # first is raw_data, second is fiting data
-        print(raw_data)
 
         if raw_data and fitting_data:
             name = analysis_manager.ask_for_analysis_name(self.default_analysis_prefix)
             if name:
                 
-                joined_raw_data = self.join_data(raw_data, axis = 0)
-                joined_fitting_data = self.join_data(fitting_data, axis = 1)
+                joined_raw_data = self.join_data(raw_data, axis = 1)
+                joined_fitting_data = self.join_data(fitting_data, axis = 0)
                 
                 cdl_analysis = DoubleLayerAnalysis(
                                                     name=name, 
@@ -280,5 +330,4 @@ class DoubleLayerCoreWidget(TafelCoreWidget):
                                                     fitting_data=joined_fitting_data,
                                                     )   
                 analysis_manager.add_analysis(cdl_analysis)
-                self.analysis_done.emit()
         

@@ -1,6 +1,6 @@
 from PyQt5.QtWidgets import (QDoubleSpinBox, QDialog, QSpinBox, QComboBox, QTableView, QTreeWidget, QTreeWidgetItem,
-QLineEdit, QCheckBox, QTreeView, QHBoxLayout, QVBoxLayout, QPushButton, QAbstractItemView, QListView, QDialogButtonBox)
-from PyQt5.QtGui import QStandardItemModel, QStandardItem, QColor, QBrush
+QLineEdit, QCheckBox, QTreeView, QHBoxLayout, QVBoxLayout, QPushButton, QAbstractItemView, QListView, QDialogButtonBox, QHeaderView)
+from PyQt5.QtGui import QStandardItemModel, QStandardItem, QColor, QBrush, QIcon
 from PyQt5.QtCore import QSettings, Qt, QAbstractTableModel, QItemSelection, QItemSelectionModel, QPersistentModelIndex, pyqtSignal, QModelIndex, QSortFilterProxyModel
 import json
 from core.experiments.base import Experiment
@@ -8,6 +8,7 @@ from PyQt5.QtWidgets import QWidget, QVBoxLayout, QTreeView, QLabel, QAbstractIt
 from PyQt5.QtGui import QStandardItemModel, QStandardItem
 from PyQt5.QtCore import Qt, pyqtSignal
 from core.experiments.sample import Sample
+from gui_PtQt.resources import qrc_resources
 
 class SimpleDoubleSpinBox(QDoubleSpinBox):
     def __init__(self, value, range:tuple = None, minimum = 0, maximum = 100000):
@@ -122,7 +123,10 @@ class Selector(BaseDataDialog):
         self.dest_model = QStandardItemModel()
         
         self.source_view = QTreeView()
+        self.source_view.setMinimumWidth(180)  # Zmień z 300 na mniejszy, bardziej elastyczny
         self.dest_view = QTreeView()
+        self.dest_view.setMinimumWidth(180)    # Zmień z 300 na mniejszy, bardziej elastyczny
+
         
         for view in [self.source_view, self.dest_view]:
             view.setModel(self.source_model if view == self.source_view else self.dest_model)
@@ -137,6 +141,12 @@ class Selector(BaseDataDialog):
         self.btn_remove = QPushButton("<")
         self.btn_add_all = QPushButton(">>")
         self.btn_remove_all = QPushButton("<<")
+
+        button_list = [self.btn_add, self.btn_remove, self.btn_add_all, self.btn_remove_all]
+        for button in button_list:
+            button.setContentsMargins(0,0,0,0)
+            button.setMaximumWidth(30)
+
         
         # Layout dla przycisków (pionowy)
         btn_layout = QVBoxLayout()
@@ -149,9 +159,9 @@ class Selector(BaseDataDialog):
 
         # 3. Główny Layout
         main_layout = QHBoxLayout()
-        main_layout.addWidget(self.source_view)
-        main_layout.addLayout(btn_layout)
-        main_layout.addWidget(self.dest_view)
+        main_layout.addWidget(self.source_view, 1)
+        main_layout.addLayout(btn_layout, 0)
+        main_layout.addWidget(self.dest_view, 1)
         self.setLayout(main_layout)
 
         # Połączenia
@@ -202,9 +212,10 @@ class Selector(BaseDataDialog):
 
 class ExperimentFilterProxy(QSortFilterProxyModel):
     """Prosty filtr, który decybuje, co wyświetlić w danym oknie"""
-    def __init__(self, show_selected: bool):
+    def __init__(self, show_selected: bool, custom_header_text:str):
         super().__init__()
         self.show_selected = show_selected
+        self._custom_header_text = custom_header_text
 
     def filterAcceptsRow(self, source_row, source_parent):
         model = self.sourceModel()
@@ -222,6 +233,12 @@ class ExperimentFilterProxy(QSortFilterProxyModel):
         # Zwracamy True tylko, jeśli stan dopasowania się zgadza
         return is_selected == self.show_selected
 
+    def headerData(self, section, orientation, role = ...):
+        if orientation == Qt.Horizontal and role == Qt.DisplayRole and section == 0:
+            return self._custom_header_text
+        
+        return super().headerData(section, orientation, role)
+
 
 class SelectorWithSample(Selector):
 
@@ -232,10 +249,11 @@ class SelectorWithSample(Selector):
         super().__init__(items)
         
         # Tworzymy dwa filtry podpięte pod ten sam model źródłowy (source_model)
-        self.left_proxy = ExperimentFilterProxy(show_selected=False)
+        self.left_proxy = ExperimentFilterProxy(show_selected=False, custom_header_text = 'Available Exps')
         self.left_proxy.setSourceModel(self.source_model)
+
         
-        self.right_proxy = ExperimentFilterProxy(show_selected=True)
+        self.right_proxy = ExperimentFilterProxy(show_selected=True, custom_header_text = 'To analysis')
         self.right_proxy.setSourceModel(self.source_model)
         
         # Przepinamy widoki na nasze filtry
@@ -252,17 +270,19 @@ class SelectorWithSample(Selector):
     def populate(self, items: dict[Sample, list[Experiment]]):
         """Pierwotna, płaska struktura: Sample -> list[Experiment]"""
         self.source_model.clear()
-        self.source_model.setHorizontalHeaderLabels(['Eksperymenty'])
+        self.source_model.setHorizontalHeaderLabels(['Available Experiments'])
         
         for sample, experiments in items.items():
             sample_item = QStandardItem(sample.sample_name)
             sample_item.setData(sample, Qt.ItemDataRole.UserRole)
+            sample_item.setEditable(False)
             
             for experiment in experiments:
                 exp_item = QStandardItem(experiment.file_name)
                 exp_item.setData(experiment, Qt.ItemDataRole.UserRole)
                 # Dodatkowa flaga: False = do wyboru (lewo), True = wybrane (prawo)
                 exp_item.setData(False, Qt.ItemDataRole.UserRole + 1)
+                exp_item.setEditable(False)
                 sample_item.appendRow(exp_item)
                 
             self.source_model.appendRow(sample_item)
@@ -723,32 +743,72 @@ class DataSelector(QDialog):
 class Tracker(QWidget):
     dataRequested = pyqtSignal(list)
 
-    def __init__(self):
+
+    def __init__(self, column_names:list[str], column_widths: list[int] = None, add_delete = False):
         super().__init__()
 
+        # checking
+        if len(column_names) != len(column_widths):
+            print('Column names must be the same length as column_widths')
+            return
+        self.column_names = column_names
+        self.column_widths = column_widths
+        self.number_of_columns = len(column_names)
         self.tree = QTreeWidget()
-        self.tree.setColumnCount(2)
-        self._storage = []
+        self.add_delete = add_delete
 
+        self.header = self.tree.header()
+        self.header.setSectionResizeMode(QHeaderView.ResizeMode.ResizeToContents)
+        self.header.setStretchLastSection(False)
+        
+
+        if add_delete == True:
+            self.delete_column_number = self.number_of_columns # since counting is from 1, the last column index is the same
+            self.tree.setColumnCount(self.number_of_columns + 1) # adding one because counting from 1 
+            self.column_names.append('Delete')
+            self.column_widths.append(10)
+        else:
+            self.tree.setColumnCount(self.number_of_columns)
+        
+        self.set_names_and_widths()
+        self._storage = []
         self.build_ui()
+
+    def set_names_and_widths(self):
+
+        self.tree.setHeaderLabels(self.column_names)
+        for i, column_width in enumerate(self.column_widths):
+            self.tree.setColumnWidth(i, column_width)
+            if i == 0:
+                self.header.setSectionResizeMode(i, QHeaderView.ResizeMode.Stretch)
+            else:
+                self.header.setSectionResizeMode(i, QHeaderView.ResizeMode.ResizeToContents)
+
 
     def build_ui(self):
         layout = QVBoxLayout()
         layout.addWidget(self.tree)
-        add_btn = QPushButton('Add')
-        
-        layout.addWidget(add_btn)
         self.setLayout(layout)
 
-    def add_row(self, name:str, data: dict):
+    def add_row(self, columns:list, data: tuple):
         item = QTreeWidgetItem(self.tree)
-        item.setText(0, name)
-        item.setData(0, Qt.UserRole, data)
+        for column_index in range(self.number_of_columns): 
+            column_name = columns[column_index]
+            item.setText(column_index, column_name)
 
-        delete_btn = QPushButton('-')
+        item.setData(0, Qt.UserRole, data) # the data is set for the first column
+
+        if self.add_delete and hasattr(self, 'delete_column_number'):
+            delete_btn = self.add_delete_button(item = item)
+            self.tree.setItemWidget(item, self.delete_column_number, delete_btn)
+
+    def add_delete_button(self, item):
+        delete_btn = QPushButton()
+        delete_btn.setIcon(QIcon(":minus-button.png"))
         delete_btn.clicked.connect(lambda: self.remove_row(item))
+        delete_btn.setStyleSheet("QPushButton { border: none; background: transparent; }")
         
-        self.tree.setItemWidget(item, 1, delete_btn)
+        return delete_btn
 
     def remove_row(self, item):
         parent = item.parent()
@@ -766,6 +826,8 @@ class Tracker(QWidget):
     
 
         if data:
+            print(data[0][0])
+            print(data[0][1])
             self.dataRequested.emit(data)
             return zip(*data) # now it can be assigned into multiple variables
         else:

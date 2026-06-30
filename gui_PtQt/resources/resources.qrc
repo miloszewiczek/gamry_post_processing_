@@ -7,6 +7,7 @@
     <file alias="expand.png">Fugue_icons/fugue-icons-3.5.6/icons/arrow-resize-090.png</file>
     <file alias="select-samples.png">Fugue_icons/fugue-icons-3.5.6/icons/flask.png</file>
     <file alias="select-experiments.png">Fugue_icons/fugue-icons-3.5.6/icons/scripts-text.png</file>
+    <file alias="minus-button.png">Fugue_icons/fugue-icons-3.5.6/icons/minus-button.png</file>
 </qresource>
 </RCC>
 
