@@ -22,7 +22,7 @@ class AreaDialog(BaseDataDialog):
         label = QLabel('Geometrical Area [cm²]')
         self.value_box = QDoubleSpinBox()
         self.value_box.setRange(0, 1000)
-        self.value_box.setDecimals(3)
+        self.value_box.setDecimals(5)
 
         self.setLayout(layout)
 
@@ -262,9 +262,17 @@ class AreaDialog(BaseDataDialog):
         quick = DataSelector(manager = self.manager, experiments = self.experiments, object_type = EIS, callback = get_value)
 
     def create_variable_selector(self):
+
+        print(self.experiments[0])
+        sequence_path = getattr(self.experiments[0], 'gsequence', None)
+        print(sequence_path)
+
         from .xml_reader import VariableSelector
-        VariableSelector({"Ru": self.Ru_box,
-                          "Dupa": 'cyce'})
+        VariableSelector({"Final reference potential": self.final_potential,
+                        "Ru": self.Ru_box,
+                        "Geometrical Area": self.value_box},
+                        sequence_path = sequence_path
+                          )
 
 
     def toggle_reference_potential_input(self, button, checked):
@@ -290,10 +298,10 @@ class AreaDialogBox(QDialog):
         # 1. Wywołanie posegregowanych etapów budowania okna
         self.init_ui()
         self.setup_layouts()
+        self.init_ui() 
         self.connect_signals()
         
         # Uruchomienie początkowego stanu (opcjonalnie na koniec)
-        self.build_ui() 
 
     def init_ui(self):
         """KROK 1: Definicje i konfiguracja wszystkich widgetów i struktur danych."""

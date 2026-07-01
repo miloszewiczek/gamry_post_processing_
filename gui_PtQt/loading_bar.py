@@ -9,8 +9,8 @@ from PyQt5.QtGui import QStandardItemModel, QStandardItem, QColor, QIcon, QKeySe
 from PyQt5.QtCore import Qt, QAbstractTableModel, QItemSelection, QItemSelectionModel, QPersistentModelIndex, pyqtSignal, QModelIndex
 
 from core import ExperimentLoader, ExperimentManager, Experiment
-from core.functions.gui_functions import open_file_in_system_editor, open_folder_in_explorer
-from core.functions.gui_functions import load_data, load_files, load_folder
+from core.functions.gui_functions import open_file_in_system_editor, open_folder_in_explorer, get_files_from_folder
+from core.functions.gui_functions import load_data, load_files, load_folder, CustomMultiFolderDialog
 from gui_PtQt.calculate_diameter import AreaDialogBox, AreaDialog
 from gui_PtQt.configuration.config import icon_path
 from core.experiments.sample import Sample
@@ -588,21 +588,39 @@ class ExperimentPanel(QWidget):
     # =========================================================================
 
     def load_folder(self): 
-        files = load_folder(self)
-        if files: self.load_data(files)
-
+        files, ok = CustomMultiFolderDialog.get_folders(self)
+        if files and ok:
+            sequence_files = self.load_data(files)
+            if sequence_files:
+                for gsequence in sequence_files:
+                    self.manager.set_sequence(sequence_path = gsequence,
+                                              sample_name = str(gsequence.parent))
+                    
     def load_files(self):
         files = load_files(self)
-        if files: self.load_data(files)
+        if files: 
+            sequence_files = self.load_data(files)
+            if sequence_files:
+                for gsequence in sequence_files:
+                    self.manager.set_sequence(sequence_path = gsequence,
+                                              sample_name = str(gsequence.parent))
+        
 
-    def load_data(self, files):
+    def load_data(self, files:list[Path]):
+        sequence_files = []
         for file in files:
+            if 'GSequence' in file.suffix:
+                    sequence_files.append(file)
+                    continue
             try:
                 experiment = self.loader.create_experiment(str(file))
-                sample = self.manager.add_experiment(experiment, sample_name=experiment.folder)
+                if experiment is not None:
+                    sample = self.manager.add_experiment(experiment, sample_name=str(file.parent))
                 self.refresh_sample_in_model(sample)
             except Exception as e:
-                print(f"Błąd ładowania: {e}")
+                continue
+
+        return sequence_files
 
     def refresh_sample_in_model(self, sample):
         parent_item = None

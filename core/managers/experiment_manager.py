@@ -244,10 +244,15 @@ class ExperimentManager():
 
         if sample_name not in self.samples:
             self.samples[sample_name] = Sample(sample_name)
-        
         self.samples[sample_name].add_experiment(experiment)
         self.dict_of_experiments[experiment.id] = experiment
         return self.samples[sample_name]
+    
+    def set_sequence(self, sequence_path, sample_name):
+        
+        if sample_name not in self.samples:
+            self.samples[sample_name] = Sample(sample_name)
+        self.samples[sample_name].set_sequence(sequence_path)
     
     def update_dict(self, data):
         """

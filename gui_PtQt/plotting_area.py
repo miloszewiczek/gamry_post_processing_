@@ -530,7 +530,10 @@ class TafelCanvas(FigureCanvas):
         self.current_range = (xmin, xmax)
         to_tafel_range = (self.current_x >= xmin) & (self.current_x <= xmax)
         self.selected_x = self.current_x[to_tafel_range]
+        self.selected_x.reset_index(inplace = True)
         self.selected_y = self.current_y[to_tafel_range]
+        self.selected_y.reset_index(inplace = True)
+
         regression = linregress(self.selected_x, self.selected_y)
         self.current_slope = abs(regression.slope)
         self.tafel_cv.set_title(f'Calculated slope: {round(self.current_slope * 1000, 0)} mV/dec')

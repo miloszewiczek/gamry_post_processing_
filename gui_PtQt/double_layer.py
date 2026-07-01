@@ -278,15 +278,18 @@ class DoubleLayerCoreWidget(TafelCoreWidget):
 
                 # Tworzymy obiekt analizy (np. do zapisu w historii)
 
-
-                mi_tuple = (sample.sample_name, cycle_num, chosen_potential)
+                mi_tuple = (sample.sample_name, cycle_num)
 
                 multi_index_tuples.append(mi_tuple)
                 fitting_data.append(results_dict['df_fitting'])
                 data.append(results_dict['df_data'])
         
-        names = ('Sample', 'Cycle', 'Potential [V]')
-        self.fitting_data = pd.concat(fitting_data, axis = 0, keys = multi_index_tuples, names = names)
+        names = ('Sample', 'Cycle')
+        self.fitting_data = pd.concat(fitting_data, axis = 0)
+        multiindex = pd.MultiIndex.from_tuples(multi_index_tuples, names = names)
+        self.fitting_data.index = multiindex
+
+
         self.raw_data = pd.concat(data, axis = 1, keys = multi_index_tuples, names = names)
 
         self.calculate_btn.setDisabled(True)

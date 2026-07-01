@@ -1,9 +1,10 @@
-from PyQt5.QtWidgets import QLabel, QTableView, QComboBox, QDialog, QVBoxLayout, QHBoxLayout
-from PyQt5.QtCore import QAbstractTableModel, Qt
+from PyQt5.QtWidgets import QLabel, QTableView, QComboBox, QDialog, QVBoxLayout, QHBoxLayout, QPushButton
+from PyQt5.QtCore import QAbstractTableModel, Qt, QModelIndex
+import pandas as pd
 
 
 class PandasModel(QAbstractTableModel):
-    def __init__(self, data):
+    def __init__(self, data: pd.DataFrame):
         super().__init__()
         self._data = data
 
@@ -34,6 +35,32 @@ class PandasModel(QAbstractTableModel):
             if orientation == Qt.Orientation.Vertical:
                 return str(self._data.index[section])
         return None
+    
+    def insertColumn(self):
+        self.beginInsertColumns(QModelIndex(), 0, 0)
+        self._data.insert(0, 'New', None)
+        self.endInsertColumns()
+
+    def flags(self, index):
+
+        if not index.isValid():
+            return Qt.NoItemFlags
+        
+        item_flags = super().flags(index)
+        return item_flags | Qt.ItemIsEditable
+    
+    def setData(self, index, value, role):
+
+        if not index.isValid():
+            return False
+        if role == Qt.EditRole:
+            cast_value = float(value)
+            row, column = index.row(), index.column()
+            self._data.iat[row, column] = cast_value
+
+            self.dataChanged.emit(index, index, [Qt.DisplayRole, Qt.EditRole])
+            return True
+
 
 class AnalysisViewer(QDialog):
     def __init__(self, object_to_view, parent = None):
@@ -42,10 +69,13 @@ class AnalysisViewer(QDialog):
         self.setWindowTitle('Analysis components')
         self.resize(800, 600)
         self.object_to_view = object_to_view
-        self.view = QTableView()
-        self.update_table_data(object_to_view)
 
         main_layout = QVBoxLayout()
+
+        self.add_column_btn = QPushButton('Add Row!')
+        self.view = QTableView()
+        self.update_table_data(object_to_view)
+        main_layout.addWidget(self.add_column_btn)
         main_layout.addWidget(self.view)
         self.setLayout(main_layout)
         self.exec()
@@ -54,9 +84,11 @@ class AnalysisViewer(QDialog):
         
         # Sprawdzamy, czy to na pewno DataFrame (currentData może być None przy pustym combo)
         if object_to_view is not None:
-            object_to_view.reset_index()
-            self.model = PandasModel(object_to_view)
+            self.flat_object_to_view = object_to_view.reset_index()
+            self.model = PandasModel(self.flat_object_to_view)
             self.view.setModel(self.model)
+            self.add_column_btn.clicked.connect(self.model.insertColumn)
+
 
 
 class DataPreviewDialog(QDialog):
