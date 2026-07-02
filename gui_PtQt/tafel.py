@@ -160,11 +160,12 @@ class TafelCoreWidget(QWidget):
 
         tafel_slopes = self.make_row_multiindex(tafel_slopes, columns = ['Tafel slope [V/dec]'])
         fitting_data = self.make_column_multiindex(fitting_data) 
-
+        data = {'Tafel Slopes': tafel_slopes,
+                'Raw Data': fitting_data}
 
         name = analysis_manager.ask_for_analysis_name(self.default_analysis_prefix)
         if name:
-            analysis = TafelAnalysis(name = name, experiments = self.experiments, data = tafel_slopes, fitting_data = fitting_data)
+            analysis = TafelAnalysis(name = name, experiments = self.experiments, data = data)
             analysis_manager.add_analysis(analysis)
 
 

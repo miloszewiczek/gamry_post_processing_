@@ -25,7 +25,6 @@ class  Sample():
     def set_sequence(self, gsequence_path):
         setattr(self, "gsequence", gsequence_path)
         for experiment in self.experiments:
-            print('Setting gsequence ', gsequence_path, 'for ', experiment)
             setattr(experiment, "gsequence", gsequence_path)
 
     def apply_parameter(self, name, value):

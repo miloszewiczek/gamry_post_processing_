@@ -179,10 +179,10 @@ class OverpotentialsWindow(QDialog):
         
         # 3. Odejmujemy potencjał odniesienia (Pandas odejmie go automatycznie od każdej komórki)
         overpotentials_vs_reference = full_df - self.reference_potential_line_edit.value()
-        
+        data = {'Overpotentials': overpotentials_vs_reference}
         name = analysis_manager.ask_for_analysis_name(self.default_analysis_prefix)
         if name:
-            overpotential_analysis = OverpotentialAnalysis(name = name, experiments = sample_experiments_dict, data = overpotentials_vs_reference)
+            overpotential_analysis = OverpotentialAnalysis(name = name, experiments = sample_experiments_dict, data = data)
             analysis_manager.add_analysis(overpotential_analysis)
 
     def strip(self):

@@ -85,8 +85,9 @@ class AnalysisManager():
                 for analysis in self._analyses:
                     data = analysis.get_data()
                     for sheet_name, data_set in data.items():
+                        final_sheet_name = analysis.name + '_' + sheet_name
                         data_set:pd.DataFrame
-                        data_set.to_excel(writer, sheet_name = sheet_name)
+                        data_set.to_excel(writer, sheet_name = final_sheet_name)
 
     def ask_for_analysis_name(self, default:str, default_number:int = None):
         
@@ -119,6 +120,7 @@ class AnalysisTreeModel(QStandardItemModel):
     def __init__(self, manager: AnalysisManager, parent = None):
         super().__init__(parent)
         
+
         self.manager = manager
         self.setHorizontalHeaderLabels(['Name', 'Value'])
 
@@ -138,7 +140,7 @@ class AnalysisTreeModel(QStandardItemModel):
         root_item.setData(analysis, Qt.ItemDataRole.UserRole)
         self.appendRow([root_item, QStandardItem("")])
 
-        subitems = analysis.get_dictionary()
+        subitems = analysis.get_data()
         for key, value in subitems.items():
             subitem_name = QStandardItem(key)
             subitem_name.setData(value, Qt.ItemDataRole.UserRole)
@@ -148,7 +150,6 @@ class AnalysisTreeModel(QStandardItemModel):
             except:
                 subitem_value = QStandardItem(value.__class__.__name__)
             subitem_value.setData(value, Qt.ItemDataRole.UserRole)
-
             root_item.appendRow([subitem_name, subitem_value])
     
         

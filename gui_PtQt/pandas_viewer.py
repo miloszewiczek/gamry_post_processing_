@@ -73,8 +73,12 @@ class AnalysisViewer(QDialog):
         main_layout = QVBoxLayout()
 
         self.add_column_btn = QPushButton('Add Row!')
+        self.group_by_btn = QPushButton('Group by')
+
         self.view = QTableView()
         self.update_table_data(object_to_view)
+
+        main_layout.addWidget(self.group_by_btn)
         main_layout.addWidget(self.add_column_btn)
         main_layout.addWidget(self.view)
         self.setLayout(main_layout)
@@ -88,6 +92,18 @@ class AnalysisViewer(QDialog):
             self.model = PandasModel(self.flat_object_to_view)
             self.view.setModel(self.model)
             self.add_column_btn.clicked.connect(self.model.insertColumn)
+            self.group_by_btn.clicked.connect(self.group_by)
+
+    def group_by(self):
+        from core import analysis_manager
+        from core.experiments.analysis import BaseAnalysis
+        
+        grouped = self.object_to_view.groupby(level = ['Tag','Cycle'])
+        statistics = grouped.agg(['mean','std'])
+        self.update_table_data(object_to_view = statistics)
+        new_anal = BaseAnalysis(data = statistics)
+        analysis_manager.add_analysis(new_anal)
+        
 
 
 
