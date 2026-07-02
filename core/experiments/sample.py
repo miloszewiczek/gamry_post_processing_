@@ -1,5 +1,6 @@
 from core.experiments.base import Experiment
 from os.path import basename
+from pathlib import PurePath, Path
 
 class  Sample():
     """Simple container class for experiment objects.
@@ -11,7 +12,7 @@ class  Sample():
     
     def __init__(self, sample_name: str, sequence_path = None):
         
-        self.sample_path = sample_name
+        self.sample_path = Path(sample_name)
         self.sample_name = basename(sample_name)
         self.gsequence = sequence_path
         self.short_name = self.sample_name[0:15]

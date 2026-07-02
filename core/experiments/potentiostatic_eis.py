@@ -20,9 +20,6 @@ class EIS(Experiment):
         final_potential = self.meta_data['VDC'] + self.reference_potential
         final_potential = '{:.3f}'.format(final_potential)
 
-        print(self.meta_data['VDC'])
-        print(final_potential)
-
         level_values = [[self.file_path], [final_potential], columns]
         level_names = ['Path', 'E vs RHE [V]', 'Parameter']
         return level_values, level_names

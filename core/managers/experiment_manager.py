@@ -421,9 +421,11 @@ class ExperimentManager():
         self,
         experiment_collectible=None,
         save_name=None,
-        group_by=("tag", "cycle"),  # list or tuple of attributes
+        group_by=("tag", "cycle"),
+        save_dir= '',
         **kwargs
     ):
+        from pathlib import PurePath
 
         if experiment_collectible is None:
             experiment_collectible = self.filtered
@@ -434,8 +436,6 @@ class ExperimentManager():
 
         grouped_data = defaultdict(list)
 
-        print(experiment_collectible)
-        print(type(experiment_collectible))
         # Group experiments by multiple keys
         for experiment in experiment_collectible:
             key_parts = []
@@ -457,7 +457,9 @@ class ExperimentManager():
         if save_name is None:
             save_name = input("Name of data to save: ")
 
-        with pd.ExcelWriter(f"{save_name}.xlsx", engine="openpyxl", mode='w') as writer:
+        full_save_path = PurePath(save_dir, save_name + '.xlsx') 
+
+        with pd.ExcelWriter(f"{full_save_path}", engine="openpyxl", mode='w') as writer:
             for key_tuple, experiment_group in grouped_data.items():
                 combined_df = pd.concat(experiment_group, axis=1)
 
