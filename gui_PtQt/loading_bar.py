@@ -156,27 +156,27 @@ class ExperimentPanel(QWidget):
         self.action_select_experiments.setShortcut("Ctrl+Shift+E")
         self.action_select_experiments.triggered.connect(self.select_all_experiments_globally)
 
-        self.action_double_layer = QAction(QIcon(":select-samples.png"), "Double Layer &Capacitance", self)
+        self.action_double_layer = QAction(QIcon(":double_layer_analysis.png"), "Double Layer &Capacitance", self)
         self.action_double_layer.setShortcut("Alt+1")
         self.action_double_layer.triggered.connect(self.double_layer)
 
-        self.action_overpotentials = QAction(QIcon(":select-samples.png"), "&Overpotentials", self)
+        self.action_overpotentials = QAction(QIcon(":overpotential_analysis.png"), "&Overpotentials", self)
         self.action_overpotentials.setShortcut("Alt+2")
         self.action_overpotentials.triggered.connect(self.overpotentials)
 
-        self.action_tafel = QAction(QIcon(":select-samples.png"), "&Tafel analysis", self)
+        self.action_tafel = QAction(QIcon(":tafel_analysis.png"), "&Tafel analysis", self)
         self.action_tafel.setShortcut("Alt+3")
         self.action_tafel.triggered.connect(self.tafel_analysis)
 
-        self.action_chronopoints = QAction(QIcon(":select-samples.png"), "C&hronopoints", self)
+        self.action_chronopoints = QAction(QIcon(":chronopoint_analysis.png"), "C&hronopoints", self)
         self.action_chronopoints.setShortcut("Alt+4")
         self.action_chronopoints.triggered.connect(self.chronopoint_analysis)
 
-        self.action_set_tag = QAction(QIcon(":select-samples.png"), "Set &tag", self)
+        self.action_set_tag = QAction(QIcon(":tag.png"), "Set &tag", self)
         self.action_set_tag.setShortcut("Ctrl+T")
         self.action_set_tag.triggered.connect(self.set_tag)
 
-        self.action_save_all = QAction(QIcon(":select-samples.png"), 'Save &All Samples', self)
+        self.action_save_all = QAction(QIcon(":disk.png"), 'Save &All Samples', self)
         self.action_save_all.setShortcut("Ctrl+Shift+S")
         self.action_save_all.triggered.connect(self.save_all)
 
@@ -204,11 +204,13 @@ class ExperimentPanel(QWidget):
         _, items, indexes = self._get_business_objects_from_selection()
         user_tag_string, ok = QInputDialog.getText(self, 'Set tag', 'Specify the tag used to combine multiple samples:')
         if user_tag_string and ok:
-            self.manager.apply_parameter(items, 'user_tag', user_tag_string)
-            for index in indexes:
-                class_idx = index.siblingAtColumn(1)
-                self.model.setData(class_idx, user_tag_string)
-
+            try:
+                self.manager.apply_parameter(items, 'user_tag', user_tag_string)
+                for index in indexes:
+                    class_idx = index.siblingAtColumn(1)
+                    self.model.setData(class_idx, user_tag_string)
+            except:
+                return
 
     def _get_business_objects_from_selection(self, clicked_proxy_index=None) -> tuple[str, list]:
         """
@@ -227,7 +229,7 @@ class ExperimentPanel(QWidget):
             proxy_indices = selection_model.selectedRows(0)
 
         if not proxy_indices:
-            return "NONE", []
+            return "NONE", [], "NONE"
 
         found_samples = []
         found_experiments = []
@@ -278,9 +280,9 @@ class ExperimentPanel(QWidget):
             elif clicked_btn == btn_experiments:
                 return "EXPERIMENT", found_experiments, source_indexes
             else:
-                return "NONE", [] # Użytkownik anulował akcję
+                return "NONE", [], "NONE" # Użytkownik anulował akcję
 
-        return "NONE", []
+        return "NONE", [], "NONE"
 
     # =========================================================================
     # MENU KONTEKSTOWE

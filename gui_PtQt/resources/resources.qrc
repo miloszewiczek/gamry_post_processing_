@@ -8,6 +8,13 @@
     <file alias="select-samples.png">Fugue_icons/fugue-icons-3.5.6/icons/flask.png</file>
     <file alias="select-experiments.png">Fugue_icons/fugue-icons-3.5.6/icons/scripts-text.png</file>
     <file alias="minus-button.png">Fugue_icons/fugue-icons-3.5.6/icons/minus-button.png</file>
+    <file alias="chronopoint_analysis.png">My_icons/chronopoint_analysis.png</file>
+    <file alias="double_layer_analysis.png">My_icons/double_layer_analysis.png</file>
+    <file alias="tafel_analysis.png">My_icons/tafel_analysis.png</file>
+    <file alias="overpotential_analysis.png">My_icons/overpotential_analysis.png</file>
+    <file alias="disk.png">Fugue_icons/fugue-icons-3.5.6/icons/disk.png</file>
+    <file alias="tag.png">Fugue_icons/fugue-icons-3.5.6/icons/blue-document-tag.png</file>
+    
 </qresource>
 </RCC>
 
