@@ -160,12 +160,7 @@ class OverpotentialsWindow(QDialog):
                     val = calc_closest_value(point_to_calc, y, x, 'first')
                     all_rows_data.append(val)
 
-                    # WYCIĄGANIE CYKLU: zakładam, że obiekt exp ma atrybut .cycle 
-                    # Jeśli nie ma, możesz użyć bezpiecznego wyciągania: getattr(exp, 'cycle', 1)
-                    
-                    # Tworzymy krotkę identyfikującą ten konkretny wiersz w hierarchii
-                    # Sample Name -> Cycle -> File Name
-                    index_tuple = (sample.sample_name, f"Cycle {cycle_num}", exp.file_name)
+                    index_tuple = (sample.user_tag, sample.sample_name, f"Cycle {cycle_num}", exp.file_name)
                     multi_index_tuples.append(index_tuple)
 
         # Zabezpieczenie na wypadek, gdyby użytkownik nic nie zaznaczył
@@ -176,7 +171,7 @@ class OverpotentialsWindow(QDialog):
         # 1. Tworzymy obiekt MultiIndex z zebranych krotek
         m_index = pd.MultiIndex.from_tuples(
             multi_index_tuples, 
-            names=['Sample', 'Cycle', 'Experiment']
+            names=['Tag', 'Sample', 'Cycle', 'Experiment']
         )
 
         # 2. Tworzymy JEDEN zbiorczy DataFrame dla całej analizy!
