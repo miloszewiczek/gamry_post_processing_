@@ -117,7 +117,7 @@ class TafelCoreWidget(QWidget):
                 for exp in exps:
                     # Zapisujemy tuple z obiektem i jego metadanymi
                     self.experiment_queue.append((sample, cycle_num, exp))
-                    self.display_names_to_dataframe.append((sample.sample_name, cycle_num, exp.file_name)) # convert to tuple
+                    self.display_names_to_dataframe.append((sample.user_tag, sample.sample_name, cycle_num, exp.file_name)) # convert to tuple
         
         if not self.experiment_queue:
             QMessageBox.warning(self, "Brak danych", "Kolejka eksperymentów jest pusta!")
@@ -169,7 +169,7 @@ class TafelCoreWidget(QWidget):
 
 
     def create_multiindex_from_tuples(self):
-        return pd.MultiIndex.from_tuples(self.display_names_to_dataframe, names = ('Sample', 'Cycle', 'Experiment'))
+        return pd.MultiIndex.from_tuples(self.display_names_to_dataframe, names = ('Tag', 'Sample', 'Cycle', 'Experiment'))
 
     def get_data_from_experiment(self, experiment:LinearVoltammetry):
 

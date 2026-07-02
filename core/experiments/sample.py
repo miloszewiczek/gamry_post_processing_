@@ -15,6 +15,7 @@ class  Sample():
         self.sample_name = basename(sample_name)
         self.gsequence = sequence_path
         self.short_name = self.sample_name[0:15]
+        self._user_tag = None
         self.experiments:list[Experiment] = []
 
     def add_experiment(self, experiment:Experiment):
@@ -27,6 +28,23 @@ class  Sample():
             print('Setting gsequence ', gsequence_path, 'for ', experiment)
             setattr(experiment, "gsequence", gsequence_path)
 
+    def apply_parameter(self, name, value):
+        setattr(self, name, value)
+        for exp in self.experiments:
+            exp.apply_parameter(name = name, value = value)
+
+
+    @property
+    def user_tag(self):
+        if self._user_tag is None:
+            return ''
+        else:
+            return self._user_tag
+
+    @user_tag.setter
+    def user_tag(self, value):
+        self._user_tag = value
+        
 
     def __repr__(self):
         return f"Sample({self.sample_name}, exps={len(self.experiments)})"

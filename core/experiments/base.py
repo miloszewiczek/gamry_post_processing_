@@ -33,6 +33,7 @@ class Experiment():
         self.geometrical_area = 1
         self.reference_potential = 0
         self.Ru = 0
+        self._user_tag = None
 
     def load_all(self):
         """
@@ -364,7 +365,6 @@ class Experiment():
         if x is None or y is None:
             x, y = self.get_default_columns('both')
 
-
         data_to_plot = []
         
         for df in curves_to_plot:
@@ -385,6 +385,9 @@ class Experiment():
 
         for data in data_to_plot:
             ax.plot(data.iloc[:, 0], data.iloc[:, 1], color = color, **kwargs)
+
+    def apply_parameter(self, name, value):
+        setattr(self, name, value)
 
     def __repr__(self):
         return f"Experiment(id={self.id}, tag='{self.tag}', cycle={self.cycle}, file='{self.file_name}')"
@@ -419,3 +422,14 @@ class Experiment():
             return 'j$_{GEO}$ [A/cm²]'
         return 'I [A]'
     
+    @property
+    def user_tag(self):
+        if self._user_tag is None:
+            return ''
+        else:
+            return self._user_tag
+
+    @user_tag.setter
+    def user_tag(self, value):
+        self._user_tag = value
+        

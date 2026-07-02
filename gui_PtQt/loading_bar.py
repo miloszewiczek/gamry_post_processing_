@@ -168,13 +168,18 @@ class ExperimentPanel(QWidget):
         self.action_tafel.setShortcut("Alt+3")
         self.action_tafel.triggered.connect(self.tafel_analysis)
 
-        self.action_chronopoints = QAction(QIcon(":select-samples.png"), "&C&hronopoints", self)
+        self.action_chronopoints = QAction(QIcon(":select-samples.png"), "C&hronopoints", self)
         self.action_chronopoints.setShortcut("Alt+4")
         self.action_chronopoints.triggered.connect(self.chronopoint_analysis)
+
+        self.action_set_tag = QAction(QIcon(":select-samples.png"), "Set &tag", self)
+        self.action_set_tag.setShortcut("Ctrl+T")
+        self.action_set_tag.triggered.connect(self.set_tag)
 
 
     def get_actions(self):
         action_dict = {'file': [self.action_load_files, self.action_load_folder, self.action_delete, self.action_copy],
+                       'edit': [self.action_set_tag],
                        'selection': [self.action_expand_all, self.action_select_samples, self.action_select_experiments],
                        'analysis': [self.action_double_layer, self.action_overpotentials, self.action_tafel, self.action_chronopoints]
         }
@@ -182,6 +187,16 @@ class ExperimentPanel(QWidget):
     # =========================================================================
     # TRANSLATOR INDEKSÓW (SERCE ARCHITEKTURY)
     # =========================================================================
+
+    def set_tag(self):
+        _, items, indexes = self._get_business_objects_from_selection()
+        user_tag_string, ok = QInputDialog.getText(self, 'Set tag', 'Specify the tag used to combine multiple samples:')
+        if user_tag_string and ok:
+            self.manager.apply_parameter(items, 'user_tag', user_tag_string)
+            for index in indexes:
+                class_idx = index.siblingAtColumn(1)
+                self.model.setData(class_idx, user_tag_string)
+
 
     def _get_business_objects_from_selection(self, clicked_proxy_index=None) -> tuple[str, list]:
         """
@@ -204,10 +219,13 @@ class ExperimentPanel(QWidget):
 
         found_samples = []
         found_experiments = []
+        source_indexes = []
 
         # 1. Segregujemy obiekty z zaznaczenia do odpowiednich list
         for idx in proxy_indices:
             source_index = self.proxy_model.mapToSource(idx)
+            source_indexes.append(source_index)
+
             obj = source_index.data(Qt.UserRole)
             
             if isinstance(obj, Sample):
@@ -221,11 +239,11 @@ class ExperimentPanel(QWidget):
 
         # Przypadek A: Zaznaczono wyłącznie próbki (Sample)
         if found_samples and not found_experiments:
-            return "SAMPLE", found_samples
+            return "SAMPLE", found_samples, source_indexes
 
         # Przypadek B: Zaznaczono wyłącznie eksperymenty (Experiment)
         if found_experiments and not found_samples:
-            return "EXPERIMENT", found_experiments
+            return "EXPERIMENT", found_experiments, source_indexes
 
         # Przypadek C: Zaznaczenie MIESZANE -> Wyświetlamy komunikat dla użytkownika
         if found_samples and found_experiments:
@@ -244,9 +262,9 @@ class ExperimentPanel(QWidget):
             clicked_btn = msg_box.clickedButton()
             
             if clicked_btn == btn_samples:
-                return "SAMPLE", found_samples
+                return "SAMPLE", found_samples, source_indexes
             elif clicked_btn == btn_experiments:
-                return "EXPERIMENT", found_experiments
+                return "EXPERIMENT", found_experiments, source_indexes
             else:
                 return "NONE", [] # Użytkownik anulował akcję
 
@@ -261,7 +279,7 @@ class ExperimentPanel(QWidget):
         if not proxy_index.isValid():
             return
 
-        node_type, business_objects = self._get_business_objects_from_selection(proxy_index)
+        node_type, business_objects, _ = self._get_business_objects_from_selection(proxy_index)
         if node_type == "NONE" or not business_objects:
             return
 
@@ -369,7 +387,7 @@ class ExperimentPanel(QWidget):
 
 
     def copy_selected_items(self):
-        node_type, objects = self._get_business_objects_from_selection()
+        node_type, objects, _ = self._get_business_objects_from_selection()
         if not objects:
             return
 
@@ -396,7 +414,7 @@ class ExperimentPanel(QWidget):
                         break
 
     def delete_selected_items(self, checked_index=None):
-        node_type, objects = self._get_business_objects_from_selection(checked_index)
+        node_type, objects, _ = self._get_business_objects_from_selection(checked_index)
         if not objects:
             if checked_index is None:
                 QMessageBox.information(self, 'Select node', 'No node selected...')
@@ -440,7 +458,7 @@ class ExperimentPanel(QWidget):
     def double_layer(self):
         from gui_PtQt.double_layer import DoubleLayerDialog
         # Pobieramy bezpośrednio listę zaznaczonych obiektów eksperymentów
-        _, selected_experiments = self._get_business_objects_from_selection()
+        _, selected_experiments, _ = self._get_business_objects_from_selection()
         filtered = self.manager.filter(selected_experiments, object_type='ECSA')
         sample_experiment_tree = self.manager.construct_tree(filtered)
 
@@ -450,7 +468,7 @@ class ExperimentPanel(QWidget):
 
     def overpotentials(self):
         from gui_PtQt.overpotentials import OverpotentialsWindow
-        _, selected_experiments = self._get_business_objects_from_selection()
+        _, selected_experiments, _ = self._get_business_objects_from_selection()
         filtered = self.manager.filter(selected_experiments, object_type = 'LinearVoltammetry')
         sample_experiment_tree = self.manager.construct_tree(filtered)
         x = OverpotentialsWindow(sample_experiment_tree, manager = self.manager)
@@ -459,7 +477,7 @@ class ExperimentPanel(QWidget):
 
     def tafel_analysis(self):
         from gui_PtQt.tafel import TafelAnalysisWindow
-        _, selected_experiments = self._get_business_objects_from_selection()
+        _, selected_experiments, _ = self._get_business_objects_from_selection()
         filtered = self.manager.filter(selected_experiments, object_type = 'LinearVoltammetry')
         sample_experiment_tree = self.manager.construct_tree(filtered)
         x = TafelAnalysisWindow(sample_experiment_tree, manager = self.manager)
@@ -469,7 +487,7 @@ class ExperimentPanel(QWidget):
 
     def chronopoint_analysis(self):
         from gui_PtQt.chronopoints import ChronopointsAnalysisWindow
-        _, selected_experiments = self._get_business_objects_from_selection()
+        _, selected_experiments, _ = self._get_business_objects_from_selection()
         filtered = self.manager.filter(selected_experiments, object_type = 'Chronoamperometry')
         sample_experiment_tree = self.manager.construct_tree(filtered)
         x = ChronopointsAnalysisWindow(sample_experiment_tree, manager = self.manager)
@@ -631,7 +649,7 @@ class ExperimentPanel(QWidget):
                 break
         
         if not parent_item:
-            parent_item = QStandardItem(f"Sample: {sample.sample_name}")
+            parent_item = QStandardItem(f"{sample.sample_name}")
             parent_item.setData(sample, Qt.UserRole)
             self.model.appendRow(parent_item)
         
@@ -663,5 +681,5 @@ class ExperimentPanel(QWidget):
 
     def get_selected_experiments(self):
         """Zwraca listę unikalnych obiektów eksperymentów z obecnego zaznaczenia (wsparcie wsteczne)."""
-        _, objects = self._get_business_objects_from_selection()
+        _, objects, _ = self._get_business_objects_from_selection()
         return objects

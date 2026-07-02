@@ -530,9 +530,7 @@ class TafelCanvas(FigureCanvas):
         self.current_range = (xmin, xmax)
         to_tafel_range = (self.current_x >= xmin) & (self.current_x <= xmax)
         self.selected_x = self.current_x[to_tafel_range]
-        self.selected_x.reset_index(inplace = True)
         self.selected_y = self.current_y[to_tafel_range]
-        self.selected_y.reset_index(inplace = True)
 
         regression = linregress(self.selected_x, self.selected_y)
         self.current_slope = abs(regression.slope)
@@ -577,8 +575,12 @@ class TafelCanvas(FigureCanvas):
         self.draw_idle()
 
     def get_data(self):
+        
+        selected_no_indexes = pd.concat((self.selected_x,self.selected_y), axis = 1)
+        selected_no_indexes.reset_index(drop = True, inplace = True)
+        
         return {'Slope': self.current_slope,
-                'Selected xy': pd.concat((self.selected_x,self.selected_y), axis = 1),
+                'Selected xy': selected_no_indexes,
                 'Raw xy': pd.concat((self.current_x, self.current_y), axis =1),
                 'Regression line': pd.concat((self.current_x, self.regression_line_data), axis = 1)}
 

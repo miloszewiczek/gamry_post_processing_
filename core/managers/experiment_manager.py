@@ -253,7 +253,11 @@ class ExperimentManager():
         if sample_name not in self.samples:
             self.samples[sample_name] = Sample(sample_name)
         self.samples[sample_name].set_sequence(sequence_path)
-    
+
+    def apply_parameter(self, business_objects:list[Sample, Experiment], attribute_name, value): 
+        for obj in business_objects:
+            obj.apply_parameter(attribute_name, value)
+
     def update_dict(self, data):
         """
         Setter function to set dict_of_experiments, most likely from experiment_loader class
