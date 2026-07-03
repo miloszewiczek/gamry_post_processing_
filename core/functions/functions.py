@@ -55,7 +55,9 @@ def calculate_ECSA_from_slope(ECSA_experiments: list[ECSA], potential:float, ind
     
     df_data['Line fit [A]'] = df_data['Scanrate [V/s]'] * res_line.slope + res_line.intercept
     df_data['Integrate fit [A]'] = df_data['Scanrate [V/s]'] * res_line_integrate.slope + res_line_integrate.intercept
-    
+    df_data.columns.name = 'Parameter'
+
+
     fitting_df = pd.DataFrame([[res_line.slope, res_line.intercept, res_line.rvalue**2]], columns = ['Slope', 'Intercept', 'R^2'])
     fitting_df.reset_index(drop = True, inplace= True)
     results["df_fitting"] = fitting_df

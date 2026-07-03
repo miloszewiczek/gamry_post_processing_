@@ -1,7 +1,7 @@
 from PyQt5.QtWidgets import QLabel, QTableView, QComboBox, QDialog, QVBoxLayout, QHBoxLayout, QPushButton
 from PyQt5.QtCore import QAbstractTableModel, Qt, QModelIndex
 import pandas as pd
-
+from gui_PtQt.test_origin import create_sheet
 
 class PandasModel(QAbstractTableModel):
     def __init__(self, data: pd.DataFrame):
@@ -74,6 +74,7 @@ class AnalysisViewer(QDialog):
 
         self.add_column_btn = QPushButton('Add Row!')
         self.group_by_btn = QPushButton('Group by')
+        self.to_origin_btn = QPushButton('To origin!')
 
         self.view = QTableView()
         self.update_table_data(object_to_view)
@@ -81,6 +82,7 @@ class AnalysisViewer(QDialog):
         main_layout.addWidget(self.group_by_btn)
         main_layout.addWidget(self.add_column_btn)
         main_layout.addWidget(self.view)
+        main_layout.addWidget(self.to_origin_btn)
         self.setLayout(main_layout)
         self.exec()
     
@@ -93,16 +95,24 @@ class AnalysisViewer(QDialog):
             self.view.setModel(self.model)
             self.add_column_btn.clicked.connect(self.model.insertColumn)
             self.group_by_btn.clicked.connect(self.group_by)
+            self.to_origin_btn.clicked.connect(self.export_to_origin)
+
+    def export_to_origin(self):
+        create_sheet(self.flat_object_to_view)
 
     def group_by(self):
         from core import analysis_manager
         from core.experiments.analysis import BaseAnalysis
         
-        grouped = self.object_to_view.groupby(level = ['Tag','Cycle'])
-        statistics = grouped.agg(['mean','std'])
-        self.update_table_data(object_to_view = statistics)
-        new_anal = BaseAnalysis(data = statistics)
-        analysis_manager.add_analysis(new_anal)
+        try:
+            grouped = self.object_to_view.groupby(level = ['Tag','Cycle'])
+            statistics = grouped.agg(['mean','std'])
+            self.update_table_data(object_to_view = statistics)
+            new_anal = BaseAnalysis(data = statistics)
+            analysis_manager.add_analysis(new_anal)
+        except:
+            from PyQt5.QtWidgets import QMessageBox
+            QMessageBox.information(self, 'Ooopsie!', 'Sorry, the dataframe (data table) you provided is not supported yet!')
         
 
 
