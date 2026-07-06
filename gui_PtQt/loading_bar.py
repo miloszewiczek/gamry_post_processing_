@@ -195,15 +195,16 @@ class ExperimentPanel(QWidget):
     # TRANSLATOR INDEKSÓW (SERCE ARCHITEKTURY)
     # =========================================================================
     def create_multiindexes(self):
-        from .test_origin import create_sheet, create_book
+        from .test_origin import create_sheet, create_or_get_book
         _, sample_objects, _ = self._get_business_objects_from_selection()
-        multiindex = self.manager.create_multiindexes(sample_objects[0])
+        sample_objects:list[Sample]
+        for sample_object in sample_objects:
 
-        workbook = create_book(sample_objects[0].sample_name)
-        for multi_name, multi_i in multiindex.items():
-            joined_multi = self.manager.join_data(multi_i, axis = 1)
-            create_sheet(joined_multi, sheet_name = '_'.join(multi_name), workbook = workbook, comment = 'XD')
-        
+            multiindex = self.manager.create_multiindexes(sample_object)
+            workbook = create_or_get_book(sample_object.sample_name)
+            for multi_name, multi_i in multiindex.items():
+                joined_multi = self.manager.join_data(multi_i, axis = 1)
+                create_sheet(joined_multi, sheet_name = '_'.join(multi_name), workbook = workbook, comment = sample_object.user_tag)
 
 
     def save_all(self):

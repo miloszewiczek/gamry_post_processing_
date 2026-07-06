@@ -183,11 +183,21 @@ class AnalysisWindow(QWidget):
         if index.column() != 0:
             index = index.siblingAtColumn(0)
 
+        # name of the whole analysis
+        if index.parent().isValid():
+            parent_name = index.parent().data(Qt.DisplayRole)
+        else:
+            parent_name = ''
+
         identity = index.data(Qt.UserRole)
-        self.handle_object(identity)
+        
+        #name of the dataframe e.g. Chronopoints - it's fixed for a given analysis type
+        object_name = index.data(Qt.DisplayRole)
+
+        self.handle_object(identity, parent_name, object_name)
 
 
-    def handle_object(self, object):
+    def handle_object(self, object, parent_name, object_name):
         
         match object:
             
@@ -196,4 +206,4 @@ class AnalysisWindow(QWidget):
             case int():
                 print(object)
             case pd.DataFrame():
-                x = AnalysisViewer(object)
+                x = AnalysisViewer(object, parent_name = parent_name, df_name = object_name)

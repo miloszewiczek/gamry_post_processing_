@@ -2,10 +2,14 @@ import originpro as op
 import pandas as pd
 
 
-def create_book(book_name: str) -> op.WBook:
+def create_or_get_book(book_name: str) -> op.WBook:
     op.set_show(True)
-    wbk = op.new_book('w', lname = book_name)
-    return wbk
+    existing_book = op.find_book('w', book_name)
+    if existing_book is not None:
+        return existing_book
+    else:    
+        wbk = op.new_book('w', lname = book_name)
+        return wbk
 
 def create_sheet(df, workbook:op.WBook, sheet_name="Dane", comment = ''):
     """Tworzy nowy arkusz w określonym skoroszycie Origin.

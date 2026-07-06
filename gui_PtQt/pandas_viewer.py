@@ -1,7 +1,7 @@
 from PyQt5.QtWidgets import QLabel, QTableView, QComboBox, QDialog, QVBoxLayout, QHBoxLayout, QPushButton
 from PyQt5.QtCore import QAbstractTableModel, Qt, QModelIndex
 import pandas as pd
-from gui_PtQt.test_origin import create_sheet
+from gui_PtQt.test_origin import create_sheet, create_or_get_book
 
 class PandasModel(QAbstractTableModel):
     def __init__(self, data: pd.DataFrame):
@@ -63,10 +63,11 @@ class PandasModel(QAbstractTableModel):
 
 
 class AnalysisViewer(QDialog):
-    def __init__(self, object_to_view, parent = None):
+    def __init__(self, object_to_view, parent = None, parent_name = 'None', df_name = 'None'):
         super().__init__(parent)
 
-        self.setWindowTitle('Analysis components')
+        full_name = f"Analysis - {parent_name} - {df_name}"
+        self.setWindowTitle(full_name)
         self.resize(800, 600)
         self.object_to_view = object_to_view
 
@@ -75,6 +76,9 @@ class AnalysisViewer(QDialog):
         self.add_column_btn = QPushButton('Add Row!')
         self.group_by_btn = QPushButton('Group by')
         self.to_origin_btn = QPushButton('To origin!')
+
+        self.parent_name = parent_name
+        self.df_name = df_name
 
         self.view = QTableView()
         self.update_table_data(object_to_view)
@@ -98,7 +102,8 @@ class AnalysisViewer(QDialog):
             self.to_origin_btn.clicked.connect(self.export_to_origin)
 
     def export_to_origin(self):
-        create_sheet(self.flat_object_to_view)
+        book = create_or_get_book(self.parent_name)
+        create_sheet(self.flat_object_to_view, workbook = book, sheet_name = self.df_name)
 
     def group_by(self):
         from core import analysis_manager
