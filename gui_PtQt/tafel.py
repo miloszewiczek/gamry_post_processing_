@@ -159,7 +159,7 @@ class TafelCoreWidget(QWidget):
         fitting_data = [docto['Selected xy'] for docto in self.data]
 
         tafel_slopes = self.make_row_multiindex(tafel_slopes, columns = ['Tafel slope [V/dec]'])
-        fitting_data = self.make_column_multiindex(fitting_data, multiindex_keys = ['']) 
+        fitting_data = self.make_column_multiindex(fitting_data) 
         data = {'Tafel Slopes': tafel_slopes,
                 'Raw Data': fitting_data}
 
