@@ -419,7 +419,7 @@ class ExperimentManager():
 
     def batch_process_selected_experiments(
         self,
-        experiment_collectible=None,
+        experiment_collecible = None,
         save_name=None,
         group_by=("tag", "cycle"),
         save_dir= '',
@@ -427,6 +427,29 @@ class ExperimentManager():
     ):
         from pathlib import PurePath
 
+        grouped_data = self.create_multiindexes(experiment_collectible= experiment_collecible, group_by = group_by)
+
+        if save_name is None:
+            save_name = input("Name of data to save: ")
+
+        full_save_path = PurePath(save_dir, save_name + '.xlsx') 
+
+        with pd.ExcelWriter(f"{full_save_path}", engine="openpyxl", mode='w') as writer:
+            for key_tuple, experiment_group in grouped_data.items():
+                combined_df = pd.concat(experiment_group, axis=1)
+
+                # Join tuple into safe sheet name
+                sheet_name = "_".join(key_tuple)[:31]  # Excel limit
+                combined_df.to_excel(writer, sheet_name=sheet_name)
+
+        print(f"Data saved to {save_name}.xlsx")
+        return grouped_data
+
+    def create_multiindexes(self,
+                            experiment_collectible=None,
+                            group_by = ('tag','cycle')
+                            ) -> dict[tuple,list[pd.DataFrame]]:
+        
         if experiment_collectible is None:
             experiment_collectible = self.filtered
 
@@ -453,22 +476,11 @@ class ExperimentManager():
             #make multiindexed dataframe
             processed = experiment.make_multiindex(experiment.processed_data)
             grouped_data[key].append(processed)
-
-        if save_name is None:
-            save_name = input("Name of data to save: ")
-
-        full_save_path = PurePath(save_dir, save_name + '.xlsx') 
-
-        with pd.ExcelWriter(f"{full_save_path}", engine="openpyxl", mode='w') as writer:
-            for key_tuple, experiment_group in grouped_data.items():
-                combined_df = pd.concat(experiment_group, axis=1)
-
-                # Join tuple into safe sheet name
-                sheet_name = "_".join(key_tuple)[:31]  # Excel limit
-                combined_df.to_excel(writer, sheet_name=sheet_name)
-
-        print(f"Data saved to {save_name}.xlsx")
-        return experiment_collectible
+        
+        return grouped_data
+    
+    def join_data(self, data: list[pd.DataFrame], **kwargs) -> pd.DataFrame:
+        return pd.concat(data, **kwargs)
 
     def are_processed(self, experiments: list[Experiment]):
         """

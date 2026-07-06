@@ -37,14 +37,23 @@ class ChronopointsCoreWidget(TafelCoreWidget):
     
     def get_data_from_experiment(self, experiment:Chronoamperometry):
         self.current_x, self.current_y = experiment.get_xy_data(0)
+        self.current_Ru = experiment.Ru
+        self.current_potential = experiment.potential
+        self.current_geometrical_area = experiment.geometrical_area
 
     def plot_on_canvas(self):
         self.canvas.plot_chrono(self.current_x, self.current_y)
+        self.canvas.set_Ru_and_potential_and_area(self.current_Ru, self.current_potential, self.current_geometrical_area)
     
     def create_analysis(self):
         from core.experiments.analysis import ChronopointAnalysis
 
-        data_to_add = self.make_row_multiindex(self.data, columns = ['T [s]', 'J_GEO [A/cm2]']) 
+        if len(self.data[0]) == 3:
+            columns =  ['T [s]', 'E_iR vs RHE [V]', 'J_GEO [A/cm2]']
+        elif len(self.data[0]) == 2:
+            columns =  ['T [s]', 'J_GEO [A/cm2]']
+
+        data_to_add = self.make_row_multiindex(self.data, columns = columns) 
         data = {'Chronopoints': data_to_add}
         name = analysis_manager.ask_for_analysis_name(self.default_analysis_prefix)
         if name:

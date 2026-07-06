@@ -180,10 +180,13 @@ class ExperimentPanel(QWidget):
         self.action_save_all.setShortcut("Ctrl+Shift+S")
         self.action_save_all.triggered.connect(self.save_all)
 
+        self.action_create_multiindexes = QAction(QIcon(":disk.png"), 'Create multiindexes', self)
+        self.action_create_multiindexes.triggered.connect(self.create_multiindexes)
+
 
     def get_actions(self):
         action_dict = {'file': [self.action_load_files, self.action_load_folder, self.action_delete, self.action_copy, self.action_save_all],
-                       'edit': [self.action_set_tag],
+                       'edit': [self.action_set_tag, self.action_create_multiindexes],
                        'selection': [self.action_expand_all, self.action_select_samples, self.action_select_experiments],
                        'analysis': [self.action_double_layer, self.action_overpotentials, self.action_tafel, self.action_chronopoints]
         }
@@ -191,6 +194,17 @@ class ExperimentPanel(QWidget):
     # =========================================================================
     # TRANSLATOR INDEKSÓW (SERCE ARCHITEKTURY)
     # =========================================================================
+    def create_multiindexes(self):
+        from .test_origin import create_sheet, create_book
+        _, sample_objects, _ = self._get_business_objects_from_selection()
+        multiindex = self.manager.create_multiindexes(sample_objects[0])
+
+        workbook = create_book(sample_objects[0].sample_name)
+        for multi_name, multi_i in multiindex.items():
+            joined_multi = self.manager.join_data(multi_i, axis = 1)
+            create_sheet(joined_multi, sheet_name = '_'.join(multi_name), workbook = workbook, comment = 'XD')
+        
+
 
     def save_all(self):
         sample_items = self.select_all_samples()

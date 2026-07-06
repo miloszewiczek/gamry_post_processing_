@@ -635,11 +635,19 @@ class ChronopointCanvas(FigureCanvas):
         self.selected_point, = self.ax.plot([self.selected_x], [self.selected_y], 'ro', markersize = 8)
         self.ax.set_title(f'Time: {self.selected_x}   Current density: {round(self.selected_y*1000, 2)} [mA/cm²]')
 
+        if self.Ru != 0:
+            self.selected_potential = self.potential - self.Ru*self.selected_y*self.geometrical_area
+
 
         if self.callback:
             self.callback()
 
         self.draw_idle()
+
+    def set_Ru_and_potential_and_area(self, Ru:float, potential: float, geometrical_area:float):
+        setattr(self, 'Ru', Ru)
+        setattr(self, 'potential', potential)
+        setattr(self, 'geometrical_area', geometrical_area)
 
 
     def clear_lines(self, ax):
@@ -656,7 +664,10 @@ class ChronopointCanvas(FigureCanvas):
             return False
 
     def get_data(self):
-        return self.selected_x, self.selected_y
+        if hasattr(self, 'selected_potential'):
+            return self.selected_x, self.selected_potential, self.selected_y,
+        else:            
+            return self.selected_x, self.selected_y,
 
 
 

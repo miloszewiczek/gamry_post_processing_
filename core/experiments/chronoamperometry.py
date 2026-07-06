@@ -144,3 +144,7 @@ class Chronoamperometry(Experiment):
     def default_y(self) -> str:
         """Dla Chronoamperometrii osią Y jest gęstość prądu."""
         return 'J_GEO [A/cm2]'
+    
+    @property
+    def potential(self) -> float:
+        return self.meta_data['VSTEP2'] + self.reference_potential

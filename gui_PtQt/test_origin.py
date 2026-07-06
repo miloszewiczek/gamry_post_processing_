@@ -2,29 +2,44 @@ import originpro as op
 import pandas as pd
 
 
-def create_sheet(df):
+def create_book(book_name: str) -> op.WBook:
+    op.set_show(True)
+    wbk = op.new_book('w', lname = book_name)
+    return wbk
+
+def create_sheet(df, workbook:op.WBook, sheet_name="Dane", comment = ''):
+    """Tworzy nowy arkusz w określonym skoroszycie Origin.
+
+    :param df: DataFrame z MultiIndexem w kolumnach
+    :param sheet_name: Nazwa nowego arkusza
+    :param book: Obiekt skoroszytu (op.WBook) lub string z nazwą.
+                 Jeśli None, tworzy NOWY skoroszyt.
+    """
     df_flat = df.copy()
     df_flat.columns = [f"Col {i}" for i in range(len(df.columns))]
 
-    # 3. Przygotowanie arkusza w Origin
+    # 3. Przygotowanie/Wybór skoroszytu i arkusza
     op.set_show(True)
-    wks = op.new_sheet("w")
+
+    # Logika zarządzania skoroszytem (Workbook)
+
+    # Tworzenie arkusza (Worksheet) w TYM konkretnym skoroszycie
+    wks = workbook.add_sheet(sheet_name)
+
     wks.from_df(df_flat)
 
     # 4. AUTOMATYCZNE PRZENOSZENIE NAZW I WARTOŚCI MULTIINDEXU
-    # Iterujemy po wszystkich poziomach indeksu kolumn
     for level_idx, level_name in enumerate(df.columns.names):
-
-        # Pobieramy całą listę wartości dla danego poziomu (np. ['Exp1', 'Exp1', 'Exp2', 'Exp2'])
         level_values = df.columns.get_level_values(level_idx).tolist()
-
-        # Opcja A: Chcesz wrzucić to jako standardowy wiersz metadanych (np. Comments dla poziomu 0, Long Name dla poziomu 1)
-        # label_type = 'C' if level_idx == 0 else 'L'
-        # wks.set_labels(level_values, label_type)
-
-        # Opcja B (Najlepsza): Tworzymy dedykowany wiersz o nazwie takiej jak w Pandas!
-        # Jeśli poziom nie ma nazwy (jest None), dajemy nazwę domyślną
         row_name = level_name if level_name else f"Level_{level_idx}"
 
-        # set_labels ustawia wartości dla CAŁEGO wiersza na raz (nie trzeba pętli po kolumnach!)
+        if level_name == 'Parameter':
+            row_name = 'L'
+            
+
         wks.set_labels(level_values, type_=f"{row_name}")
+
+    comments_to_set = [comment for i in range(len(df.columns))]
+    wks.set_labels(comments_to_set, type_ = 'C')
+
+    return workbook  # Zwracamy obiekt skoroszytu, żeby móc do niego dodawać kolejne sheety
