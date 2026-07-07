@@ -49,40 +49,6 @@ class Chronoamperometry(Experiment):
         return curve[['T [s]', 'E vs RHE [V]', 'J_GEO [A/cm2]']]
 
 
-    def get_current_at_time(self, time):
-        '''Method to get current at specific time. This functionality is mainly for 
-        sampled voltammetry, where one wishes to eliminate the non-faradaic currents.
-        
-        Args:
-        self (Chronoamperometry): i-E data, meta_data containing the applied potential
-        time (Float or Int): the timestamp at which the current is read. Must be within the time limits
-        
-        Returns:
-        current (float)
-        '''
-
-        for curve in self.data_list:
-            maximum_time = curve['T'].iloc[-1]
-            if time > maximum_time:
-                time_input = ask_user(messages.input_messages['time_not_in_range'], (float, int), time_in_seconds = maximum_time)
-                return self.get_current_at_time(time_input)
-
-            if time == -1:
-                closest_index = -1
-                self.time = curve.iloc[-1]['T']
-            else:
-                closest_index = (curve['T'] - time).abs().idxmin()
-                self.time = curve.iloc[closest_index]['T']
-                
-            self.potential = self.meta_data['VSTEP2'] + self.reference_potential - curve.iloc[closest_index]['Im'] * self.Ru
-        
-            current_density = curve.iloc[closest_index]['J_GEO [A/cm2]']
-
-            
-            self.current_density = current_density
-            return current_density
-        
-
     def pick_current(self):
 
         current = self.data_list[0]['Im']

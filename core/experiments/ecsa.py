@@ -112,13 +112,3 @@ class ECSA(Voltammetry):
         #return {'Difference(s)': self.diff, 'Integral': self.integral}
         return results_dict
     
-    def perform_postprocessing(self):
-    
-        self.diff = []
-        for potential in settings.options['potential']:
-            print(messages.processing_messages['line_method_potential'].format(potential = potential))
-            self.diff.append(self.calculate_difference_at_potential(potential = potential)) 
-
-        self.integral = self.calculate_CDL_integral()
-        
-        return (self.file_path, self.meta_data['SCANRATE'], self.diff, self.integral)

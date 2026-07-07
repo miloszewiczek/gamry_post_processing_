@@ -286,6 +286,7 @@ class DoubleLayerCoreWidget(TafelCoreWidget):
         
         names = ('Tag', 'Sample', 'Cycle', 'Potential [V]')
         self.fitting_data = pd.concat(fitting_data, axis = 0)
+        self.fitting_data.columns.names = ['Parameter']
         multiindex = pd.MultiIndex.from_tuples(multi_index_tuples, names = names)
         self.fitting_data.index = multiindex
 

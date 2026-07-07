@@ -176,6 +176,7 @@ class OverpotentialsWindow(QDialog):
 
         # 2. Tworzymy JEDEN zbiorczy DataFrame dla całej analizy!
         full_df = pd.DataFrame(all_rows_data, columns=point_to_calc, index=m_index)
+        full_df.columns.names = ['Parameter']
         
         # 3. Odejmujemy potencjał odniesienia (Pandas odejmie go automatycznie od każdej komórki)
         overpotentials_vs_reference = full_df - self.reference_potential_line_edit.value()

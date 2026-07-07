@@ -56,7 +56,7 @@ class MeanCalculator(QDialog):
         
 
     def populate(self, experiments:list[Experiment]):
-
+        i = 0
         for experiment in experiments:
             name_item = QStandardItem(experiment.file_name)
             name_item.setData(experiment, Qt.UserRole)
@@ -64,8 +64,14 @@ class MeanCalculator(QDialog):
             check_y = QStandardItem('')
             checks = [check_x, check_y]
         
+            if i == 0:
+                check_x.setCheckState(Qt.CheckState.Checked)
+            else:
+                check_x.setCheckState(Qt.CheckState.Unchecked)
+            i += 1
+            check_y.setCheckState(Qt.CheckState.Checked)
+        
             for check in checks:
-                check.setCheckState(Qt.CheckState.Unchecked)
                 check.setCheckable(True)
                 check.setTextAlignment(Qt.AlignHCenter)
 
@@ -133,7 +139,8 @@ class MeanCalculator(QDialog):
             columns = ['Mean X', 'Std X', 'Mean Y', 'Std Y']
             first_column_names = [self.column_name_x, self.column_name_x, self.column_name_y, self.column_name_y]
             final = zip(columns, first_column_names)
-            final_df.columns = pd.MultiIndex.from_tuples(final)
+            final_df.columns = pd.MultiIndex.from_tuples(final, names = [ 'Statistic', 'Parameter'])
+
             
             name = analysis_manager.ask_for_analysis_name(self.default_analysis_prefix)
             if name:

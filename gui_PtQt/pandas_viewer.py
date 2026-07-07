@@ -112,6 +112,9 @@ class AnalysisViewer(QDialog):
         try:
             grouped = self.object_to_view.groupby(level = ['Tag','Cycle'])
             statistics = grouped.agg(['mean','std'])
+            statistics.columns = statistics.columns.set_names('Statistic', level = -1)
+
+            # add the option to have the data correspond
             self.update_table_data(object_to_view = statistics)
             new_anal = BaseAnalysis(data = statistics)
             analysis_manager.add_analysis(new_anal)
