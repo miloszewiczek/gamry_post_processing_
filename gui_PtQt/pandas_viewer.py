@@ -74,8 +74,11 @@ class AnalysisViewer(QDialog):
 
         main_layout = QVBoxLayout()
 
-        self.add_column_btn = QPushButton('Add Row!')
-        self.group_by_btn = QPushButton('Group by Tag and Cycle')
+        # self.add_column_btn = QPushButton('Add Row!')
+        self.action_group_by = QAction(QIcon(":group.png"), "&Group by Cycle and Tag")
+        self.action_group_by.triggered.connect(self.group_by)
+        self.group_by_btn = QToolButton()
+        self.group_by_btn.setDefaultAction(self.action_group_by)
         self.action_origin_export = QAction(QIcon(":origin.ico"), "Export to &Origin")
         self.action_origin_export.triggered.connect(self.export_to_origin)
 
@@ -84,7 +87,7 @@ class AnalysisViewer(QDialog):
 
         # 3. Opcjonalnie: ustawiasz rozmiar ikony, jeśli domyślny Ci nie odpowiada
         from PyQt5.QtCore import QSize
-        self.to_origin_btn.setIconSize(QSize(20, 20))
+        self.to_origin_btn.setIconSize(QSize(16, 16))
 
         self.parent_name = parent_name
         self.df_name = df_name
@@ -92,10 +95,13 @@ class AnalysisViewer(QDialog):
         self.view = QTableView()
         self.update_table_data(object_to_view)
 
-        main_layout.addWidget(self.group_by_btn)
-        main_layout.addWidget(self.add_column_btn)
+        toolbar_layout = QHBoxLayout()
+        toolbar_layout.addWidget(self.group_by_btn)
+        toolbar_layout.addWidget(self.to_origin_btn)
+
+
+        main_layout.addLayout(toolbar_layout)
         main_layout.addWidget(self.view)
-        main_layout.addWidget(self.to_origin_btn)
         self.setLayout(main_layout)
         self.exec()
     
@@ -107,9 +113,6 @@ class AnalysisViewer(QDialog):
             self.flat_object_to_view = object_to_view.reset_index()
             self.model = PandasModel(self.flat_object_to_view)
             self.view.setModel(self.model)
-            self.add_column_btn.clicked.connect(self.model.insertColumn)
-            self.group_by_btn.clicked.connect(self.group_by)
-            self.to_origin_btn.clicked.connect(self.export_to_origin)
 
     def export_to_origin(self):
         book = create_or_get_book(self.parent_name)
@@ -133,7 +136,7 @@ class AnalysisViewer(QDialog):
             QMessageBox.information(self, 'Ooopsie!', 'Sorry, the dataframe (data table) you provided is not supported yet!')
         
 
-
+        
 
 class DataPreviewDialog(QDialog):
     def __init__(self, experiment, parent=None):

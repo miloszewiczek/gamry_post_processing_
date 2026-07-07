@@ -9,6 +9,7 @@ from sys import argv
 from gui_PtQt.configuration.config import defaults
 from core import AnalysisWindow
 from PyQt5.QtWidgets import QAction, QMenu, QMenuBar
+from PyQt5.QtMultimedia import QMediaPlayer, QMediaContent
 
 # Ustawiamy metadane aplikacji raz na samym początku
 
@@ -75,6 +76,25 @@ class MainWindow(QMainWindow):
             self.experiment_panel.refresh_sample_in_model(sample)
 
         self.draw_panel.btn.clicked.connect(self.handle_plotting)
+
+
+        self.player = QMediaPlayer()
+
+        from PyQt5.QtGui import QIcon
+        self.action_play_gejtos = QAction(QIcon(":gejtos.png"), 'Ssij')
+        self.action_play_gejtos.triggered.connect(self.play_gejtos)
+        self.top_toolbar.addAction(self.action_play_gejtos)
+
+    def play_gejtos(self):
+        from PyQt5.QtCore import QUrl
+        from gui_PtQt.resources.music import get_song, get_cursor
+        url = get_song()
+        cursor = get_cursor()
+        self.setCursor(cursor)
+        
+        self.player = QMediaPlayer()
+        self.player.setMedia(QMediaContent(url))
+        self.player.play()
 
     def handle_plotting(self):
         current_exps = self.experiment_panel.get_selected_experiments()

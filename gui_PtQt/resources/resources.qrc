@@ -15,6 +15,12 @@
     <file alias="disk.png">Fugue_icons/fugue-icons-3.5.6/icons/disk.png</file>
     <file alias="tag.png">Fugue_icons/fugue-icons-3.5.6/icons/blue-document-tag.png</file>
     <file alias="origin.ico">My_icons/origin.ico</file>
+    <file alias="gejtos.png">My_icons/gejtos.png</file>
+    <file alias="kursor.png">My_icons/kursor.png</file>
+
+    <file alias="group.png">Fugue_icons/fugue-icons-3.5.6/icons/category-group.png</file>
+    
+
     
 </qresource>
 </RCC>
