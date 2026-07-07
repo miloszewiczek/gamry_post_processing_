@@ -1,5 +1,6 @@
-from PyQt5.QtWidgets import QLabel, QTableView, QComboBox, QDialog, QVBoxLayout, QHBoxLayout, QPushButton
+from PyQt5.QtWidgets import QLabel, QTableView, QComboBox, QDialog, QVBoxLayout, QHBoxLayout, QPushButton, QAction, QToolButton
 from PyQt5.QtCore import QAbstractTableModel, Qt, QModelIndex
+from PyQt5.QtGui import QIcon
 import pandas as pd
 from gui_PtQt.test_origin import create_sheet, create_or_get_book
 
@@ -74,8 +75,16 @@ class AnalysisViewer(QDialog):
         main_layout = QVBoxLayout()
 
         self.add_column_btn = QPushButton('Add Row!')
-        self.group_by_btn = QPushButton('Group by')
-        self.to_origin_btn = QPushButton('To origin!')
+        self.group_by_btn = QPushButton('Group by Tag and Cycle')
+        self.action_origin_export = QAction(QIcon(":origin.ico"), "Export to &Origin")
+        self.action_origin_export.triggered.connect(self.export_to_origin)
+
+        self.to_origin_btn = QToolButton()
+        self.to_origin_btn.setDefaultAction(self.action_origin_export)
+
+        # 3. Opcjonalnie: ustawiasz rozmiar ikony, jeśli domyślny Ci nie odpowiada
+        from PyQt5.QtCore import QSize
+        self.to_origin_btn.setIconSize(QSize(20, 20))
 
         self.parent_name = parent_name
         self.df_name = df_name
@@ -90,6 +99,7 @@ class AnalysisViewer(QDialog):
         self.setLayout(main_layout)
         self.exec()
     
+
     def update_table_data(self, object_to_view):
         
         # Sprawdzamy, czy to na pewno DataFrame (currentData może być None przy pustym combo)

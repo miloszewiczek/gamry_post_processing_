@@ -14,6 +14,7 @@
     <file alias="overpotential_analysis.png">My_icons/overpotential_analysis.png</file>
     <file alias="disk.png">Fugue_icons/fugue-icons-3.5.6/icons/disk.png</file>
     <file alias="tag.png">Fugue_icons/fugue-icons-3.5.6/icons/blue-document-tag.png</file>
+    <file alias="origin.ico">My_icons/origin.ico</file>
     
 </qresource>
 </RCC>
