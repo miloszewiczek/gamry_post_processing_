@@ -318,7 +318,7 @@ class ExperimentManager():
     def delete_sample(self, sample:Sample):
         for exp in sample:
             self.delete_experiment_by_id(exp.id)
-        self.samples.pop(sample.sample_path)
+        self.samples.pop(str(sample.sample_path))
 
     
     def copy_experiment(self, exp_to_copy, new_id, sample_name = None):

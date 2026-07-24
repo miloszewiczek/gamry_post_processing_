@@ -211,7 +211,7 @@ class ExperimentPanel(QWidget):
         sample_items = self.select_all_samples()
         _, sample_objects, _ = self._get_business_objects_from_selection(sample_items)
         for sample in sample_objects:
-            self.manager.batch_process_selected_experiments(experiment_collectible = sample.experiments, 
+            self.manager.batch_process_selected_experiments(experiment_collecible = sample.experiments, 
                                                             save_name = sample.sample_name,
                                                             save_dir = sample.sample_path)
 

@@ -36,7 +36,7 @@ class MainWindow(QMainWindow):
 
         self.analysis_manager = analysis_manager
 
-        self.setWindowTitle('Milosz PyQt App!')
+        self.setWindowTitle('Gamry Processer')
         self.setMinimumHeight(700)
         self.setMinimumWidth(700)
 
