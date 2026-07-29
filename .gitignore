@@ -6,3 +6,5 @@ core/__pycache__/
 venv/
 .env
 Fugue_icons/*
+gui_PtQt/resources/gamry_music/*
+*.xlsx
