@@ -2,7 +2,7 @@ from PyQt5.QtWidgets import QLabel, QTableView, QComboBox, QDialog, QVBoxLayout,
 from PyQt5.QtCore import QAbstractTableModel, Qt, QModelIndex
 from PyQt5.QtGui import QIcon
 import pandas as pd
-from gui_PtQt.test_origin import create_sheet, create_or_get_book
+#from gui_PtQt.test_origin import create_sheet, create_or_get_book
 
 class PandasModel(QAbstractTableModel):
     def __init__(self, data: pd.DataFrame):

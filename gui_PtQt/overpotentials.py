@@ -98,7 +98,7 @@ class OverpotentialsWindow(QDialog):
         button_layout.addWidget(self.reset_btn)
         button_layout.addWidget(self.calculate_btn)
 
-        self.chosen_current_densities_layout = QVBoxLayout()        
+        self.current_densities_layout = QVBoxLayout()        
 
         main_layout = QVBoxLayout()
         main_layout.addWidget(self.selector)
@@ -106,7 +106,7 @@ class OverpotentialsWindow(QDialog):
         main_layout.addLayout(reference_potentials_layout)
         main_layout.addLayout(current_densities_layout)
         main_layout.addLayout(button_layout)
-        main_layout.addLayout(self.chosen_current_densities_layout)
+        main_layout.addLayout(self.current_densities_layout)
 
         self.setLayout(main_layout)
         self.line_edit.setFocus()
@@ -142,8 +142,8 @@ class OverpotentialsWindow(QDialog):
         sample_experiments_list = self.selector.get_flat_list()
         sample_experiments_dict = self.manager.construct_tree_with_cycles(sample_experiments_list)
 
-        point_to_calc = [float(widget.text()) for widget in self.densities]
-
+        point_to_calc = [float(widget.text()) for widget, area_type in self.densities if area_type.currentText() == 'GEO']
+        ecsa_to_calc = [float(widget.text()) for widget, area_type in self.densities if area_type.currentText() == 'ECSA']
 
         # Listy, w których zbierzemy dane z CAŁEGO folderu / wszystkich próbek
         all_rows_data = []
@@ -154,10 +154,13 @@ class OverpotentialsWindow(QDialog):
                 for exp in experiments:
                 # Pobieramy dane eksperymentu
                     x, y = exp.get_xy_data(0)
-
-                    
                     # Liczymy zbliżone wartości dla zadanych prądów
                     val = calc_closest_value(point_to_calc, y, x, 'first')
+
+                    x_ecsa, y_ecsa = exp.get_ecsa_xy_data(0)
+                    if y_ecsa is not None:
+                        ecsa_val = calc_closest_value(ecsa_to_calc, y_ecsa, x_ecsa, 'first')
+                        val.extend(ecsa_val)
                     all_rows_data.append(val)
 
                     index_tuple = (sample.user_tag, sample.sample_name, f"Cycle {cycle_num}", exp.file_name)
@@ -173,9 +176,11 @@ class OverpotentialsWindow(QDialog):
             multi_index_tuples, 
             names=['Tag', 'Sample', 'Cycle', 'Experiment']
         )
-
+        geo_columns = [str(geo_density) + 'GEO' for geo_density in point_to_calc]
+        ecsa_columns = [str(ecsa_density) + 'ECSA' for ecsa_density in ecsa_to_calc]
+        all_columns = geo_columns + ecsa_columns
         # 2. Tworzymy JEDEN zbiorczy DataFrame dla całej analizy!
-        full_df = pd.DataFrame(all_rows_data, columns=point_to_calc, index=m_index)
+        full_df = pd.DataFrame(all_rows_data, columns=all_columns, index=m_index)
         full_df.columns.names = ['Parameter']
         
         # 3. Odejmujemy potencjał odniesienia (Pandas odejmie go automatycznie od każdej komórki)
@@ -199,15 +204,25 @@ class OverpotentialsWindow(QDialog):
                 except:
                     continue
                 widget_to_add = QLineEdit(str(float_density_in_amps))
-                self.chosen_current_densities_layout.addWidget(widget_to_add)
-                self.densities.append(widget_to_add)
+                type_widget = QComboBox()
+                type_widget.addItem('GEO')
+                type_widget.addItem('ECSA')
+
+                chosen_current_densities_layout = QHBoxLayout() 
+                chosen_current_densities_layout.addWidget(widget_to_add)
+                chosen_current_densities_layout.addWidget(type_widget)
+
+                self.densities.append((widget_to_add, type_widget))
+                self.current_densities_layout.addLayout(chosen_current_densities_layout)
             
             self.line_edit.clear()
 
     def reset(self):
 
-        for widget in self.densities:
+        for widget, type_widget in self.densities:
             self.chosen_current_densities_layout.removeWidget(widget)
+            self.chosen_current_densities_layout.removeWidget(type_widget)
+
             widget.deleteLater()
 
         self.densities.clear()

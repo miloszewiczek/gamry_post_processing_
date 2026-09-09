@@ -123,6 +123,8 @@ class MainWindow(QMainWindow):
                 
             elif group == "analysis":
                 self.left_toolbar.addActions(act_list)
+            elif group == "experiment":
+                self.left_toolbar.addActions(act_list)
 
 if __name__ == '__main__':
 

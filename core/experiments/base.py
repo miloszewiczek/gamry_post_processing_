@@ -31,6 +31,7 @@ class Experiment():
         self.isLoaded = False
         self.isProcessed = False
         self.geometrical_area = 1
+        self.ecsa = 1
         self.reference_potential = 0
         self.Ru = 0
         self._user_tag = None
@@ -106,18 +107,30 @@ class Experiment():
             processed_df (pd.DataFrame): Modified DataFrame.
         """
 
-        curve['J_GEO [A/cm2]'] = curve['Im']/self.geometrical_area
-        curve['I [A]'] = curve['Im']
-        curve['E vs RHE [V]'] = curve['Vf'] + self.reference_potential
-        curve = curve.reset_index(drop=True)
+        processed_columns = [] 
 
+        # potentials 
+
+        curve['E vs RHE [V]'] = curve['Vf'] + self.reference_potential
+        processed_columns.append('E vs RHE [V]')
         if self.Ru != 0:
             curve['E_iR vs RHE [V]'] = curve['Vf'] + self.reference_potential - self.Ru * curve['Im']
-            return curve[['E vs RHE [V]', 'I [A]', 'E_iR vs RHE [V]', 'J_GEO [A/cm2]']]
+            processed_columns.append('E_iR vs RHE [V]')
 
-        processed_df = curve[['E vs RHE [V]', 'I [A]', 'J_GEO [A/cm2]']] 
+        # currents
 
-        return processed_df
+        curve['I [A]'] = curve['Im']
+        curve['J_GEO [A/cm2]'] = curve['Im']/self.geometrical_area
+        processed_columns.extend(['I [A]', 'J_GEO [A/cm2]'])
+
+        if self.ecsa != 1:
+            curve['J_ECSA [A/cm2]'] = curve['Im']/self.ecsa
+            processed_columns.append('J_ECSA [A/cm2]')
+            print('calculating ecsa!')
+        curve = curve.reset_index(drop=True)
+
+
+        return curve[processed_columns] 
 
     def process_data(self, **kwargs) -> list[pd.DataFrame]:
         """
@@ -273,6 +286,31 @@ class Experiment():
         df = self.processed_data[curve_index]
         xy_tuple = df[self.default_x], df[self.default_y]
         
+        return xy_tuple
+
+    def get_ecsa_xy_data(self, curve_index: int) -> tuple[pd.Series, pd.Series]:
+        """
+        Get default x and y columns of a particular curve defined by its index.
+        The data is from processed_data!
+
+        Args:
+            curve_index (int): Index of curve.
+
+        Returns:
+            xy_tuple (tuple[pd.Series, pd.Series]): Tuple contaning two pandas Series
+            corresponding to x and y data, respectively.
+        
+        """
+        if not self.isProcessed:
+            raise RuntimeError("Data not yet processed. Use process_data().")
+        
+        df = self.processed_data[curve_index]
+        if self.ecsa != 1:
+            xy_tuple = df[self.default_x], df['J_ECSA [A/cm2]']
+        else:
+            raise RuntimeError("No ECSA!")
+            return None
+
         return xy_tuple
 
     def get_meta_data(self) -> dict:

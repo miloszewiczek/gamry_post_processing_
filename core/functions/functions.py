@@ -38,7 +38,7 @@ def calculate_ECSA_from_slope(ECSA_experiments: list[ECSA], potential:float, ind
         
         difference = experiment.calculate_difference_at_potential(potential, index=index)
         integral = experiment.calculate_CDL_integral(index=index)
-        scanrate = experiment.meta_data['SCANRATE'] / 1000  # mV -> V/s
+        scanrate = experiment.meta_data['SCANRATE'] / 1000  # mV/s -> V/s
         
         difference_list.append({
             'Scanrate [V/s]': scanrate, 
