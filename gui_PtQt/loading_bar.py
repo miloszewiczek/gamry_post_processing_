@@ -1,3 +1,5 @@
+from core import AnalysisManager
+from numpy.random import multinomial
 import sys
 from pathlib import Path
 from PyQt5.QtWidgets import (QTreeWidget, QWidget, QLayout, QPushButton, QHBoxLayout, 
@@ -68,11 +70,12 @@ class ExperimentPanel(QWidget):
     itemsExported = pyqtSignal(list)
     plotRequested = pyqtSignal(list)
 
-    def __init__(self, loader: ExperimentLoader, manager: ExperimentManager, parent=None, settings=None):
+    def __init__(self, loader: ExperimentLoader, manager: ExperimentManager, analysis_manager: AnalysisManager, parent=None, settings=None):
         super().__init__(parent)
 
         self.loader = loader
         self.manager = manager
+        self.analysis_manager = analysis_manager
         self.settings = settings
         self.expanded_all = False
         
@@ -193,11 +196,16 @@ class ExperimentPanel(QWidget):
 
         self.action_export_samples_to_origin = QAction(QIcon(":origin.ico"), 'Export to Origin', self)
         self.action_export_samples_to_origin.triggered.connect(self.export_samples_to_origin)
+        if sys.platform.startswith('linux'):
+            self.action_export_samples_to_origin.setDisabled(True)
+
+        self.action_export_to_hd5 = QAction(QIcon(":origin.ico"), 'Export to HD5', self)
+        self.action_export_to_hd5.triggered.connect(self.save_both_to_hd5)
 
 
     def get_actions(self):
         action_dict = {'file': [self.action_load_files, self.action_load_folder, self.action_delete, self.action_copy, self.action_save_all],
-                       'edit': [self.action_set_tag, self.action_export_samples_to_origin],
+                       'edit': [self.action_set_tag, self.action_export_samples_to_origin, self.action_export_to_hd5],
                        'selection': [self.action_expand_all, self.action_select_samples, self.action_select_experiments],
                        'analysis': [self.action_double_layer, self.action_overpotentials, self.action_tafel, self.action_chronopoints],
                        'experiment': [self.action_set_ecsa, self.action_open_area_dialog]
@@ -224,8 +232,54 @@ class ExperimentPanel(QWidget):
             workbook = create_or_get_book(sample_object.sample_name)
             for multi_name, multi_i in multiindex.items():
                 joined_multi = self.manager.join_data(multi_i, axis = 1)
+                joined_multi.to_csv('dane.csv')
                 create_sheet(joined_multi, sheet_name = '_'.join(multi_name), workbook = workbook, comment = sample_object.user_tag)
 
+    def get_exp_data_to_hd5(self):
+        from pandas import HDFStore
+        _, sample_objects, _ = self._get_business_objects_from_selection()
+        sample_objects:list[Sample]
+
+        if len(sample_objects) == 0: # if no samples were selected
+            QMessageBox.information(None,
+                                    'Select Samples', 
+                                    'Please select at least one Sample object and try again'
+                                    )
+            return
+
+        hd5_dict = {}
+        for sample_object in sample_objects:
+            # Pobierz bezpieczną nazwę/tag próbki, która posłuży za "katalog" główny
+            sample_name = sample_object.sample_name
+
+            multiindex = self.manager.create_multiindexes(sample_object)
+            for multi_name, multi_i in multiindex.items():
+                joined_multi = self.manager.join_data(multi_i, axis = 1)
+                
+                # (Opcjonalnie) debug
+                # joined_multi.to_csv('dane.csv')
+                
+                # Tworzymy ścieżkę zagnieżdżoną: /Sample_Name/Experiment_Type
+                # HDFStore traktuje slashe '/' jak foldery
+                experiment_type = '_'.join(multi_name)
+                key = f"samples/{sample_name}/{experiment_type}"
+                
+                hd5_dict[key] = joined_multi
+        return hd5_dict
+
+
+
+    def save_both_to_hd5(self):
+        from pandas import HDFStore
+        exp_dict = self.get_exp_data_to_hd5()
+        analysis_dict = self.analysis_manager.get_analysis_to_hd5()
+        exp_dict.update(analysis_dict)
+
+        with HDFStore('test.h5', mode = 'w') as store:
+            for key, data in exp_dict.items():
+                store[key] = data
+
+        
 
     def save_all(self):
         sample_items = self.select_all_samples()

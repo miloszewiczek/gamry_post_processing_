@@ -108,6 +108,17 @@ class AnalysisManager():
     
     def __repr__(self):
         return f'AnalysisManager. Current analyses amount: {len(self.analyses)}'
+
+
+    def get_analysis_to_hd5(self):
+        analyses_to_save = self.get_all()
+        hd5_dict = {}
+        for analysis in analyses_to_save:
+            for name, analysis_df in analysis.get_data().items():
+                    key = f"/analyses/{analysis.name}/{name}"
+                    hd5_dict[key] = analysis_df
+
+        return hd5_dict
     
 analysis_manager = AnalysisManager()
 

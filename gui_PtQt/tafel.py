@@ -144,7 +144,10 @@ class TafelCoreWidget(QWidget):
     def make_column_multiindex(self, list_of_dataframes:list, multiindex_keys: list[tuple] = None):
         if multiindex_keys is None:
             multiindex_keys = self.display_names_to_dataframe
-        return pd.concat(list_of_dataframes, axis = 1, keys = multiindex_keys)
+        column_multiindex = pd.concat(list_of_dataframes, axis = 1, keys = multiindex_keys)
+        column_multiindex.columns.names = ['Tag', 'Sample Name', 'Cycle', 'File name', 'Parameter']
+        
+        return column_multiindex
     
     def make_row_multiindex(self, list_of_tuples:list[tuple], multiindex = None, **kwargs):
         if multiindex is None:

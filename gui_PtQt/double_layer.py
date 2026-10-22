@@ -329,7 +329,7 @@ class DoubleLayerCoreWidget(TafelCoreWidget):
                 data = {'Raw Data': joined_raw_data,
                         'Fitting Data': joined_fitting_data}
                 cdl_analysis = DoubleLayerAnalysis(
-                                                    name=name, 
+                                                    name = name, 
                                                     data = data,
                                                     )   
                 analysis_manager.add_analysis(cdl_analysis)

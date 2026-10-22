@@ -308,8 +308,8 @@ class Experiment():
         if self.ecsa != 1:
             xy_tuple = df[self.default_x], df['J_ECSA [A/cm2]']
         else:
-            raise RuntimeError("No ECSA!")
-            return None
+            print("No ECSA!")
+            return None, None
 
         return xy_tuple
 

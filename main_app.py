@@ -44,8 +44,8 @@ class MainWindow(QMainWindow):
         myLayout = QHBoxLayout()
         splitter = QSplitter(Qt.Orientation.Horizontal)
         
-        self.experiment_panel = ExperimentPanel(self.loader, self.manager)
         self.analysis_window = AnalysisWindow()
+        self.experiment_panel = ExperimentPanel(self.loader, self.manager, self.analysis_manager)
         self.top_toolbar = MainToolbar("Top Toolbar", self)
         self.left_toolbar = MainToolbar("Left Toolbar", self)
         self.addToolBar(Qt.ToolBarArea.LeftToolBarArea, self.left_toolbar)
