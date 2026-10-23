@@ -262,7 +262,7 @@ class ExperimentPanel(QWidget):
                 # Tworzymy ścieżkę zagnieżdżoną: /Sample_Name/Experiment_Type
                 # HDFStore traktuje slashe '/' jak foldery
                 experiment_type = '_'.join(multi_name)
-                key = f"samples/{sample_name}/{experiment_type}"
+                key = f"/samples/{sample_name}/{experiment_type}"
                 
                 hd5_dict[key] = joined_multi
         return hd5_dict
@@ -271,13 +271,15 @@ class ExperimentPanel(QWidget):
 
     def save_both_to_hd5(self):
         from pandas import HDFStore
-        exp_dict = self.get_exp_data_to_hd5()
-        analysis_dict = self.analysis_manager.get_analysis_to_hd5()
-        exp_dict.update(analysis_dict)
-
-        with HDFStore('test.h5', mode = 'w') as store:
-            for key, data in exp_dict.items():
-                store[key] = data
+        file_path, _ = QFileDialog.getSaveFileName(caption = 'Save analyses')
+        if file_path: 
+            exp_dict = self.get_exp_data_to_hd5()
+            analysis_dict = self.analysis_manager.get_analysis_to_hd5()
+            exp_dict.update(analysis_dict)
+            
+            with HDFStore('test.h5', mode = 'w') as store:
+                for key, data in exp_dict.items():
+                    store[key] = data
 
         
 
