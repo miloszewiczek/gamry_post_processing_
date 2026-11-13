@@ -1,6 +1,10 @@
 from core import AnalysisManager
 from numpy.random import multinomial
+import os
 import sys
+import re
+import subprocess
+import pandas as pd
 from pathlib import Path
 from PyQt5.QtWidgets import (QTreeWidget, QWidget, QLayout, QPushButton, QHBoxLayout, 
                              QVBoxLayout, QTreeView, QFileDialog, QMessageBox, 
@@ -21,7 +25,6 @@ from gui_PtQt.pandas_viewer import DataPreviewDialog
 from gui_PtQt.resources import qrc_resources
 
 
-
 class ExperimentInfoDialog(QDialog):
     def __init__(self, experiment:Experiment, parent=None):
         super().__init__(parent)
@@ -30,22 +33,14 @@ class ExperimentInfoDialog(QDialog):
         self.experiment = experiment
 
         layout = QVBoxLayout(self)
-        
-        # FormLayout idealnie nadaje się do par "Etykieta: Wartość"
         form = QFormLayout()
         
         self.experiment.load_meta_data()
         for key, val_tuple in experiment.get_essentials().items():
             val = val_tuple[0]
             form.addRow(f"<b>{key}</b>", QLabel(f"{val}"))
-        # form.addRow("<b>Nazwa:</b>", QLabel(experiment.file_name))
-        # form.addRow("<b>ID:</b>", QLabel(str(experiment.id)))
-        # form.addRow("<b>Folder:</b>", QLabel(experiment.folder))
-        # form.addRow("<b>Klasa:</b>", QLabel(experiment.__class__.__name__))
         
         layout.addLayout(form)
-        
-        # Standardowy przycisk OK
 
         self.btn_change_class = QPushButton("Show Data")
         self.btn_change_class.clicked.connect(self.show_data)
@@ -61,8 +56,6 @@ class ExperimentInfoDialog(QDialog):
     
     def open_with(self):
         open_file_in_system_editor(self.experiment.file_path)
-
-
 
 
 class ExperimentPanel(QWidget):
@@ -105,7 +98,6 @@ class ExperimentPanel(QWidget):
         self.search_layout.addWidget(search_label)
         self.search_layout.addWidget(self.search_input)
 
-
         btn_select_all_shortcut = QShortcut(QKeySequence("Ctrl+A"), self.tree_view)
         btn_select_all_shortcut.setContext(Qt.ShortcutContext.WidgetShortcut)
         btn_select_all_shortcut.activated.connect(self.expand_selection_automatically)
@@ -114,7 +106,6 @@ class ExperimentPanel(QWidget):
         focus_on_filter_shortcut.setContext(Qt.ShortcutContext.WidgetShortcut)
         focus_on_filter_shortcut.activated.connect(self.search_input.setFocus)
 
-        
         treeview_layout = QHBoxLayout()
         treeview_layout.addWidget(self.tree_view)
         
@@ -122,13 +113,10 @@ class ExperimentPanel(QWidget):
         main_layout.addLayout(self.search_layout)
         main_layout.addLayout(treeview_layout)
         
-        # 4. Połączenia Sygnałów UI
-
         self.search_input.textChanged.connect(self.filter_tree)
         self.tree_view.doubleClicked.connect(self.on_double_clicked)
         
         self._init_actions()
-
 
     def _init_actions(self):
         self.action_load_files = QAction(QIcon(":file-load.png"), "&Load Files...", self)
@@ -186,13 +174,10 @@ class ExperimentPanel(QWidget):
         self.action_open_area_dialog = QAction(QIcon(":tag.png"), "Parameters", self)
         self.action_open_area_dialog.setShortcut("Ctrl+W")
         self.action_open_area_dialog.triggered.connect(self._open_area_dialog)
-        
 
         self.action_save_all = QAction(QIcon(":disk.png"), 'Save &All Samples', self)
         self.action_save_all.setShortcut("Ctrl+Shift+S")
         self.action_save_all.triggered.connect(self.save_all)
-
-
 
         self.action_export_samples_to_origin = QAction(QIcon(":origin.ico"), 'Export to Origin', self)
         self.action_export_samples_to_origin.triggered.connect(self.export_samples_to_origin)
@@ -202,15 +187,143 @@ class ExperimentPanel(QWidget):
         self.action_export_to_hd5 = QAction(QIcon(":origin.ico"), 'Export to HD5', self)
         self.action_export_to_hd5.triggered.connect(self.save_both_to_hd5)
 
+        self.action_mini_origin = QAction(QIcon(":origin.ico"), "Mini &Origin Plotter", self)
+        self.action_mini_origin.setShortcut("Alt+5")
+        self.action_mini_origin.triggered.connect(self.open_mini_origin)
+
+        # NOWA AKCJA 1: Kafelek otwierający DearEIS (Alt+6)
+        self.action_deareis = QAction(QIcon(":origin.ico"), "Analiza &EIS (DearEIS)", self)
+        self.action_deareis.setShortcut("Alt+6")
+        self.action_deareis.triggered.connect(self.open_deareis)
+
+        # NOWA AKCJA 2: Zbiorczy zapis wszystkich analiz (CDL, LSV, Tafel) do jednego pliku Excel (.xlsx) pod LabPlot (Alt+7)
+        self.action_save_excel_summary = QAction(QIcon(":disk.png"), "Zapisz &Analizy do Excela (LabPlot)", self)
+        self.action_save_excel_summary.setShortcut("Alt+7")
+        self.action_save_excel_summary.triggered.connect(self.save_summary_to_excel)
 
     def get_actions(self):
-        action_dict = {'file': [self.action_load_files, self.action_load_folder, self.action_delete, self.action_copy, self.action_save_all],
-                       'edit': [self.action_set_tag, self.action_export_samples_to_origin, self.action_export_to_hd5],
-                       'selection': [self.action_expand_all, self.action_select_samples, self.action_select_experiments],
-                       'analysis': [self.action_double_layer, self.action_overpotentials, self.action_tafel, self.action_chronopoints],
-                       'experiment': [self.action_set_ecsa, self.action_open_area_dialog]
+        action_dict = {
+            'file': [self.action_load_files, self.action_load_folder, self.action_delete, self.action_copy, self.action_save_all, self.action_save_excel_summary],
+            'edit': [self.action_set_tag, self.action_export_samples_to_origin, self.action_export_to_hd5, self.action_save_excel_summary],
+            'selection': [self.action_expand_all, self.action_select_samples, self.action_select_experiments],
+            'analysis': [
+                self.action_double_layer,
+                self.action_overpotentials,
+                self.action_tafel,
+                self.action_chronopoints,
+                self.action_mini_origin,
+                self.action_deareis,
+                self.action_save_excel_summary
+            ],
+            'experiment': [self.action_set_ecsa, self.action_open_area_dialog]
         }
         return action_dict
+
+    # =========================================================================
+    # URUCHAMIANIE DEAREIS ORAZ ZBIORCZY ZAPIS PODSUMOWANIA DO EXCELA (.XLSX)
+    # =========================================================================
+    def open_deareis(self):
+        """Uruchamia zewnętrzny program DearEIS w osobnym procesie macOS."""
+        sciezka_deareis = "/Users/jakub/.local/bin/deareis"
+        try:
+            if os.path.exists(sciezka_deareis):
+                subprocess.Popen([sciezka_deareis])
+            else:
+                subprocess.Popen(["uv", "tool", "run", "--python", "3.12", "deareis"])
+        except Exception as e:
+            QMessageBox.warning(self, "Błąd DearEIS", f"Nie udało się uruchomić programu DearEIS:\n{e}")
+
+    def save_summary_to_excel(self):
+        """
+        Zapisuje jeden zbiorczy plik Excel (.xlsx), w którym na osobnych arkuszach
+        znajdują się wyniki CDL, obrobione krzywe LSV, CV oraz inne analizy (do wklejenia w LabPlot).
+        """
+        file_path, _ = QFileDialog.getSaveFileName(
+            self, "Zapisz zbiorcze podsumowanie analiz do Excela",
+            "Podsumowanie_Analiz_CDL_LSV.xlsx", "Pliki Excel (*.xlsx)"
+        )
+        if not file_path:
+            return
+
+        try:
+            # Pobieramy zaznaczone próbki lub wszystkie próbki z drzewa, jeśli nic nie zaznaczono
+            node_type, selected_objs, _ = self._get_business_objects_from_selection()
+            if node_type == "SAMPLE" and selected_objs:
+                sample_objects = selected_objs
+            else:
+                sample_objects = []
+                for r in range(self.model.rowCount()):
+                    item = self.model.item(r)
+                    if item and isinstance(item.data(Qt.UserRole), Sample):
+                        sample_objects.append(item.data(Qt.UserRole))
+
+            zapisane_arkusze = []
+            uzyte_nazwy = set()
+
+            def bezpieczna_nazwa_arkusza(proponowana):
+                czysta = re.sub(r'[\[\]\:\*\?\/\\]', '_', str(proponowana)).strip("_")
+                if not czysta:
+                    czysta = "Arkusz"
+                baza = czysta[:28]
+                nazwa = baza
+                licznik = 1
+                while nazwa.upper() in uzyte_nazwy:
+                    nazwa = f"{baza[:25]}_{licznik}"
+                    licznik += 1
+                uzyte_nazwy.add(nazwa.upper())
+                return nazwa
+
+            def zapisz_df_na_arkusz(writer, df, nazwa_arkusza):
+                if df is None or not isinstance(df, pd.DataFrame) or df.empty:
+                    return
+                df_out = df.copy()
+                if isinstance(df_out.index, pd.MultiIndex) or df_out.index.name is not None:
+                    df_out = df_out.reset_index()
+                if isinstance(df_out.columns, pd.MultiIndex):
+                    df_out.columns = ["_".join(str(c) for c in col if str(c) != "") for col in df_out.columns.values]
+                ark = bezpieczna_nazwa_arkusza(nazwa_arkusza)
+                df_out.to_excel(writer, sheet_name=ark, index=False)
+                zapisane_arkusze.append(ark)
+
+            with pd.ExcelWriter(file_path, engine="xlsxwriter") as writer:
+                # 1. Zapis wszystkich wykonanych analiz z AnalysisManager (np. CDL, Tafel, Overpotentials)
+                try:
+                    analysis_dict = self.analysis_manager.get_analysis_to_hd5()
+                    if isinstance(analysis_dict, dict):
+                        for key, df_val in analysis_dict.items():
+                            czysta_etykieta = key.replace("/analyses/", "").replace("/", "_")
+                            zapisz_df_na_arkusz(writer, df_val, czysta_etykieta)
+                except Exception:
+                    pass
+
+                # 2. Zapis obrobionych wyników z próbek (osobne arkusze dla LSV, ECSA/CV itd.)
+                for sample_obj in sample_objects:
+                    s_name = os.path.basename(str(sample_obj.sample_name))
+                    try:
+                        multiindex = self.manager.create_multiindexes(sample_obj)
+                        for multi_name, multi_i in multiindex.items():
+                            joined_multi = self.manager.join_data(multi_i, axis=1)
+                            typ_exp = "_".join(str(m) for m in multi_name if m)
+                            zapisz_df_na_arkusz(writer, joined_multi, f"{typ_exp}_{s_name}")
+                    except Exception:
+                        continue
+
+            if zapisane_arkusze:
+                lista_txt = "\n• ".join(zapisane_arkusze[:12])
+                QMessageBox.information(
+                    self, "Zapisano podsumowanie analiz",
+                    f"Zapisano plik Excel:\n{file_path}\n\n"
+                    f"Utworzone zakładki ({len(zapisane_arkusze)}):\n• {lista_txt}\n\n"
+                    "Kolumny X i Y z każdego arkusza możesz wklejać bezpośrednio do programu LabPlot."
+                )
+            else:
+                QMessageBox.information(
+                    self, "Brak przeliczonych danych",
+                    "Nie znaleziono zapisanych analiz ani przeliczonych próbek (najpierw kliknij 'Process' na próbkach lub zapisz analizę CDL)."
+                )
+        except Exception as e:
+            QMessageBox.critical(self, "Błąd zapisu Excel", f"Nie udało się zapisać podsumowania:\n{e}")
+
     # =========================================================================
     # TRANSLATOR INDEKSÓW (SERCE ARCHITEKTURY)
     # =========================================================================
@@ -219,7 +332,7 @@ class ExperimentPanel(QWidget):
         _, sample_objects, _ = self._get_business_objects_from_selection()
         sample_objects:list[Sample]
 
-        if len(sample_objects) == 0: # if no samples were selected
+        if len(sample_objects) == 0:
             QMessageBox.information(None,
                                     'Select Samples', 
                                     'Please select at least one Sample object and try again'
@@ -227,7 +340,6 @@ class ExperimentPanel(QWidget):
             return
 
         for sample_object in sample_objects:
-
             multiindex = self.manager.create_multiindexes(sample_object)
             workbook = create_or_get_book(sample_object.sample_name)
             for multi_name, multi_i in multiindex.items():
@@ -240,7 +352,7 @@ class ExperimentPanel(QWidget):
         _, sample_objects, _ = self._get_business_objects_from_selection()
         sample_objects:list[Sample]
 
-        if len(sample_objects) == 0: # if no samples were selected
+        if len(sample_objects) == 0:
             QMessageBox.information(None,
                                     'Select Samples', 
                                     'Please select at least one Sample object and try again'
@@ -249,25 +361,14 @@ class ExperimentPanel(QWidget):
 
         hd5_dict = {}
         for sample_object in sample_objects:
-            # Pobierz bezpieczną nazwę/tag próbki, która posłuży za "katalog" główny
             sample_name = sample_object.sample_name
-
             multiindex = self.manager.create_multiindexes(sample_object)
             for multi_name, multi_i in multiindex.items():
                 joined_multi = self.manager.join_data(multi_i, axis = 1)
-                
-                # (Opcjonalnie) debug
-                # joined_multi.to_csv('dane.csv')
-                
-                # Tworzymy ścieżkę zagnieżdżoną: /Sample_Name/Experiment_Type
-                # HDFStore traktuje slashe '/' jak foldery
                 experiment_type = '_'.join(multi_name)
                 key = f"/samples/{sample_name}/{experiment_type}"
-                
                 hd5_dict[key] = joined_multi
         return hd5_dict
-
-
 
     def save_both_to_hd5(self):
         from pandas import HDFStore
@@ -280,8 +381,6 @@ class ExperimentPanel(QWidget):
             with HDFStore('test.h5', mode = 'w') as store:
                 for key, data in exp_dict.items():
                     store[key] = data
-
-        
 
     def save_all(self):
         sample_items = self.select_all_samples()
@@ -316,11 +415,6 @@ class ExperimentPanel(QWidget):
                 return
 
     def _get_business_objects_from_selection(self, clicked_proxy_index=None) -> tuple[str, list]:
-        """
-        Pobiera aktualnie zaznaczone wiersze i bezpiecznie tłumaczy je na 
-        obiekty domenowe. W przypadku zaznaczenia mieszanego (Sample + Experiment),
-        pyta użytkownika za pomocą okna dialogowego, którą grupę chce wybrać.
-        """
         selection_model = self.tree_view.selectionModel()
         
         if clicked_proxy_index is not None and not isinstance(clicked_proxy_index, bool):
@@ -338,7 +432,6 @@ class ExperimentPanel(QWidget):
         found_experiments = []
         source_indexes = []
 
-        # 1. Segregujemy obiekty z zaznaczenia do odpowiednich list
         for idx in proxy_indices:
             source_index = self.proxy_model.mapToSource(idx)
             source_indexes.append(source_index)
@@ -352,30 +445,23 @@ class ExperimentPanel(QWidget):
                 if obj not in found_experiments:
                     found_experiments.append(obj)
 
-        # 2. LOGIKA DECYZYJNA:
-
-        # Przypadek A: Zaznaczono wyłącznie próbki (Sample)
         if found_samples and not found_experiments:
             return "SAMPLE", found_samples, source_indexes
 
-        # Przypadek B: Zaznaczono wyłącznie eksperymenty (Experiment)
         if found_experiments and not found_samples:
             return "EXPERIMENT", found_experiments, source_indexes
 
-        # Przypadek C: Zaznaczenie MIESZANE -> Wyświetlamy komunikat dla użytkownika
         if found_samples and found_experiments:
             msg_box = QMessageBox(self)
             msg_box.setWindowTitle("Niejasne zaznaczenie")
             msg_box.setText("Zaznaczono jednocześnie Próbki (Foldery) oraz Eksperymenty (Pliki).\n"
                             "Które obiekty chcesz wziąć pod uwagę?")
             
-            # Dodajemy niestandardowe przyciski z rolami
             btn_samples = msg_box.addButton("Tylko Próbki", QMessageBox.ButtonRole.YesRole)
             btn_experiments = msg_box.addButton("Tylko Eksperymenty", QMessageBox.ButtonRole.NoRole)
             btn_cancel = msg_box.addButton("Anuluj", QMessageBox.ButtonRole.RejectRole)
             
             msg_box.exec_()
-            
             clicked_btn = msg_box.clickedButton()
             
             if clicked_btn == btn_samples:
@@ -383,7 +469,7 @@ class ExperimentPanel(QWidget):
             elif clicked_btn == btn_experiments:
                 return "EXPERIMENT", found_experiments, source_indexes
             else:
-                return "NONE", [], "NONE" # Użytkownik anulował akcję
+                return "NONE", [], "NONE"
 
         return "NONE", [], "NONE"
 
@@ -418,7 +504,6 @@ class ExperimentPanel(QWidget):
         
         def process_sample_and_ui():
             self._bulk_process(all_experiments)
-            # Kolorujemy węzły próbek w modelu źródłowym
             items_to_color = []
             for sample in samples:
                 for row in range(self.model.rowCount()):
@@ -429,6 +514,13 @@ class ExperimentPanel(QWidget):
 
         batch_act.triggered.connect(process_sample_and_ui)
         
+        menu.addSeparator()
+        origin_sample_act = menu.addAction("Stylizuj w Mini Origin")
+        origin_sample_act.triggered.connect(self.open_mini_origin)
+
+        excel_summary_act = menu.addAction("Zapisz Analizy do Excela (.xlsx pod LabPlot)")
+        excel_summary_act.triggered.connect(self.save_summary_to_excel)
+
         menu.addSeparator()
         delete_folder_act = menu.addAction("Delete Selected Sample(s)")
         delete_folder_act.triggered.connect(lambda: self._delete_samples_logic(samples))
@@ -462,14 +554,14 @@ class ExperimentPanel(QWidget):
 
         plot_act = menu.addAction('Plot')
         plot_act.triggered.connect(lambda: self.plotRequested.emit(experiments))
+        
+        origin_act = menu.addAction("Stylizuj w Mini Origin")
+        origin_act.triggered.connect(self.open_mini_origin)
 
-
-        #testing 
         from gui_PtQt.mean_calculator import MeanCalculator
         mean_act = menu.addAction('Mean')
         mean_act.triggered.connect(lambda: MeanCalculator(self, experiments))
 
-        # --- SEKCOWI DEDYKOWANE (Rozbudowa np. pod ECSA) ---
         ecsa_exps = [e for e in experiments if getattr(e, 'object_type', None) == 'ECSA' or e.__class__.__name__ == 'ECSA']
         if ecsa_exps:
             menu.addSeparator()
@@ -490,21 +582,22 @@ class ExperimentPanel(QWidget):
             eis_ru_interactive_act = eis_menu.addAction(f"Select Ru Value")
             eis_ru_interactive_act.triggered.connect(lambda x: DataSelector(self.manager, experiments, object_type = EIS, callback = apply))
 
+            eis_deareis_act = eis_menu.addAction("Otwórz w programie DearEIS")
+            eis_deareis_act.triggered.connect(self.open_deareis)
+
             def apply(Ru_value):
                 sample = self.manager.find_sample(experiments[0])
                 for experiment in sample:
                     experiment.set_Ru(Ru_value[0])
                 QMessageBox.information(self, 'Ru set', f'Ru was set to {Ru_value[0]} for sample: \n {sample.sample_name}', QMessageBox.Ok)
 
-                
     def get_and_set_Ru(self, selected_experiment = None):
-            if selected_experiment:
-                Ru_to_set = selected_experiment.get_Ru()
-                sample = self.manager.find_sample(selected_experiment)
-                for exp in sample:
-                    exp.set_Ru(Ru_to_set)
-                QMessageBox.information(self, 'Ru set', f'Ru was set to {Ru_to_set} for sample: \n {sample.sample_name}', QMessageBox.Ok)
-
+        if selected_experiment:
+            Ru_to_set = selected_experiment.get_Ru()
+            sample = self.manager.find_sample(selected_experiment)
+            for exp in sample:
+                exp.set_Ru(Ru_to_set)
+            QMessageBox.information(self, 'Ru set', f'Ru was set to {Ru_to_set} for sample: \n {sample.sample_name}', QMessageBox.Ok)
 
     def copy_selected_items(self):
         node_type, objects, _ = self._get_business_objects_from_selection()
@@ -525,7 +618,6 @@ class ExperimentPanel(QWidget):
                 new_experiment = self.manager.copy_experiment(experiment, new_id=self.loader.get_counter())
                 self.loader.update_counter(1)
                 
-                # Znajdź rodzica tego eksperymentu w modelu źródłowym, aby dodać kopię pod niego
                 for row in range(self.model.rowCount()):
                     parent_item = self.model.item(row)
                     sample_obj = parent_item.data(Qt.UserRole)
@@ -546,7 +638,6 @@ class ExperimentPanel(QWidget):
             for exp in objects:
                 self.manager.delete_experiment_by_id(exp.id)
                 
-                # Usuń wiersz bezpośrednio z modelu źródłowego
                 for r in range(self.model.rowCount()):
                     parent_item = self.model.item(r)
                     if parent_item:
@@ -554,7 +645,6 @@ class ExperimentPanel(QWidget):
                             child_item = parent_item.child(child_row, 0)
                             if child_item and child_item.data(Qt.UserRole) == exp:
                                 parent_item.removeRow(child_row)
-                                # Jeśli rodzic został pusty, usuń go również
                                 if parent_item.rowCount() == 0:
                                     self.model.removeRow(r)
                                 return
@@ -577,13 +667,12 @@ class ExperimentPanel(QWidget):
 
     def double_layer(self):
         from gui_PtQt.double_layer import DoubleLayerDialog
-        # Pobieramy bezpośrednio listę zaznaczonych obiektów eksperymentów
         _, selected_experiments, _ = self._get_business_objects_from_selection()
         filtered = self.manager.filter(selected_experiments, object_type='ECSA')
         sample_experiment_tree = self.manager.construct_tree(filtered)
 
         x = DoubleLayerDialog(sample_experiment_tree, manager = self.manager)
-        if x.exec() == QDialog.accepted:
+        if x.exec() == QDialog.Accepted:
             print('elo')
 
     def overpotentials(self):
@@ -592,7 +681,7 @@ class ExperimentPanel(QWidget):
         filtered = self.manager.filter(selected_experiments, object_type = 'LinearVoltammetry')
         sample_experiment_tree = self.manager.construct_tree(filtered)
         x = OverpotentialsWindow(sample_experiment_tree, manager = self.manager)
-        if x.exec() == QDialog.accepted:
+        if x.exec() == QDialog.Accepted:
             print('naura')
 
     def tafel_analysis(self):
@@ -601,9 +690,8 @@ class ExperimentPanel(QWidget):
         filtered = self.manager.filter(selected_experiments, object_type = 'LinearVoltammetry')
         sample_experiment_tree = self.manager.construct_tree(filtered)
         x = TafelAnalysisWindow(sample_experiment_tree, manager = self.manager)
-        if x.exec() == QDialog.accepted:
+        if x.exec() == QDialog.Accepted:
             print('elo')
-
 
     def chronopoint_analysis(self):
         from gui_PtQt.chronopoints import ChronopointsAnalysisWindow
@@ -611,8 +699,19 @@ class ExperimentPanel(QWidget):
         filtered = self.manager.filter(selected_experiments, object_type = 'Chronoamperometry')
         sample_experiment_tree = self.manager.construct_tree(filtered)
         x = ChronopointsAnalysisWindow(sample_experiment_tree, manager = self.manager)
-        if x.exec() == QDialog.accepted:
+        if x.exec() == QDialog.Accepted:
             print('elo')
+
+    def open_mini_origin(self):
+        from gui_PtQt.mini_origin import MiniOriginDialog
+        _, selected_objects, _ = self._get_business_objects_from_selection()
+        
+        if not selected_objects:
+            QMessageBox.information(self, "Brak zaznaczenia", "Zaznacz co najmniej jeden eksperyment lub próbkę.")
+            return
+
+        dialog = MiniOriginDialog(selected_objects, manager=self.manager, parent=self)
+        dialog.exec()
 
     def on_double_clicked(self, proxy_index):
         if proxy_index.column() != 0:
@@ -636,7 +735,6 @@ class ExperimentPanel(QWidget):
         self.tree_view.update()
 
     def _open_area_dialog(self, experiments: list[Experiment]):
-
         if isinstance(experiments, bool):
             _, experiments_to_process, _ = self._get_business_objects_from_selection()
         else:
@@ -652,7 +750,6 @@ class ExperimentPanel(QWidget):
                 exp.set_potential(data['reference_potential'])
                 exp.set_Ru(data['Ru'])
                 
-                # Aktualizacja tooltipa w UI (szukamy odpowiadającego wiersza w modelu źródłowym)
                 for row in range(self.model.rowCount()):
                     parent = self.model.item(row)
                     for child_row in range(parent.rowCount()):
@@ -671,7 +768,6 @@ class ExperimentPanel(QWidget):
     # =========================================================================
 
     def select_all_samples(self):
-        """Zaznacza absolutnie wszystkie węzły typu Sample na poziomie Proxy."""
         selection_model = self.tree_view.selectionModel()
         root_count = self.proxy_model.rowCount(QModelIndex())
         for row in range(root_count):
@@ -679,7 +775,6 @@ class ExperimentPanel(QWidget):
             selection_model.select(sample_index, QItemSelectionModel.Select | QItemSelectionModel.Rows)
 
     def select_experiment_siblings(self, experiment_proxy_index: QModelIndex):
-        """Zaznacza wszystkie eksperymenty należące do tego samego rodzica na poziomie Proxy."""
         siblings = self.get_siblings(experiment_proxy_index)
         selection_model = self.tree_view.selectionModel()
 
@@ -687,7 +782,6 @@ class ExperimentPanel(QWidget):
             selection_model.select(sibling, QItemSelectionModel.Select | QItemSelectionModel.Rows)
 
     def get_siblings(self, experiment_proxy_index):
-        """Zaznacza wszystkie eksperymenty należące do tego samego rodzica na poziomie Proxy."""
         parent = experiment_proxy_index.parent()
         siblings = []
         if not parent.isValid():
@@ -699,7 +793,6 @@ class ExperimentPanel(QWidget):
         return siblings
 
     def select_all_experiments_globally(self):
-        """Przeszukuje całe drzewo proxy i zaznacza każdy eksperyment u każdego rodzica."""
         selection_model = self.tree_view.selectionModel()
         root_count = self.proxy_model.rowCount(QModelIndex())
         for s_row in range(root_count):
@@ -711,7 +804,6 @@ class ExperimentPanel(QWidget):
         self.tree_view.expandAll()
 
     def expand_selection_automatically(self):
-        """Inteligentny Ctrl+A operujący w całości bezpiecznie na warstwie Proxy."""
         selected = self.tree_view.selectionModel().selectedRows(0)
         if not selected:
             return
@@ -748,14 +840,13 @@ class ExperimentPanel(QWidget):
                 for gsequence in sequence_files:
                     self.manager.set_sequence(sequence_path = gsequence,
                                               sample_name = str(gsequence.parent))
-        
 
     def load_data(self, files:list[Path]):
         sequence_files = []
         for file in files:
             if 'GSequence' in file.suffix:
-                    sequence_files.append(file)
-                    continue
+                sequence_files.append(file)
+                continue
             try:
                 experiment = self.loader.create_experiment(str(file))
                 if experiment is not None:
@@ -806,6 +897,5 @@ class ExperimentPanel(QWidget):
             self.tree_view.collapseAll()
 
     def get_selected_experiments(self):
-        """Zwraca listę unikalnych obiektów eksperymentów z obecnego zaznaczenia (wsparcie wsteczne)."""
         _, objects, _ = self._get_business_objects_from_selection()
         return objects

@@ -8,32 +8,30 @@ from tkinter.filedialog import askopenfilenames, askdirectory
 from random import sample
 
 class ExperimentLoader():
-    '''An interface class to aggregate and manage the experiments. '''
-
     def __init__(self):
-        '''All of the experiments are stored in the variable self.experiments'''
         self.experiments = {}
         self.filtered = {}
         self.list_of_experiments = []
         self.id_counter = 0
         
-        #Default settings, always implemented in the program
         self.experiment_classes = {
-            'IDENTIFIERS':{
-                "MYCIE" : Voltammetry,
-                #"CHRONOA" : Chronoamperometry,
-                #"EIS" : EIS,
-                "HER" : LinearVoltammetry,
-                "ECSA" : ECSA,
+            'IDENTIFIERS': {
+                "MYCIE": Voltammetry,
+                "CHRONOA": Chronoamperometry,
+                "EIS": EIS,                      # Odkomentowane
+                "HER": LinearVoltammetry,
+                "ECSA": ECSA,
                 "Open Circuit Potential": OpenCircuit
-                },
-            'TAGS':{
-                "CV" : Voltammetry,
-                "LSV" : LinearVoltammetry,
-                "CORPOT" : OpenCircuit,
-                "CHRONOA" : Chronoamperometry,
-                "EISPOT": EIS
-                }
+            },
+            'TAGS': {
+                "CV": Voltammetry,
+                "LSV": LinearVoltammetry,
+                "CORPOT": OpenCircuit,
+                "CHRONOA": Chronoamperometry,
+                "EISPOT": EIS,
+                "EISGALV": EIS,                  # Dodany wariant galwanostatyczny
+                "EIS": EIS                       # Dodany ogólny tag EIS
+            }
         }
     
     def update_counter(self, delta):
@@ -112,59 +110,80 @@ class ExperimentLoader():
         return self.populate_list_of_experiments(files)
 
         
-    def create_experiment(self, file_path, manager = None) -> Experiment:
-        '''Factory function to create the experiment and store it in a manager.
-        Depending on the TAG of the .DTA file, it creates a different experiment object characterized by different data processing methods.'''
+    def create_experiment(self, file_path, manager=None) -> Experiment:
+        '''Factory function to create the experiment and store it in a manager.'''
 
-
-        with open(file_path, 'r') as tmp_experiment:
+        # 1. Bezpieczne kodowanie Windows-1252 z ignorowaniem błędów znaków specjalnych (°C, omy itp.)
+        with open(file_path, 'r', encoding='cp1252', errors='replace') as tmp_experiment:
             lines = tmp_experiment.readlines()
 
-            if len(lines) == 0:
-                return
+        if len(lines) == 0:
+            return None
 
-            for line in lines:
-                if 'TAG' in line:
-                    experiment_tag = line.split()[1]
-                if 'TITLE' in line:
-                    match = re.search(r'LABEL\s+(.*?)\s+Test Identifier', line)
-                    
-                    #when experiment is not from GamryWizard the line changes to Test &Identifier for some reason
-                    if match is None:
-                        match = re.search(r'LABEL\s+(.*?)\s+Test &Identifier', line)                        
+        experiment_tag = None
+        experiment_identifier = None
+        date_time = None
+        experiment_date = None
+        experiment_time = None
 
-                    experiment_identifier = match.group(1)
-                if 'DATE' in line:
-                    experiment_date = line.split()[2]
-                if 'TIME' in line:
-                    experiment_time = line.split()[2]
-                    try:
-                        date_time = datetime.strptime(experiment_date + ' ' + experiment_time, '%d.%m.%Y  %H:%M:%S')
-                    except ValueError:
-                        date_time = datetime.strptime(experiment_date + ' ' + experiment_time, '%m/%d/%Y  %H:%M:%S')
+        # 2. Bezpieczne parsowanie nagłówka (przeszukujemy pierwsze 60 linii zamiast przerywać za wcześnie)
+        for line in lines[:80]:
+            if 'TAG' in line and not experiment_tag:
+                parts = line.split()
+                if len(parts) > 1:
+                    experiment_tag = parts[1]
+
+            if 'TITLE' in line and not experiment_identifier:
+                match = re.search(r'LABEL\s+(.*?)\s+Test &?Identifier', line)
+                if match:
+                    experiment_identifier = match.group(1).strip()
+
+            if 'DATE' in line and not experiment_date:
+                parts = line.split()
+                if len(parts) > 2:
+                    experiment_date = parts[2]
+
+            if 'TIME' in line and not experiment_time:
+                parts = line.split()
+                if len(parts) > 2:
+                    experiment_time = parts[2]
+
+            # Kończymy szukanie dopiero, gdy znajdziemy wszystkie kluczowe parametry
+            if experiment_tag and experiment_identifier and experiment_date and experiment_time:
+                break
+
+        # Parsowanie daty
+        if experiment_date and experiment_time:
+            for fmt in ('%d.%m.%Y %H:%M:%S', '%m/%d/%Y %H:%M:%S', '%d/%m/%Y %H:%M:%S', '%Y-%m-%d %H:%M:%S'):
+                try:
+                    date_time = datetime.strptime(f"{experiment_date} {experiment_time}", fmt)
                     break
+                except ValueError:
+                    pass
+        
+        if date_time is None:
+            date_time = datetime.now()
 
         experiment_id = self.id_counter
         self.update_counter(+1)
 
-        #RETURNS DIFFERENT CLASS DEPDENDING ON THE IDENTIFIER AND TAG
-        experiment_class = self.get_experiment_class(experiment_identifier = experiment_identifier,
-                                                     experiment_tag = experiment_tag)
+        experiment_class = self.get_experiment_class(
+            experiment_identifier=experiment_identifier,
+            experiment_tag=experiment_tag
+        )
         
-        #OLD FUNCTION, RETURNS CYCLE NUMBER
         experiment_keys = self.parse_filename(file_path)
 
-        
-        #CREATION OF EXPERIMENT INSTNANCE
-        experiment = experiment_class(file_path = file_path,
-                        date_time = date_time,
-                        id = experiment_id,
-                        tag = experiment_identifier,
-                        cycle = experiment_keys[1])
+        experiment = experiment_class(
+            file_path=file_path,
+            date_time=date_time,
+            id=experiment_id,
+            tag=experiment_identifier if experiment_identifier else (experiment_tag or "UNKNOWN"),
+            cycle=experiment_keys[1] if experiment_keys else None
+        )
 
         if manager is not None:
             manager.update(experiment)
-            print(self.id_counter, manager.counter)
 
         return experiment
                     
