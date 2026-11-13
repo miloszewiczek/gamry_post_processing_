@@ -117,8 +117,10 @@ class ExperimentLoader():
         Depending on the TAG of the .DTA file, it creates a different experiment object characterized by different data processing methods.'''
 
 
-        with open(file_path, 'r') as tmp_experiment:
+        with open(file_path, 'r', encoding = 'iso-8859-1') as tmp_experiment:
+            print('Pringiting lines now:')
             lines = tmp_experiment.readlines()
+
 
             if len(lines) == 0:
                 return
