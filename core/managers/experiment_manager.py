@@ -247,7 +247,11 @@ class ExperimentManager():
         self.samples[sample_name].add_experiment(experiment)
         self.dict_of_experiments[experiment.id] = experiment
         return self.samples[sample_name]
-    
+
+    def restore_experiments(self, sample_dict, experiment_dict):
+        self.samples = sample_dict
+        self.dict_of_experiments = experiment_dict
+
     def set_sequence(self, sequence_path, sample_name):
         
         if sample_name not in self.samples:
@@ -495,3 +499,4 @@ class ExperimentManager():
         for experiment in experiments:
             if not experiment.isProcessed:
                 experiment.process_data()
+

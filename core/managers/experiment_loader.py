@@ -114,9 +114,13 @@ class ExperimentLoader():
         '''Factory function to create the experiment and store it in a manager.'''
 
         # 1. Bezpieczne kodowanie Windows-1252 z ignorowaniem błędów znaków specjalnych (°C, omy itp.)
-        with open(file_path, 'r', encoding='cp1252', errors='replace') as tmp_experiment:
-            lines = tmp_experiment.readlines()
-
+        try:
+            with open(file_path, 'r', encoding='cp1252', errors='replace') as tmp_experiment:
+                lines = tmp_experiment.readlines()
+        except:
+            with open(file_path, 'r', encoding = 'iso-8859-1') as tmp_experiment:
+                print('Pringiting lines now:')
+                lines = tmp_experiment.readlines()
         if len(lines) == 0:
             return None
 
