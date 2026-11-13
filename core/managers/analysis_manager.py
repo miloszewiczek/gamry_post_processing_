@@ -120,6 +120,13 @@ class AnalysisManager():
 
         return hd5_dict
     
+    def get_analyses(self):
+        return self._analyses
+
+    def restore_analyses(self, analyses_list):
+        for analysis in analyses_list:
+            self.add_analysis(analysis)
+
 analysis_manager = AnalysisManager()
 
 

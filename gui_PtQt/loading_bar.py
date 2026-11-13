@@ -143,6 +143,12 @@ class ExperimentPanel(QWidget):
         self.action_delete.setShortcut("Delete")
         self.action_delete.triggered.connect(self.delete_selected_items)
 
+        self.action_save_pickle = QAction(QIcon(":file-load.png"), "Save to &Pickle...", self)
+        self.action_save_pickle.triggered.connect(self.save_to_pickle)
+
+        self.action_load_pickle = QAction(QIcon(':file-load.png'), 'Load P&ickle object')
+        self.action_load_pickle.triggered.connect(self.restore_pickle)
+
         self.action_expand_all = QAction(QIcon(":expand.png"), "&Expand/Collapse all", self)
         self.action_expand_all.setShortcut("Ctrl+E")
         self.action_expand_all.triggered.connect(self.toggle_expand)
@@ -204,7 +210,8 @@ class ExperimentPanel(QWidget):
 
 
     def get_actions(self):
-        action_dict = {'file': [self.action_load_files, self.action_load_folder, self.action_delete, self.action_copy, self.action_save_all],
+        action_dict = {'file': [self.action_load_files, self.action_load_folder, self.action_delete, self.action_copy, self.action_save_all,
+        self.action_load_pickle, self.action_save_pickle],
                        'edit': [self.action_set_tag, self.action_export_samples_to_origin, self.action_export_to_hd5],
                        'selection': [self.action_expand_all, self.action_select_samples, self.action_select_experiments],
                        'analysis': [self.action_double_layer, self.action_overpotentials, self.action_tafel, self.action_chronopoints],
@@ -780,6 +787,17 @@ class ExperimentPanel(QWidget):
             self.model.appendRow(parent_item)
         
         parent_item.setRowCount(0)
+        color = 'yellow'
+        
+        process_status = [exp.isProcessed for exp in sample]
+        if all(process_status):
+            color = 'green'
+        elif any(process_status):
+            color = 'yellow'
+        elif not all(process_status):
+            color = 'red'
+
+        parent_item.setForeground(QColor(color))
         for exp in sample.experiments:
             self.add_experiment_to_item(parent_item, exp)
 
@@ -788,6 +806,10 @@ class ExperimentPanel(QWidget):
         child_class = QStandardItem(exp.__class__.__name__)
         child_id = QStandardItem(str(exp.id))
         child_name.setData(exp, Qt.UserRole)
+        
+        if hasattr(exp, 'processed_data'):
+            child_name.setForeground(QColor('green'))
+
         parent_item.appendRow([child_name, child_class, child_id])
 
     def toggle_expand(self):
@@ -809,3 +831,31 @@ class ExperimentPanel(QWidget):
         """Zwraca listę unikalnych obiektów eksperymentów z obecnego zaznaczenia (wsparcie wsteczne)."""
         _, objects, _ = self._get_business_objects_from_selection()
         return objects
+
+    def restore_pickle(self, pickle_obj_path):
+        import pickle
+        with open('pickle_test.pkl', 'rb') as f:
+            restored_data_dict = pickle.load(f)
+
+        samples = restored_data_dict['samples']
+        analyses = restored_data_dict['analyses']
+        dict_of_experiments = restored_data_dict['dict_of_experiments']
+        self.manager.restore_experiments(samples, dict_of_experiments)
+        for sample_obj in samples.values():
+            self.refresh_sample_in_model(sample_obj)
+        self.analysis_manager.restore_analyses(analyses)
+
+    def save_to_pickle(self):
+        import pickle
+        analyses_obj = self.analysis_manager.get_analyses()
+        samples_obj = self.manager.samples
+        dict_of_experiments_obj = self.manager.dict_of_experiments
+
+        data_dict = {
+                                                'samples': samples_obj,
+                                                'analyses': analyses_obj,
+                                                'dict_of_experiments': dict_of_experiments_obj}
+
+        with open('pickle_test.pkl', 'wb') as f:
+            pickle.dump(data_dict, f)
+
