@@ -131,10 +131,10 @@ class ExperimentPanel(QWidget):
         self.action_delete.setShortcut("Delete")
         self.action_delete.triggered.connect(self.delete_selected_items)
 
-        self.action_save_pickle = QAction(QIcon(":file-load.png"), "Save to &Pickle...", self)
+        self.action_save_pickle = QAction(QIcon(":leaf-plus.png"), "Save to &Pickle...", self)
         self.action_save_pickle.triggered.connect(self.save_to_pickle)
 
-        self.action_load_pickle = QAction(QIcon(':file-load.png'), 'Load P&ickle object')
+        self.action_load_pickle = QAction(QIcon(':file-arrow.png'), 'Load P&ickle object')
         self.action_load_pickle.triggered.connect(self.restore_pickle)
 
         self.action_expand_all = QAction(QIcon(":expand.png"), "&Expand/Collapse all", self)
