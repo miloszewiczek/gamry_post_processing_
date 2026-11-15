@@ -17,6 +17,8 @@
     <file alias="parameters.png">Fugue_icons/fugue-icons-3.5.6/icons/ui-scroll-pane-block.png</file>
     <file alias="mini_origin.png">Fugue_icons/fugue-icons-3.5.6/icons/color.png</file>
 
+
+    <file alias="lab_plot.png">My_icons/lab_plot.png</file>
     <file alias="dear_eis.png">My_icons/dear_eis.png</file>
     <file alias="save_hd5.png">My_icons/save_hd5.png</file>
     <file alias="set_ecsa.png">My_icons/set_ecsa.png</file>

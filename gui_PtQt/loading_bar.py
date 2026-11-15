@@ -203,7 +203,7 @@ class ExperimentPanel(QWidget):
         self.action_deareis.triggered.connect(self.open_deareis)
 
         # NOWA AKCJA 2: Zbiorczy zapis wszystkich analiz (CDL, LSV, Tafel) do jednego pliku Excel (.xlsx) pod LabPlot (Alt+7)
-        self.action_save_excel_summary = QAction(QIcon(":disk.png"), "Zapisz &Analizy do Excela (LabPlot)", self)
+        self.action_save_excel_summary = QAction(QIcon(":lab_plot.png"), "Zapisz &Analizy do Excela (LabPlot)", self)
         self.action_save_excel_summary.setShortcut("Alt+7")
         self.action_save_excel_summary.triggered.connect(self.save_summary_to_excel)
 
