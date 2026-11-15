@@ -16,7 +16,7 @@ from PyQt5.QtCore import Qt, QAbstractTableModel, QItemSelection, QItemSelection
 
 from core import ExperimentLoader, ExperimentManager, Experiment
 from core.functions.gui_functions import open_file_in_system_editor, open_folder_in_explorer, get_files_from_folder
-from core.functions.gui_functions import load_data, load_files, load_folder, CustomMultiFolderDialog
+from core.functions.gui_functions import load_data, load_files, load_folder, get_save_filename, get_file, CustomMultiFolderDialog
 from gui_PtQt.calculate_diameter import AreaDialogBox, AreaDialog
 from gui_PtQt.configuration.config import icon_path
 from core.experiments.sample import Sample
@@ -925,8 +925,13 @@ class ExperimentPanel(QWidget):
 
     def restore_pickle(self, pickle_obj_path):
         import pickle
-        with open('pickle_test.pkl', 'rb') as f:
-            restored_data_dict = pickle.load(f)
+
+        file_name = get_file()
+        if file_name:
+            with open(file_name.with_suffix('.pkl'), 'rb') as f:
+                restored_data_dict = pickle.load(f)
+        else:
+            return
 
         samples = restored_data_dict['samples']
         analyses = restored_data_dict['analyses']
@@ -947,6 +952,8 @@ class ExperimentPanel(QWidget):
                                                 'analyses': analyses_obj,
                                                 'dict_of_experiments': dict_of_experiments_obj}
 
-        with open('pickle_test.pkl', 'wb') as f:
-            pickle.dump(data_dict, f)
+        filename = get_save_filename()
+        if filename: 
+            with open(filename.with_suffix('.pkl'), 'wb') as f:
+                pickle.dump(data_dict, f)
 
