@@ -131,10 +131,10 @@ class ExperimentPanel(QWidget):
         self.action_delete.setShortcut("Delete")
         self.action_delete.triggered.connect(self.delete_selected_items)
 
-        self.action_save_pickle = QAction(QIcon(":leaf-plus.png"), "Save to &Pickle...", self)
+        self.action_save_pickle = QAction(QIcon(":leaf_plus.png"), "Save to &Pickle...", self)
         self.action_save_pickle.triggered.connect(self.save_to_pickle)
 
-        self.action_load_pickle = QAction(QIcon(':file-arrow.png'), 'Load P&ickle object')
+        self.action_load_pickle = QAction(QIcon(':leaf_arrow.png'), 'Load P&ickle object')
         self.action_load_pickle.triggered.connect(self.restore_pickle)
 
         self.action_expand_all = QAction(QIcon(":expand.png"), "&Expand/Collapse all", self)
@@ -173,11 +173,11 @@ class ExperimentPanel(QWidget):
         self.action_set_tag.setShortcut("Ctrl+T")
         self.action_set_tag.triggered.connect(self.set_tag)
 
-        self.action_set_ecsa = QAction(QIcon(":tag.png"), "Set ECSA", self)
+        self.action_set_ecsa = QAction(QIcon(":set_ecsa.png"), "Set ECSA", self)
         self.action_set_ecsa.setShortcut("Ctrl+Q")
         self.action_set_ecsa.triggered.connect(self.set_ecsa)
 
-        self.action_open_area_dialog = QAction(QIcon(":tag.png"), "Parameters", self)
+        self.action_open_area_dialog = QAction(QIcon(":parameters.png"), "Parameters", self)
         self.action_open_area_dialog.setShortcut("Ctrl+W")
         self.action_open_area_dialog.triggered.connect(self._open_area_dialog)
 
@@ -190,15 +190,15 @@ class ExperimentPanel(QWidget):
         if sys.platform.startswith('linux'):
             self.action_export_samples_to_origin.setDisabled(True)
 
-        self.action_export_to_hd5 = QAction(QIcon(":origin.ico"), 'Export to HD5', self)
+        self.action_export_to_hd5 = QAction(QIcon(":save_hd5.png"), 'Export to HD5', self)
         self.action_export_to_hd5.triggered.connect(self.save_both_to_hd5)
 
-        self.action_mini_origin = QAction(QIcon(":origin.ico"), "Mini &Origin Plotter", self)
+        self.action_mini_origin = QAction(QIcon(":mini_origin.png"), "Mini &Origin Plotter", self)
         self.action_mini_origin.setShortcut("Alt+5")
         self.action_mini_origin.triggered.connect(self.open_mini_origin)
 
         # NOWA AKCJA 1: Kafelek otwierający DearEIS (Alt+6)
-        self.action_deareis = QAction(QIcon(":origin.ico"), "Analiza &EIS (DearEIS)", self)
+        self.action_deareis = QAction(QIcon(":dear_eis.png"), "Analiza &EIS (DearEIS)", self)
         self.action_deareis.setShortcut("Alt+6")
         self.action_deareis.triggered.connect(self.open_deareis)
 
