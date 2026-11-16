@@ -16,7 +16,7 @@ from PyQt5.QtCore import Qt, QAbstractTableModel, QItemSelection, QItemSelection
 
 from core import ExperimentLoader, ExperimentManager, Experiment
 from core.functions.gui_functions import open_file_in_system_editor, open_folder_in_explorer, get_files_from_folder
-from core.functions.gui_functions import load_data, load_files, load_folder, CustomMultiFolderDialog
+from core.functions.gui_functions import load_data, load_files, load_folder, get_save_filename, get_file, CustomMultiFolderDialog
 from gui_PtQt.calculate_diameter import AreaDialogBox, AreaDialog
 from gui_PtQt.configuration.config import icon_path
 from core.experiments.sample import Sample
@@ -131,10 +131,10 @@ class ExperimentPanel(QWidget):
         self.action_delete.setShortcut("Delete")
         self.action_delete.triggered.connect(self.delete_selected_items)
 
-        self.action_save_pickle = QAction(QIcon(":file-load.png"), "Save to &Pickle...", self)
+        self.action_save_pickle = QAction(QIcon(":leaf_plus.png"), "Save to &Pickle...", self)
         self.action_save_pickle.triggered.connect(self.save_to_pickle)
 
-        self.action_load_pickle = QAction(QIcon(':file-load.png'), 'Load P&ickle object')
+        self.action_load_pickle = QAction(QIcon(':leaf_arrow.png'), 'Load P&ickle object')
         self.action_load_pickle.triggered.connect(self.restore_pickle)
 
         self.action_expand_all = QAction(QIcon(":expand.png"), "&Expand/Collapse all", self)
@@ -173,11 +173,11 @@ class ExperimentPanel(QWidget):
         self.action_set_tag.setShortcut("Ctrl+T")
         self.action_set_tag.triggered.connect(self.set_tag)
 
-        self.action_set_ecsa = QAction(QIcon(":tag.png"), "Set ECSA", self)
+        self.action_set_ecsa = QAction(QIcon(":set_ecsa.png"), "Set ECSA", self)
         self.action_set_ecsa.setShortcut("Ctrl+Q")
         self.action_set_ecsa.triggered.connect(self.set_ecsa)
 
-        self.action_open_area_dialog = QAction(QIcon(":tag.png"), "Parameters", self)
+        self.action_open_area_dialog = QAction(QIcon(":parameters.png"), "Parameters", self)
         self.action_open_area_dialog.setShortcut("Ctrl+W")
         self.action_open_area_dialog.triggered.connect(self._open_area_dialog)
 
@@ -190,20 +190,20 @@ class ExperimentPanel(QWidget):
         if sys.platform.startswith('linux'):
             self.action_export_samples_to_origin.setDisabled(True)
 
-        self.action_export_to_hd5 = QAction(QIcon(":origin.ico"), 'Export to HD5', self)
+        self.action_export_to_hd5 = QAction(QIcon(":save_hd5.png"), 'Export to HD5', self)
         self.action_export_to_hd5.triggered.connect(self.save_both_to_hd5)
 
-        self.action_mini_origin = QAction(QIcon(":origin.ico"), "Mini &Origin Plotter", self)
+        self.action_mini_origin = QAction(QIcon(":mini_origin.png"), "Mini &Origin Plotter", self)
         self.action_mini_origin.setShortcut("Alt+5")
         self.action_mini_origin.triggered.connect(self.open_mini_origin)
 
         # NOWA AKCJA 1: Kafelek otwierający DearEIS (Alt+6)
-        self.action_deareis = QAction(QIcon(":origin.ico"), "Analiza &EIS (DearEIS)", self)
+        self.action_deareis = QAction(QIcon(":dear_eis.png"), "Analiza &EIS (DearEIS)", self)
         self.action_deareis.setShortcut("Alt+6")
         self.action_deareis.triggered.connect(self.open_deareis)
 
         # NOWA AKCJA 2: Zbiorczy zapis wszystkich analiz (CDL, LSV, Tafel) do jednego pliku Excel (.xlsx) pod LabPlot (Alt+7)
-        self.action_save_excel_summary = QAction(QIcon(":disk.png"), "Zapisz &Analizy do Excela (LabPlot)", self)
+        self.action_save_excel_summary = QAction(QIcon(":lab_plot.png"), "Zapisz &Analizy do Excela (LabPlot)", self)
         self.action_save_excel_summary.setShortcut("Alt+7")
         self.action_save_excel_summary.triggered.connect(self.save_summary_to_excel)
 
@@ -925,8 +925,13 @@ class ExperimentPanel(QWidget):
 
     def restore_pickle(self, pickle_obj_path):
         import pickle
-        with open('pickle_test.pkl', 'rb') as f:
-            restored_data_dict = pickle.load(f)
+
+        file_name = get_file()
+        if file_name:
+            with open(file_name.with_suffix('.pkl'), 'rb') as f:
+                restored_data_dict = pickle.load(f)
+        else:
+            return
 
         samples = restored_data_dict['samples']
         analyses = restored_data_dict['analyses']
@@ -947,6 +952,8 @@ class ExperimentPanel(QWidget):
                                                 'analyses': analyses_obj,
                                                 'dict_of_experiments': dict_of_experiments_obj}
 
-        with open('pickle_test.pkl', 'wb') as f:
-            pickle.dump(data_dict, f)
+        filename = get_save_filename()
+        if filename: 
+            with open(filename.with_suffix('.pkl'), 'wb') as f:
+                pickle.dump(data_dict, f)
 

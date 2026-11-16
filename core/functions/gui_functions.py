@@ -183,3 +183,24 @@ class CustomMultiFolderDialog(QFileDialog):
         folder_paths = dialog.get_chosen_folders()
         is_ok = result == QFileDialog.Accepted
         return folder_paths, is_ok
+
+def get_save_filename(parent = None, caption = 'Save file', directory = "", filter = "All files (*)") -> Path:
+    file_name, filter = QFileDialog.getSaveFileName(
+        parent,
+        caption,
+        directory,
+        filter
+    )
+    if file_name:
+        return Path(file_name)
+
+def get_file(parent = None, caption = 'Save file', directory = "", filter = "Pickle file (*.pkl);;All files (*)") -> Path:
+    file_name, filter = QFileDialog.getOpenFileName(
+        parent,
+        caption,
+        directory,
+        filter
+    )
+    if file_name:
+        return Path(file_name)
+
